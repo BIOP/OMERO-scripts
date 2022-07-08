@@ -1,5 +1,3 @@
-#@String(label="Host", value="omero-server.epfl.ch") host
-#@Integer(label="Port", value = 4064) port
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
 #@File(label="Image path") imgPath
@@ -65,8 +63,11 @@
  * 
  */
 
-// Connection to server
+// create the client and connect to the host
 Client user_client = new Client()
+host = "omero-server.epfl.ch"
+port = 4064
+
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
