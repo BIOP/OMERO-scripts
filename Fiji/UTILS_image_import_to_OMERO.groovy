@@ -1,8 +1,8 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
 #@File(label="Image path") imgPath
-#@String(label="Import in", choices={"dataset","well"}) object_type
-#@Long(label="Parent ID", value=119273) id
+//#@String(label="Import in", choices={"dataset","well"}) object_type
+#@Long(label="Dataset ID", value=119273) id
 #@Boolean(label="Show images") showImages
 
 
@@ -74,8 +74,7 @@ if (user_client.isConnected()){
 	println "Connected to "+host +"\n"
 	
 	try{
-		getUserInformation(user_client)
-		img_wpr = importImageOnOmero(user_client)
+		importImageOnOmero(user_client)
 		
 	} finally{
 		user_client.disconnect()
@@ -90,24 +89,6 @@ if (user_client.isConnected()){
 }
 
 
-/**
- * Display information about the logged-in user
- * 
- * input
- * 		user_client : OMERO client
- */
-def getUserInformation(user_client){
-	println "User ID : " + user_client.getId()
-	ExperimenterWrapper ew = user_client.getUser()
-	println "User name : " + ew.getFirstName() + " " + ew.getLastName()
-	println "email : "  + ew.getEmail()
-	println "Institution : " + ew.getInstitution()
-	GroupWrapper[] gw = ew.getGroups().toArray()
-	println "User groups : " 
-	for (GroupWrapper gpw : gw)
-		println "-  " + gpw.getName() + " ; Description : " +gpw.getDescription()
-}
-
 
 /**
  * Import an image on OMERO in the specified dataset/well
@@ -119,25 +100,13 @@ def importImageOnOmero(user_client){
 	// clear Fiji env
 	IJ.run("Close All", "");
 	
-	// Upload Raw Image to OMERO and get newly created ID
-	if(object_type == "dataset"){
-		image_omeroID = user_client.getDataset(id).importImage(user_client, imgPath.toString())
+	image_omeroID = user_client.getDataset(id).importImage(user_client, imgPath.toString())
 		
-		// print imported images
-		image_omeroID.each{println "\n Image '"+  user_client.getImage(it).getName() +"' was uploaded to OMERO with \n - ID : "+ it +
-		"\n - in dataset : " + user_client.getDataset(id).getName()+" (id : "+id+")"+
-		"\n - in project : "+ user_client.getImage(it).getProjects(user_client).get(0).getName()+ " (id : "+ user_client.getImage(it).getProjects(user_client).get(0).getId() +")"}
-	}
-	else{
-		image_omeroID = user_client.getWell(id).importImages(user_client, imgPath.toString())
-		
-		// print imported images
-		image_omeroID.each{println "\n Image '"+  user_client.getImage(it).getName() +"' was uploaded to OMERO with \n - ID : "+ it +
-		"\n - in well : " + user_client.getWell(id).getName()+" (id : "+id+")"+
-		"\n - in plate : "+ user_client.getImage(it).getPlates(user_client).get(0).getName()+ " (id : "+ user_client.getImage(it).getPlates(user_client).get(0).getId() +
-		"\n - in screen : "+ user_client.getImage(it).getScreens(user_client).get(0).getName()+ " (id : "+ user_client.getImage(it).getScreens(user_client).get(0).getId() +")"}
-	}
-	
+	// print imported images
+	image_omeroID.each{println "\n Image '"+  user_client.getImage(it).getName() +"' was uploaded to OMERO with \n - ID : "+ it +
+	"\n - in dataset : " + user_client.getDataset(id).getName()+" (id : "+id+")"+
+	"\n - in project : "+ user_client.getImage(it).getProjects(user_client).get(0).getName()+ " (id : "+ user_client.getImage(it).getProjects(user_client).get(0).getId() +")"}
+
 
 	// Show the imported image
 	if (showImages) IJ.run("Bio-Formats Importer", "open="+imgPath+" autoscale color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");
