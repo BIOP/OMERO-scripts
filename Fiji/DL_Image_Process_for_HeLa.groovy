@@ -2,6 +2,7 @@
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
 #@Long(label="ID", value=119273) id
 #@String(label="Object", choices={"image","dataset","project","well","plate","screen"}) object_type
+#@String(label="Table name", value="ResultsTable") table_name
 #@Boolean(label="Show images") showImages
 #@Boolean(label="Delete existing ROIs") isDeleteExistingROIs
 #@Boolean(label="Delete existing Tables") isDeleteExistingTables
@@ -16,26 +17,36 @@
 /* = CODE DESCRIPTION =
  * This is a template to interact with OMERO . 
  * User can specify the ID of an "image","dataset","project","well","plate","screen"
+ * An image processing pipeline is applied on a dataset of images (HeLa cells). 
+ * Results are then uploaded on OMERO
+ * 
+ * = BEFORE RUNNING =
+ * - Check in "Analyze->Set Measurements..." ONLY the following checkboxes : Area, Mean gray value, Min & max gray value, Perimeter, Display label
+ * 
+ * = DATASET =
+ *  - Downlaod HeLa cells images dataset from this zenodo repository : https://zenodo.org/record/4248921#.Ys0TM4RBybg
+ *  - Import this dataset in OMERO. See the following link to know how to import data on OMERO : https://wiki-biop.epfl.ch/en/Image_Storage/OMERO/Importation
  * 
  * == INPUTS ==
  *  - credentials 
  *  - id 
  *  - object type
+ *  - table name
+ *  - choices to delete existing or import new ROIs/measurements
  * 
  * == OUTPUTS ==
  *  - open the image defined by id (or all images one after another from the dataset/project/... defined by id)
- *  - 
+ *  - Send to OMERO computed ROIs/measurement if defined so.
  * 
  * = DEPENDENCIES =
- *  - omero_ij : https://github.com/ome/omero-insight/releases/download/v5.7.0/omero_ij-5.7.0-all.jar
  *  - simple-omero-client : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
  * 
  * = AUTHOR INFORMATION =
- * Code written by romain guiet, EPFL - SV -PTECH - BIOP 
- * 06.04.2022
+ * Code written by romain guiet and Rémy Dornier, EPFL - SV -PTECH - BIOP 
+ * 12.07.2022
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -202,7 +213,7 @@ def processImage(user_client, img_wpr){
 	if (isSendNewMeasurements){
 		println "New Measurement uploading to Omero"
 		TableWrapper table_wpr = new TableWrapper(user_client, rt_image, img_wpr.getId(), rm.getRoisAsArray() as List)
-		table_wpr.setName(img_wpr.getName()+"_Results_table")
+		table_wpr.setName(img_wpr.getName()+"_"+table_name)
 		img_wpr.addTable(user_client, table_wpr)
 	}	
 }
