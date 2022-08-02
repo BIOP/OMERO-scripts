@@ -24,7 +24,7 @@ To make scripts work, you will need three dependcies :
 
 For `simple-omero-client`, download the latest version of [simple-omero-client-[version].jar](https://github.com/GReD-Clermont/simple-omero-client/releases) and copy it in the folder `C:\QuPath_Common_Data_0.3\extensions`
 
-For the last two dependencies, look at the readme of [qupath-extension-biop-omero](https://github.com/BIOP/qupath-extension-biop-omero) to how to install.
+For the last two dependencies, look at the readme of [qupath-extension-biop-omero](https://github.com/BIOP/qupath-extension-biop-omero) to know how to install.
 
 ### Documentation
 You can find all the documentation on how to use this extension on our [QuPath wiki page](https://wiki-biop.epfl.ch/en/Image_Storage/OMERO/OmeroQuPath).
