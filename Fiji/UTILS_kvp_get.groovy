@@ -17,37 +17,37 @@ Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "Connected to "+host +"\n"
+	println "\nConnected to "+host
 	
 	try{
 		
 		switch (object_type){
 		case "image":	
-			processTag( user_client, user_client.getImage(id) )
+			processKVP( user_client, user_client.getImage(id) )
 			break	
 		case "dataset":
-			processTag( user_client, user_client.getDataset(id) )
+			processKVP( user_client, user_client.getDataset(id) )
 			break
 		case "project":
-			processTag( user_client, user_client.getProject(id) )
+			processKVP( user_client, user_client.getProject(id) )
 			break
 		case "well":
-			processTag( user_client, user_client.getWells(id) )
+			processKVP( user_client, user_client.getWells(id) )
 			break
 		case "plate":
-			processTag( user_client, user_client.getPlates(id))
+			processKVP( user_client, user_client.getPlates(id))
 			break
 		case "screen":
-			processTag( user_client, user_client.getScreens(id))
+			processKVP( user_client, user_client.getScreens(id))
 			break
 		}
 		
 	} finally{
 		user_client.disconnect()
-		println "\n Disonnected "+host
+		println "Disonnected "+host
 	}
 	
-	println "Processing of tags for "+object_type+ " "+id+" : DONE !"
+	println "Processing of key-values for "+object_type+ " "+id+" : DONE !"
 	return
 	
 }else{
@@ -63,23 +63,19 @@ if (user_client.isConnected()){
  * 		wpr : OMERO object wrapper (image, dataset, project, well, plate, screen)
  * 
  * */
-def processTag(user_client, wpr){
-	// get image tags
-	List<TagAnnotationWrapper> image_tags = wpr.getTags(user_client)
-	// sort tags
-	image_tags.sort{it.getName()}
-	// print tags
-	println object_type+" tags\n"
-	image_tags.each{println "Name : " +it.getName()+" (id : "+it.getId()+")"}
-	
-	
-	// get all tags within the group
-	List<TagAnnotationWrapper> group_tags = user_client.getTags()
-	// sort tags
-	group_tags.sort{it.getName()}
-	// print tags
-	println "\ngroup tags\n"
-	group_tags.each{println "Name : " +it.getName()+" (id : "+it.getId()+")"}
+def processKVP(user_client, repository_wpr){
+
+	// get the current key-value pairs
+	List<List<NamedValue>> keyValues = repository_wpr.getMapAnnotations(user_client).stream()
+																	   .map(MapAnnotationWrapper::getContent)
+																	   .toList()
+	for(int i = 0; i< keyValues.size();i++){
+		println "KeyValue group n° "+(i+1)
+		keyValues.get(i).each{
+			println "Key : "+it.name+" ; Value : "+it.value
+		}
+		println ""
+	}
 }
 
 

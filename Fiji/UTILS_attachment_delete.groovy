@@ -17,7 +17,7 @@ Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "Connected to "+host +"\n"
+	println "\nConnected to "+host
 	
 	try{
 		
@@ -44,7 +44,7 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "\n Disonnected "+host
+		println "Disonnected "+host
 	}
 	
 	println "Processing of attachments for "+object_type+ " "+id+" : DONE !"
@@ -71,10 +71,10 @@ def processAttachment(user_client, repository_wpr){
 	if  (repository_wpr.getOwner().getId() == user_client.getUser().getId() ){
 		file_wpr_list.each{file_wpr->
 			if  (file_wpr.getOwner().getId() == user_client.getUser().getId() ){
-					println file_wpr.getName() + " will be deleted"
-					//user_client.delete(file_wpr)
+					println file_wpr.getFileName() + " will be deleted"
+					user_client.delete(file_wpr)
 			}else
-				println file_wpr.getName() + " will NOT be deleted"
+				println file_wpr.getFileName() + " will NOT be deleted"
 		}
 	}else
 		println file_wpr.getName() + " will NOT be deleted"

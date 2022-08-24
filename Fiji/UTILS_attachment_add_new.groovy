@@ -19,7 +19,7 @@ Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "Connected to "+host +"\n"
+	println "\nConnected to "+host
 	
 	try{
 		
@@ -46,7 +46,7 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "\n Disonnected "+host
+		println "Disonnected "+host
 	}
 	
 	println "Processing of attachments for "+object_type+ " "+id+" : DONE !"

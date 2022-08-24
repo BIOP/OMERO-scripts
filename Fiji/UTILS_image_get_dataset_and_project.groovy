@@ -7,11 +7,10 @@ Client user_client = new Client()
 host = "omero-server.epfl.ch"
 port = 4064
 
-Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "Connected "+ host
+	println "\nConnected "+ host
 	
 	try{
 		// Create the image Wrapper object
@@ -19,19 +18,22 @@ if (user_client.isConnected()){
 		
 		// Get dataset information from the image ID
 		List<DatasetWrapper> dataset_wpr_list = img_wpr.getDatasets(user_client)
-		// print dataset ID and dataset name
-		dataset_wpr_list.each{println("dataset name : "+it.getName()+", dataset id : "+it.getId())};
 		
-		// Get dataset information from the image ID
-		List<ProjectWrapper> project_wpr_list = img_wpr.getProjects(user_client)
-		// print dataset ID and dataset name
-		project_wpr_list.each{println("Project name : "+it.getName()+", project id : "+it.getId())};
+		if(!dataset_wpr_list.isEmpty()){
+			dataset_wpr_list.each{println("dataset name : "+it.getName()+", dataset id : "+it.getId())};
+			
+			// Get dataset information from the image ID
+			List<ProjectWrapper> project_wpr_list = img_wpr.getProjects(user_client)
+			project_wpr_list.each{println("Project name : "+it.getName()+", project id : "+it.getId())};
+		}
+		else{
+			println "Warning : Your image is part of a plate/screen, not part of a dataset/project"
+		}
 		
 	} finally{
 		user_client.disconnect()
 		println "Disonnected from "+host
 	}
-	
 }
 
 

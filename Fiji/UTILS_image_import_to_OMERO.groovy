@@ -71,14 +71,14 @@ port = 4064
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "Connected to "+host +"\n"
+	println "\nConnected to "+host
 	
 	try{
 		importImageOnOmero(user_client)
 		
 	} finally{
 		user_client.disconnect()
-		println "\n Disonnected "+host
+		println "Disonnected "+host
 	}
 	
 	println "Importation in OMERO of image "+imgPath.getName()+", in dataset "+user_client.getDataset(id).getName()+" (id "+id+") : DONE !"
@@ -100,13 +100,13 @@ def importImageOnOmero(user_client){
 	// clear Fiji env
 	IJ.run("Close All", "");
 	
+	// import an image on OMERO
 	image_omeroID = user_client.getDataset(id).importImage(user_client, imgPath.toString())
 		
-	// print imported images
+	// print image location on OMERO
 	image_omeroID.each{println "\n Image '"+  user_client.getImage(it).getName() +"' was uploaded to OMERO with \n - ID : "+ it +
 	"\n - in dataset : " + user_client.getDataset(id).getName()+" (id : "+id+")"+
 	"\n - in project : "+ user_client.getImage(it).getProjects(user_client).get(0).getName()+ " (id : "+ user_client.getImage(it).getProjects(user_client).get(0).getId() +")"}
-
 
 	// Show the imported image
 	if (showImages) IJ.run("Bio-Formats Importer", "open="+imgPath+" autoscale color_mode=Default rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT");

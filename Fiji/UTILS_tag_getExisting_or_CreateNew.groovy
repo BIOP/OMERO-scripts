@@ -1,25 +1,75 @@
-#@String(label="Username" , value = "biopstaff") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=true) PASSWORD
-#@String(label="The tag to delete") tag_string
+#@String(label="Username") USERNAME
+#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@Long(label="ID", value=119273) id
+#@String(label="Object", choices={"image","dataset","project","well","plate","screen"}) object_type
 
-Client user_client = new Client();
-user_client.connect("omero-server.epfl.ch", 4064, USERNAME, PASSWORD.toCharArray() );
-println "Connection to Omero : Success"
+/**
+ * Main. Connect to OMERO, process tags and disconnect from OMERO
+ * 
+ */
+ 
+// Connection to server
+host = "omero-server.epfl.ch"
+port = 4064
 
-try{
+Client user_client = new Client()
+user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
-	process(user_client)
-
-} finally{
-	user_client.disconnect()
-	println "Disconnection to Omero , user: Success"
+if (user_client.isConnected()){
+	println "\nConnected to "+host
+	
+	try{
+	
+		switch (object_type){
+			case "image":	
+				processTag( user_client, user_client.getImage(id) )
+				break	
+			case "dataset":
+				processTag( user_client, user_client.getDataset(id) )
+				break
+			case "project":
+				processTag( user_client, user_client.getProject(id) )
+				break
+			case "well":
+				processTag( user_client, user_client.getWells(id) )
+				break
+			case "plate":
+				processTag( user_client, user_client.getPlates(id))
+				break
+			case "screen":
+				processTag( user_client, user_client.getScreens(id))
+				break
+			}
+	
+	} finally{
+		user_client.disconnect()
+		println "Disonnected "+host
+	}
+	println "Processing of key-values for "+object_type+ " "+id+" : DONE !"
+	return
+	
+}else{
+	println "Not able to connect to "+host
 }
 
-def process(user_client){
+def processTag(user_client, repository_wpr){
 	
-	raw_tag = user_client.getTags().find{ it.getName().equals(tag_string) } ?: new TagAnnotationData(tag_string)
-	//tag_wpr = user_client.getTags().find{ it.getName().equals(tag_string) }
-	println raw_tag
+	// get image tags
+	List<TagAnnotationWrapper> image_tags = repository_wpr.getTags(user_client)
+	// sort tags
+	image_tags.sort{it.getName()}
+	// print tags
+	println object_type+" tags"
+	image_tags.each{println "Name : " +it.getName()+" (id : "+it.getId()+")"}
+	
+	
+	// get all tags within the group
+	List<TagAnnotationWrapper> group_tags = user_client.getTags()
+	// sort tags
+	group_tags.sort{it.getName()}
+	// print tags
+	println "\ngroup tags"
+	group_tags.each{println "Name : " +it.getName()+" (id : "+it.getId()+")"}
 }
 
 

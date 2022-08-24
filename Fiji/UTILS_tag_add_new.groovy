@@ -70,7 +70,7 @@ Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "Connected to "+host +"\n"
+	println "\nConnected to "+host
 	
 	try{
 		
@@ -97,7 +97,7 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "\n Disonnected "+host
+		println "Disonnected "+host
 	}
 	
 	println "Adding the tag "+tagName+" for "+object_type+ " "+id+" : DONE !"
@@ -119,6 +119,7 @@ if (user_client.isConnected()){
 def processTag(user_client, wpr){
 	// find if the requested tag already exists
 	new_tag = user_client.getTags().find{ it.getName().equals(tagName) } ?: new TagAnnotationWrapper(new TagAnnotationData(tagName))
+	
 	// add the tag to the image if it is not already the case
 	wpr.getTags(user_client).find{ it.getName().equals(new_tag.getName()) } ?: wpr.addTag(user_client, new_tag)
 }

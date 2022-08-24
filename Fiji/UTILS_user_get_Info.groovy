@@ -16,14 +16,14 @@ port = 4064
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "\n Connected to "+host +"\n"
+	println "\nConnected to "+host
 	
 	try{
 		getUserInformation(user_client)
 		
 	} finally{
 		user_client.disconnect()
-		println "\n Disonnected "+host
+		println "Disonnected "+host
 	}
 	
 	return

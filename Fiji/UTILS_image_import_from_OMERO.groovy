@@ -68,7 +68,7 @@ user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 
 if (user_client.isConnected()){
-	println "\n Connected to "+host
+	println "\nConnected to "+host
 	
 	try{
 		
@@ -95,7 +95,7 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "\n Disonnected "+host
+		println "Disonnected "+host
 	}
 	
 	println "Importation in FIJI of "+object_type+", id "+id+": DONE !"
@@ -121,23 +121,26 @@ def processImage(user_client, image_wpr){
 	// Print image information
 	println "\n Image infos"
 	println ("Image_name : "+image_wpr.getName() + " / id : "+ image_wpr.getId())
-	def datasets = image_wpr.getDatasets(user_client)
+	def dataset_wpr_list = image_wpr.getDatasets(user_client)
 
 	// if the image is part of a dataset
-	if(!datasets.isEmpty()){
-		datasets.each{println("dataset_name : "+it.getName()+" / id : "+it.getId())};
+	if(!dataset_wpr_list.isEmpty()){
+		dataset_wpr_list.each{println("dataset_name : "+it.getName()+" / id : "+it.getId())};
 		image_wpr.getProjects(user_client).each{println("Project_name : "+it.getName()+" / id : "+it.getId())};
 	}
+
+	// TO DECOMMENT WHEN THE RELEASE 5.9.2 OF SIMPLE-OMERO-CLIENT IS AVAILABLE
+	// IF YOU NEED THIS PART OF CODE FOR YOUR APPLICATION, PLEASE CONTACT REMY DORNIER
 	// if the image is part of a plate
 	else {
-		def well = image_wpr.getWells(user_client).get(0)
-		println ("Well_name : "+well.getName() +" / id : "+ well.getId())
+		def well_wpr = image_wpr.getWells(user_client).get(0)
+		println ("Well_name : "+well_wpr.getName() +" / id : "+ well_wpr.getId())
 		
-		def plate = image_wpr.getPlates(user_client).get(0)
-		println ("plate_name : "+plate.getName() + " / id : "+ plate.getId())
+		def plate_wpr = image_wpr.getPlates(user_client).get(0)
+		println ("plate_name : "+plate_wpr.getName() + " / id : "+ plate_wpr.getId())
 
-		def screen = image_wpr.getScreens(user_client).get(0)
-		println ("screen_name : "+screen.getName() + " / id : "+ screen.getId())
+		def screen_wpr = image_wpr.getScreens(user_client).get(0)
+		println ("screen_name : "+screen_wpr.getName() + " / id : "+ screen_wpr.getId())
 	}
 	
 	// Show the imported image
