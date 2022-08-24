@@ -1,18 +1,16 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
-#@Long(label="ID", value=119273) id
-#@String(label="Object", choices={"image","dataset","project","well","plate","screen"}) object_type
-#@File(label="Output folder", value="") outputFolder
-#@Boolean(label="Save as key-values") writeAsKVP
-#@Boolean(label="Show images") showImages
+#@Long(label="Plate ID", value=119273) id
+#@File(label="CSV file of plate info", value="") csvFile
 
 
 /* = CODE DESCRIPTION =
  * - This is a template to interact with OMERO. 
- * - User can specify the ID of an "image","dataset","project","well","plate","screen"
- * - From the user choice, the code lists all the images contained in the object
- * - It generate a csv file with the list of all images (name + id) with their parent folder name (dataset/project or well/plate/screen)
- * - Optionnally, it also saves parent folder name as key-values on OMERO.
+ * - The user enter the plate ID and give the path to his/her csv file containing the plate layout information foamtted as described here:
+ * https://wiki-biop.epfl.ch/en/Image_Storage/OMERO/Importation
+ * - The code reads the csv file and extracts key-values.
+ * - Each of the key-value is then imported on corresponding images on OMERO
+ * - Extra key-values corresponding to images arborescence are also added.
  * 
  * == INPUTS ==
  *  - credentials 
@@ -22,8 +20,7 @@
  *  - display imported image or not
  * 
  * == OUTPUTS ==
- *  - create a csv file with the list of images contained inside the specfied object_type
- *  - key values on OMERO
+ *  - key value on OMERO
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
@@ -58,7 +55,12 @@
  */
 
 /**
- * Main.
+ * Main. 
+ * Connect to OMERO, 
+ * read csv file
+ * generate key-values
+ * import key-values on OMERO
+ * disconnect from OMERO
  * 
  */
 
@@ -75,36 +77,14 @@ if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-		
-		switch (object_type){
-			case "image":	
-				processImage(user_client, user_client.getImage(id))
-				break	
-			case "dataset":
-				processDataset(user_client, user_client.getDataset(id))
-				break
-			case "project":
-				processProject(user_client, user_client.getProject(id))
-				break
-			case "well":
-				processWell(user_client, user_client.getWells(id))
-				break
-			case "plate":
-				processPlate(user_client, user_client.getPlates(id))
-				break
-			case "screen":
-				processScreen(user_client, user_client.getScreens(id))
-				break
-		}
-		
-		makeCSVFileWithObjectList(data_list)
+		processPlate(user_client, user_client.getPlates(id))
 		
 	} finally{
 		user_client.disconnect()
 		println "Disonnected "+host
 	}
 	
-	println "Listing images in "+object_type+", id "+id+": DONE !\n"
+	println "Listing images in plate, id "+id+": DONE !\n"
 	return
 	
 }else{
@@ -113,48 +93,29 @@ if (user_client.isConnected()){
 
 
 /**
- * List the full arborescence of an image in a csv format
+ * Add key value pairs to OMERO
  * 
  * inputs
  * 		user_client : OMERO client
  * 		image_wpr : OMERO image
+ * 		operettaKeyValues : key-value from operetta csv file
  * 
  * */
-def processImage(user_client, image_wpr){
-	
-	def dataset_wpr_list = image_wpr.getDatasets(user_client)
+def processImage(user_client, image_wpr, operettaKeyValues){
 
-	// if the image is part of a dataset
-	if(!dataset_wpr_list.isEmpty()){
-		def dataset_wpr =  dataset_wpr_list.get(0)
-		def project_wpr = image_wpr.getProjects(user_client).get(0)
-		data_list.add(image_wpr.getName() + ","+ image_wpr.getId() + ","+ dataset_wpr.getName() + ","+  project_wpr.getName()+"\n")
-		
-		// add key value pairs
-		if(writeAsKVP){
-			List<NamedValue> keyValues = new ArrayList()
-	   		keyValues.add(new NamedValue("Dataset", dataset_wpr.getName())) 
-	   		keyValues.add(new NamedValue("Project", project_wpr.getName())) 
-			addKeyValuetoOMERO(user_client, image_wpr, keyValues)
-		}
-	}
+	def well_wpr =  image_wpr.getWells(user_client).get(0)
+	def plate_wpr = image_wpr.getPlates(user_client).get(0)
+	def screen_wpr = image_wpr.getScreens(user_client).get(0)
+
+	// add arborescence key values
+	List<NamedValue> keyValues = new ArrayList()
+	keyValues.add(new NamedValue("Well", well_wpr.getName())) 
+	keyValues.add(new NamedValue("Plate", plate_wpr.getName())) 
+	keyValues.add(new NamedValue("Screen", screen_wpr.getName())) 
+	addKeyValuetoOMERO(user_client, image_wpr, keyValues)
 	
-	// if the image is part of a plate
-	else {
-		def well_wpr =  image_wpr.getWells(user_client).get(0)
-		def plate_wpr = image_wpr.getPlates(user_client).get(0)
-		def screen_wpr = image_wpr.getScreens(user_client).get(0)
-		data_list.add(image_wpr.getName() + ","+ image_wpr.getId() + ","+ well_wpr.getName() + ","+ plate_wpr.getName() + ","+ screen_wpr.getName()+"\n")
-	
-		// add key-value pairs
-		if(writeAsKVP){
-			List<NamedValue> keyValues = new ArrayList()
-	   		keyValues.add(new NamedValue("Well", well_wpr.getName())) 
-	   		keyValues.add(new NamedValue("Plate", plate_wpr.getName())) 
-	   		keyValues.add(new NamedValue("Screen", screen_wpr.getName())) 
-			addKeyValuetoOMERO(user_client, image_wpr, keyValues)
-		}
-	}
+	// add operetta key values
+	addKeyValuetoOMERO(user_client, image_wpr, operettaKeyValues)
 	
 }
 
@@ -177,63 +138,11 @@ def addKeyValuetoOMERO(user_client, repository_wpr, keyValues){
 
 
 /**
- * Create a csv file 
- * 
- * input	
- * 		data_list : list of comma-separated strings
- */
-def makeCSVFileWithObjectList(data_list){
-	println "Create a csv file in : "+ outputFolder.getAbsolutePath() + "\\" + "Images_in_" + object_type + "_"+id+".csv"
-	
-	File file = new File(outputFolder.getAbsolutePath() + "\\" + "Images_in_" + object_type + "_"+id+".csv");
-    FileWriter writer = new FileWriter(file)
-    
-    if(object_type == "well" || object_type == "plate" || object_type == "screen")
-    	writer.append("image,image_id,well,plate,screen\n")
-    else
-    	writer.append("image,image_id,dataset,project\n")
-    	
-    data_list.each { d ->
-    	writer.append(d)
-    }
-
-	writer.close();
-}
-
-
-
-/**
- * Import all images from a dataset in Fiji
- * 
- * inputs
- * 		user_client : OMERO client
- * 		dataset_wpr : OMERO dataset
- * 
- * */
-def processDataset( user_client, dataset_wpr ){
-	dataset_wpr.getImages(user_client).each{ img_wpr ->
-		processImage(user_client , img_wpr)
-	}
-}
-
-
-/**
- * Import all images from a dataset in Fiji
- * 
- * inputs
- * 		user_client : OMERO client
- * 		dataset_wpr : OMERO dataset
- * 
- * */
-def processProject( user_client, project_wpr ){
-	project_wpr.getDatasets().each{ dataset_wpr ->
-		processDataset(user_client , dataset_wpr)
-	}
-}
-
-
-/**
- * Import all images from a well in Fiji
+ * Read the given csv file. The file should be formatted as below : 
+ * 	- First column : Row of the well
+ * 	- Second column : Column of the well
+ * 	- other columns : key-values (key on the column header and values below)
+ * 	=> one row = one well + header at the begining formatted like "Row,Column,Key1,Key2,Key3,..."
  * 
  * inputs
  * 		user_client : OMERO client
@@ -241,9 +150,32 @@ def processProject( user_client, project_wpr ){
  * 
  * */
 def processWell(user_client, well_wpr_list){		
-	well_wpr_list.each{ well_wpr ->				
+	well_wpr_list.each{ well_wpr ->		
+			
+		def wellLine = ""
+		// read the csv file
+		def lines = csvFile.readLines()
+		
+		// get the header
+		def header = lines[0].split(",")
+		
+		// find the current well in the csv file
+		for(int i = 1; i<lines.size(); i++){
+  			wellLine = lines[i].split(",")
+  			if(wellLine[0] == well_wpr.identifier(well_wpr.getRow().intValue() + 1) && wellLine[1] == well_wpr.getColumn().intValue() + 1){
+  				break
+  			}
+		}
+		
+		// create the key-values for the current well
+		List<NamedValue> keyValues = new ArrayList()
+		for(int i = 0; i<wellLine.size(); i++){
+			keyValues.add(new NamedValue(header[i], wellLine[i])) 
+		}
+		
+		// add key-values to images within the current well on OMERO
 		well_wpr.getWellSamples().each{			
-			processImage(user_client, it.getImage())		
+			processImage(user_client, it.getImage(), keyValues)		
 		}
 	}	
 }
@@ -260,21 +192,6 @@ def processWell(user_client, well_wpr_list){
 def processPlate(user_client, plate_wpr_list){
 	plate_wpr_list.each{ plate_wpr ->	
 		processWell(user_client, plate_wpr.getWells(user_client))
-	} 
-}
-
-
-/**
- * Import all images from a screen in Fiji
- * 
- * inputs
- * 		user_client : OMERO client
- * 		screen_wpr_List : OMERO screens
- * 
- * */
-def processScreen(user_client, screen_wpr_list){
-	screen_wpr_list.each{ screen_wpr ->	
-		processPlate(user_client, screen_wpr.getPlates())
 	} 
 }
 
@@ -308,5 +225,4 @@ import omero.gateway.model.ImageAcquisitionData
 import ij.*
 import omero.RLong;
 import omero.model.*;
-import java.io.FileWriter
 import java.io.File
