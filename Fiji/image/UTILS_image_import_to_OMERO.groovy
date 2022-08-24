@@ -1,7 +1,6 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
 #@File(label="Image path") imgPath
-//#@String(label="Import in", choices={"dataset","well"}) object_type
 #@Long(label="Dataset ID", value=119273) id
 #@Boolean(label="Show images") showImages
 
