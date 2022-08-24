@@ -12,6 +12,11 @@ The `OMERO-java dependencies` are required to make this extension working. Downl
 ### Documentation
 You can find all the documentation on how to use some of our scripts on our [Fiji wiki page](https://wiki-biop.epfl.ch/en/Image_Storage/OMERO/OmeroFiji), under `Analyze OMERO data using simple-omero-client`
 
+### Available scripts
+Scripts are grouped by categories. The folder "tag" groups all scripts that are dealing with tags.
+All scripts, except advanced scripts, are basic and ready-to-use and show you the necessary commands to import, add, get and delete images, tables and annotations.
+
+Advanced scripts perform deeper image analysis and parameters have to be changed to make the script working on your datasets.
 
 ## QuPath scripts
 Under `QuPath` folder, you will find scripts to get an instance of OMERO and communicate with it.
