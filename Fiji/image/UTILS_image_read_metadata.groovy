@@ -18,11 +18,10 @@
  * 
  * == OUTPUTS ==
  *  - open the image defined by id (or all images one after another from the dataset/project/... defined by id)
- *  - 
  * 
  * = DEPENDENCIES =
- *  - omero_ij : https://github.com/ome/omero-insight/releases/download/v5.7.0/omero_ij-5.7.0-all.jar
- *  - simple-omero-client : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run

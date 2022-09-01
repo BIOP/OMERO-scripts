@@ -39,7 +39,8 @@
  *  - Send to OMERO computed ROIs/measurement if defined so.
  * 
  * = DEPENDENCIES =
- *  - simple-omero-client : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run

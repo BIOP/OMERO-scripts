@@ -30,8 +30,8 @@
  *  - if deleting a tag, it will delete ALL the tags linked to the object specified by its id
  * 
  * = DEPENDENCIES =
- *  - omero_ij : https://github.com/ome/omero-insight/releases/download/v5.7.0/omero_ij-5.7.0-all.jar
- *  - simple-omero-client : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run

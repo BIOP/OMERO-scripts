@@ -20,11 +20,10 @@
  * 
  * == OUTPUTS ==
  *  - open the image defined by id (or all images one after another from the dataset/project/... defined by id)
- *  - 
  * 
  * = DEPENDENCIES =
- *  - omero_ij : https://github.com/ome/omero-insight/releases/download/v5.7.0/omero_ij-5.7.0-all.jar
- *  - simple-omero-client : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - simple-omero-client-5.9.2 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -129,8 +128,6 @@ def processImage(user_client, image_wpr){
 		image_wpr.getProjects(user_client).each{println("Project_name : "+it.getName()+" / id : "+it.getId())};
 	}
 
-	// TO DECOMMENT WHEN THE RELEASE 5.9.2 OF SIMPLE-OMERO-CLIENT IS AVAILABLE
-	// IF YOU NEED THIS PART OF CODE FOR YOUR APPLICATION, PLEASE CONTACT REMY DORNIER
 	// if the image is part of a plate
 	else {
 		def well_wpr = image_wpr.getWells(user_client).get(0)

@@ -10,23 +10,17 @@
  * User can specify the image to be imported (must be stored in a local environnement) and the ID of the dataset where to import the image.
  * 
  * == INPUTS ==
- *  - host
- *   -port
  *  - credentials 
  *  - id
  *  - object type
- *  - boolean to process all images in the current dataset
- *  - csv file to read
- *  - action to perform
+ *  - tag
  * 
  * == OUTPUTS ==
- *  - if adding a tag, it will upolad to OMERO every tags contained in the csv file and link them to the object specified by its id
- *  - if getting a tag, it will list all the tags linked to the current user AND ALL available tags in its group
- *  - if deleting a tag, it will delete ALL the tags linked to the object specified by its id
+ * - Add a tag on object to OMERO
  * 
  * = DEPENDENCIES =
- *  - omero_ij : https://github.com/ome/omero-insight/releases/download/v5.7.0/omero_ij-5.7.0-all.jar
- *  - simple-omero-client : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
