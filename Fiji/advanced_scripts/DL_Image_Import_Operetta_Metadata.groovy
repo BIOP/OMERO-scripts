@@ -174,6 +174,7 @@ def processWell(user_client, well_wpr_list){
 		}
 		
 		// add key-values to images within the current well on OMERO
+		addKeyValuetoOMERO(user_client, well_wpr, keyValues)
 		well_wpr.getWellSamples().each{			
 			processImage(user_client, it.getImage(), keyValues)		
 		}
