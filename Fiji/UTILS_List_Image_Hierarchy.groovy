@@ -128,7 +128,7 @@ def processImage(user_client, image_wpr){
 	if(!dataset_wpr_list.isEmpty()){
 		def dataset_wpr =  dataset_wpr_list.get(0)
 		def project_wpr = image_wpr.getProjects(user_client).get(0)
-		data_list.add(image_wpr.getName() + ","+ image_wpr.getId() + ","+ dataset_wpr.getName() + ","+  project_wpr.getName()+"\n")
+		data_list.add(image_wpr.getName().replaceAll(",",";") + ","+ image_wpr.getId() + ","+ dataset_wpr.getName().replaceAll(",",";") + ","+  project_wpr.getName().replaceAll(",",";")+"\n")
 		
 		// add key value pairs
 		if(writeAsKVP){
@@ -144,7 +144,7 @@ def processImage(user_client, image_wpr){
 		def well_wpr =  image_wpr.getWells(user_client).get(0)
 		def plate_wpr = image_wpr.getPlates(user_client).get(0)
 		def screen_wpr = image_wpr.getScreens(user_client).get(0)
-		data_list.add(image_wpr.getName() + ","+ image_wpr.getId() + ","+ well_wpr.getName() + ","+ plate_wpr.getName() + ","+ screen_wpr.getName()+"\n")
+		data_list.add(image_wpr.getName().replaceAll(",",";") + ","+ image_wpr.getId() + ","+ well_wpr.getName().replaceAll(",",";") + ","+ plate_wpr.getName().replaceAll(",",";") + ","+ screen_wpr.getName().replaceAll(",",";")+"\n")
 	
 		// add key-value pairs
 		if(writeAsKVP){
@@ -183,9 +183,19 @@ def addKeyValuetoOMERO(user_client, repository_wpr, keyValues){
  * 		data_list : list of comma-separated strings
  */
 def makeCSVFileWithObjectList(data_list){
-	println "Create a csv file in : "+ outputFolder.getAbsolutePath() + "\\" + "Images_in_" + object_type + "_"+id+".csv"
+	String path = outputFolder.getAbsolutePath() + "\\" + "Images_in_" + object_type + "_"+id+".csv"
+	File file = new File(path);
 	
-	File file = new File(outputFolder.getAbsolutePath() + "\\" + "Images_in_" + object_type + "_"+id+".csv");
+	if(file.exists()){
+		int i = 1
+		do{	
+			path = outputFolder.getAbsolutePath() + "\\" + "Images_in_" + object_type + "_"+id+"_"+i+".csv"
+			file = new File(path);
+			i++
+			
+		}while(file.exists())
+	}
+	println "Create a csv file in : "+ path
     FileWriter writer = new FileWriter(file)
     
     if(object_type == "well" || object_type == "plate" || object_type == "screen")
