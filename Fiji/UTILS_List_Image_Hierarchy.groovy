@@ -14,6 +14,14 @@
  * - It generate a csv file with the list of all images (name + id) with their parent folder name (dataset/project or well/plate/screen)
  * - Optionnally, it also saves parent folder name as key-values on OMERO.
  * 
+ *                                          **** BE CAREFUL *******
+ * It can happen that image/dataset/project names contain comas. This is the case for all images coming from a plate and maybe for some of your images.
+ * To be csv-reading compatible, all comas are replaced by semi-columns.
+ * To recover the correct name, open the csv file in excel. Select the column with image names.
+ * Go on Home->Search and Find->Replace. Replace ";" by "," and save.
+ * We strongly suggest you to remove all comas from your image names on OMERO (if possible) before running this script.
+ * 
+ * 
  * == INPUTS ==
  *  - credentials 
  *  - id
