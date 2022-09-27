@@ -8,7 +8,7 @@
 /* = CODE DESCRIPTION =
  * - This is a template to interact with OMERO. 
  * - The user enter the image ID and 
- * - The code reads the roi manager and save roi to OMERO in a nested way
+ * - The code reads ROIs attached to the image on OMERO and show the image
  * 
  * == INPUTS ==
  *  - credentials 
@@ -26,7 +26,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 31.08.2022
+ * 23.09.2022
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -52,9 +52,8 @@
 /**
  * Main. 
  * Connect to OMERO, 
- * read the roi manager
- * find a hierarchy between rois
- * import rois to OMERO keeping the hierarchy
+ * read ROIs o the specified image
+ * show the image with ROIs
  * disconnect from OMERO
  * 
  */
@@ -77,82 +76,69 @@ if (user_client.isConnected()){
 		println "Disonnected "+host
 	}
 	
-	println "Listing images in plate, id "+id+": DONE !\n"
+	println "ROIs importation in FIJI from the image, id "+id+": DONE !\n"
 	return
 	
 }else{
 	println "Not able to connect to "+host
 }
 
+
 /**
- * Get rois from the roi manager and find a hierarchy between rois (i.e. one roi contains inside another for example)
- * Save rois to OMERO in a nested way , each nest containing the main roi and the child.
+ * Read the ROIs from OMERO and treat nested ROIs as multiple independant ROIs.
+ * Display the image with ROIs.
  */
-def processRois(user_client, image_wpr){
-	def reducedRois = new HashMap()
-	def allRois = new HashMap()
-	def counter = 0
+def processRois(user_client, img_wpr){
 	
-	// get rois from the roi manager
-	def imageJListOfRois = rm.getRoisAsArray() as List
+	IJ.run("Close All", "");
+	rm.reset()
+	def roi_wpr_list = img_wpr.getROIs(user_client)
+	def ij_roi_list = new ArrayList()
 	
-	// create rois map
-	imageJListOfRois.each{allRois.put(it,false)}
-	
-	for(int i = 0; i<imageJListOfRois.size(); i++){
-		def hasfoundNested = false
-		for(int j = i; j<imageJListOfRois.size(); j++){
-			if(allRois.get(imageJListOfRois.get(i)) == false || allRois.get(imageJListOfRois.get(j)) == false){
-				def rectangleBound_1 = imageJListOfRois.get(i).getBounds()
-				def rectangleBound_2 = imageJListOfRois.get(j).getBounds()
-				
-				def minx_1 = rectangleBound_1.x
-				def maxx_1 = rectangleBound_1.x + rectangleBound_1.width
-				def miny_1 = rectangleBound_1.y
-				def maxy_1 = rectangleBound_1.y + rectangleBound_1.height
-				
-				def minx_2 = rectangleBound_2.x
-				def maxx_2 = rectangleBound_2.x + rectangleBound_2.width
-				def miny_2 = rectangleBound_2.y
-				def maxy_2 = rectangleBound_2.y + rectangleBound_2.height
-				
-				// check if rois are nested or not
-				if(((minx_1 >= minx_2 && maxx_1 <= maxx_2 && miny_1 >= miny_2 && maxy_1 <= maxy_2) ||
-				   (minx_2 >= minx_1 && maxx_2 <= maxx_1 && miny_2 >= miny_1 && maxy_2 <= maxy_1)) && i!=j ) {
-				   		// if nested, group the rois together
-				   		hasfoundNested = true
-					   	def listOfRois = new ArrayList()
-						listOfRois.add(new ROIWrapper().fromImageJ(Collections.singletonList(imageJListOfRois.get(i))).get(0))
-						listOfRois.add(new ROIWrapper().fromImageJ(Collections.singletonList(imageJListOfRois.get(j))).get(0))
-						
-						reducedRois.put(counter,listOfRois)
-						allRois.replace(imageJListOfRois.get(i), false, true)
-						allRois.replace(imageJListOfRois.get(j), false, true)
-						counter++
-				   }
-			}
-		}
-		// if no nested, store rois one by one
-		if(!hasfoundNested && allRois.get(imageJListOfRois.get(i)) == false){
-			reducedRois.put(counter,new ROIWrapper().fromImageJ(Collections.singletonList(imageJListOfRois.get(i))))
-			allRois.replace(imageJListOfRois.get(i), false, true)
-			counter++
-		}
+	roi_wpr_list.each{
+		ij_roi_list.addAll(readNestedRoiWithoutXor(it))
 	}
 	
-	// save each grouped/single rois to OMERO 
-	reducedRois.values().each{roiWrapperList->
-		def newRoi = new ROIWrapper()
-		roiWrapperList.each{roiWrapper->
-			def shapes = roiWrapper.asROIData().getShapes()
-			shapes.each{
-				it.setText("CustomNested")
-				newRoi.asROIData().addShapeData(it)
-			}
-		}
-		image_wpr.saveROI(user_client , newRoi)
+	ij_roi_list.each{
+		rm.addRoi(it)
 	}
 	
+	def imp = img_wpr.toImagePlus(user_client)
+	imp.show()
+	rm.runCommand(imp,"Show All");
+}
+
+/**
+ * Code adapted from simple-omero-client @pierrePouchin
+ * 
+ * Read the ROIs from OMERO and treat nested ROIs as multiple independant ROIs.
+ * 
+ */
+def readNestedRoiWithoutXor(roi_wpr){
+	def shape_list = roi_wpr.getShapes()
+	def ij_roi_list = new ArrayList()
+	
+	println "BE CAREFUL : each nested ROI are imported as multiple ROIs, not as a grouped one"
+	
+	shape_list.each{
+		def roi = it.toImageJ()
+		String img_name = it.getText();
+	
+		 if (img_name.isEmpty()) {
+             roi.setName(String.format("%d-%d", roi_wpr.getId(), it.getId()));
+         } else {
+             roi.setName(img_name);
+         }
+         
+		 roi.setStrokeColor(Color.white)
+		 roi.setFillColor(null)
+		 roi.setStrokeWidth(1)
+		
+         roi.setProperty("ROI_ID", String.valueOf(roi_wpr.getId()));
+         ij_roi_list.add(roi)
+	}
+	
+	return ij_roi_list
 }
 
 
@@ -185,3 +171,4 @@ import ij.*
 import omero.RLong;
 import omero.model.*;
 import java.io.File
+import java.awt.Color;

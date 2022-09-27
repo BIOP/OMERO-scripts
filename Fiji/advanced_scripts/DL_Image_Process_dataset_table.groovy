@@ -161,7 +161,7 @@ def processDataset(user_client, dataset_wpr){
 	
 		// send the dataset table on OMERO
 		if (isSendNewMeasurements){
-			dataset_table_wpr.setName(dataset_wpr.getName()+"_"+keyword")
+			dataset_table_wpr.setName(dataset_wpr.getName()+"_"+keyword)
 			dataset_wpr.addTable(user_client, dataset_table_wpr)
 			println "Upload table to OMERO"
 		}
