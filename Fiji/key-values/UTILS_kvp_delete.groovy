@@ -3,14 +3,15 @@
 #@Long(label="ID", value=119273) id
 #@String(label="Object", choices={"image","dataset","project","well","plate","screen"}) object_type
 
-/* 
+/* 
  * == INPUTS ==
  *  - credentials 
  *  - id
  *  - object type
+ *  - key and value to add to OMERO object
  * 
  * == OUTPUTS ==
- *  - printing key-value link to the object
+ *  - key-value on OMERO
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
@@ -21,7 +22,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 01.09.2022
+ * 05.10.2022
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -45,7 +46,7 @@
  */
 
 /**
- * Main. Connect to OMERO, process tags and disconnect from OMERO
+ * Main. Connect to OMERO, delete key-values for the current object and disconnect from OMERO
  * 
  */
  
@@ -63,22 +64,22 @@ if (user_client.isConnected()){
 		
 		switch (object_type){
 		case "image":	
-			processKVP( user_client, user_client.getImage(id) )
+			deleteKVP( user_client, user_client.getImage(id) )
 			break	
 		case "dataset":
-			processKVP( user_client, user_client.getDataset(id) )
+			deleteKVP( user_client, user_client.getDataset(id) )
 			break
 		case "project":
-			processKVP( user_client, user_client.getProject(id) )
+			deleteKVP( user_client, user_client.getProject(id) )
 			break
 		case "well":
-			processKVP( user_client, user_client.getWell(id) )
+			deleteKVP( user_client, user_client.getWell(id) )
 			break
 		case "plate":
-			processKVP( user_client, user_client.getPlate(id))
+			deleteKVP( user_client, user_client.getPlate(id))
 			break
 		case "screen":
-			processKVP( user_client, user_client.getScreen(id))
+			deleteKVP( user_client, user_client.getScreen(id))
 			break
 		}
 		
@@ -87,7 +88,7 @@ if (user_client.isConnected()){
 		println "Disonnected "+host
 	}
 	
-	println "Processing of key-values for "+object_type+ " "+id+" : DONE !"
+	println "Key-value pairs deletion for "+object_type+ " "+id+" : DONE !"
 	return
 	
 }else{
@@ -96,42 +97,41 @@ if (user_client.isConnected()){
 
 
 /**
- * Print all tags belogning to the current OMERO object
+ * Delete key-values
  * 
  * inputs
  * 		user_client : OMERO client
- * 		wpr : OMERO object wrapper (image, dataset, project, well, plate, screen)
+ * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
  * 
  * */
-def processKVP(user_client, repository_wpr){
-
+def deleteKVP(user_client, repository_wpr){
 	// get the current key-value pairs
-	List<List<NamedValue>> keyValues = repository_wpr.getMapAnnotations(user_client).stream()
-																	   .map(MapAnnotationWrapper::getContent)
-																	   .toList()
-	for(int i = 0; i< keyValues.size();i++){
-		println "KeyValue group n° "+(i+1)
-		keyValues.get(i).each{
-			println "Key : "+it.name+" ; Value : "+it.value
-		}
-		println ""
-	}
+	List<MapAnnotationWrapper> keyValues = repository_wpr.getMapAnnotations(user_client)
+	
+	// delete key-values											   
+	keyValues.each{user_client.delete(it)}
 }
+
 
 
 /*
  * imports  
  */
-
 import fr.igred.omero.*
 import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
 import fr.igred.omero.meta.*
 import omero.gateway.model.DatasetData;
-import omero.gateway.model.TagAnnotationData;
 import omero.model.NamedValue
 import ij.*
 import ij.plugin.*
 import ij.gui.PointRoi
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.awt.Rectangle;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.util.StringTokenizer;
