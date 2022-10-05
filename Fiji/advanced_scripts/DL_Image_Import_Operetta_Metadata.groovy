@@ -52,6 +52,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == Bug Fix ==
+ * - 05.10.2022 : make explicit .equals and convert String to Integer
  */
 
 /**
@@ -162,7 +165,7 @@ def processWell(user_client, well_wpr_list){
 		// find the current well in the csv file
 		for(int i = 1; i<lines.size(); i++){
   			wellLine = lines[i].split(",")
-  			if(wellLine[0] == well_wpr.identifier(well_wpr.getRow().intValue() + 1) && wellLine[1] == well_wpr.getColumn().intValue() + 1){
+  			if(wellLine[0].equals(well_wpr.identifier(well_wpr.getRow().intValue() + 1)) && Integer.parseInt(wellLine[1]).equals(well_wpr.getColumn().intValue() + 1)){ // see 05.10.2022 fix
   				break
   			}
 		}
@@ -227,3 +230,4 @@ import ij.*
 import omero.RLong;
 import omero.model.*;
 import java.io.File
+import java.lang.Integer
