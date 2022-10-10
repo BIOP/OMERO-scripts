@@ -8,20 +8,20 @@
 /* = CODE DESCRIPTION =
  * This is a template to interact with OMERO . 
  * User can specify the ID of a "dataset" containing images with OMERO.tables.
- * The new table is generated and attached to the specified dataset.
+ * A new table is generated and attached to the specified dataset.
  * 
  * To be compatible with omero.table, the csv file at the dataset level must contain a column with image name AND a column with image ids.
  * 
  * 
  * == INPUTS ==
  *  - credentials 
- *  - id 
- *  - object type 
- *  - choices to delete existing or import new measurements
+ *  - dataset id 
+ *  - table name to save the file with
+ *  - Path to folder to save tmp data that are removed after the processing
  * 
  * == OUTPUTS ==
- *  - Generate a table with summary results of all images including in the dataset
- *  - Attach the table to the current dataset on OMERO
+ *  - Generate a dummy table and its corresponding csv file
+ *  - Attach the table and the csv file to the current dataset on OMERO
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
@@ -31,7 +31,7 @@
  *  Open Script and Run
  * 
  * = AUTHOR INFORMATION =
- * Code written by romain guiet and Rémy Dornier, EPFL - SV -PTECH - BIOP 
+ * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
  * 12.07.2022
  * 
  * = COPYRIGHT =
@@ -120,7 +120,6 @@ try{
 	print "Upload csv file to OMERO"
 	ResultsTable rt = getResultTable(dataset_table_wpr)
 	uploadResultsTable(user_client, dataset_wpr, rt)
-	println " : Done"
 
 
 } finally{
@@ -130,21 +129,6 @@ try{
 
 println "processing of dataset, id "+id+": DONE !"
 return
-
-
-
-/**
- * Add a summary table in the dataset. Each line of the dataset_table corresponds 
- * to an image with image global information
- * 
- * inputs
- * 	 	user_client : OMERO client
- * 		dataset_wpr : OMERO dataset
- * 
- * */
-def processDataset(user_client, dataset_wpr){
-	
-}
 
 
 
@@ -197,9 +181,9 @@ def uploadResultsTable(user_client, repository_wpr, rt){
 		
 		// test if all csv files are imported
 		if(repository_wpr.getFileAnnotations(user_client).size() == nFile + 1)
-			println "*** SUCCESS All csv file are imported ***"
+			println " : Done"
 		else
-			println "*** FAILED no csv file were imported ***"
+			println " : FAILED no csv file were imported"
 		
 	} finally{
 		// delete the file after upload
@@ -219,7 +203,7 @@ def uploadResultsTable(user_client, repository_wpr, rt){
  * */
 def buildDummyDatasetResultsTable(rt_dataset, img_wpr){
 	rt_dataset.incrementCounter()
-	rt_dataset.setValue("Image name", 0, img_wpr.getName())
+	rt_dataset.setValue("Image Name", 0, img_wpr.getName())
 	
 	def bounds = img_wpr.getPixels().getBounds(null, null, null, null, null);
 	rt_dataset.setValue("Image width", 0, (int)bounds.getSize().getX())
