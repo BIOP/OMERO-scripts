@@ -77,7 +77,7 @@ if (user_client.isConnected()){
 		println "Disonnected "+host
 	}
 	
-	println "Listing images in plate, id "+id+": DONE !\n"
+	println "Import nested ROIs on image, id "+id+": DONE !\n"
 	return
 	
 }else{
@@ -152,7 +152,6 @@ def processRois(user_client, image_wpr){
 		}
 		image_wpr.saveROI(user_client , newRoi)
 	}
-	
 }
 
 
