@@ -34,9 +34,19 @@ import qupath.lib.scripting.QP
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/**
+ * There is two implementations of the method : importOmeroROIsToQuPath
+ * 
+ * 		1. importOmeroROIsToQuPath(server) ===> do not let the user choose 
+ * 		to remove or not existing annotations ; by default, it removes them.
+ * 		
+ * 		2. importOmeroROIsToQuPath(server, removeAnnotations) ===> let the user choose 
+ * 		to remove or not existing annotations
+ * 
+ */
 
 // set variables
-boolean deleteROI = false // if you want to delete ROIs on OMERO
+boolean removeAnnotations = true // remove current qupath annotations, with child objects (i.e. also delete detections)
 
 
 /**
@@ -46,14 +56,20 @@ boolean deleteROI = false // if you want to delete ROIs on OMERO
  * You can change the boolean to "true" if you want to delete all ROIs that are already present on OMERO.
  **/
 
+
 // get the current displayed image on QuPath
 ImageServer<?> server = QP.getCurrentServer()
 
-// get all annotations objects
-Collection<PathObject> pathObjects = QP.getAnnotationObjects()
+// check if the current server is an OMERO server. If not, throw an error
+if(!(server instanceof OmeroRawImageServer)){
+	Dialogs.showErrorMessage("ROI import","Your image is not from OMERO ; please use an image that comes from OMERO to use this script");
+	return
+}
 
-// send annotations to OMERO
-OmeroRawTools.writePathObjects(pathObjects, server, deleteROI)
+// get all rois from OMERO
+Collection<PathObject> roiFromOmero = OmeroRawScripting.importOmeroROIsToQuPath(server, removeAnnotations)
 
-println "ROIs sent to OMERO \n"
+// diaplay the success
+Dialogs.showInfoNotification("ROI import","ROIs successfully imported");
+
 

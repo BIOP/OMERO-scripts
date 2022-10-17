@@ -1,5 +1,6 @@
 import qupath.ext.biop.servers.omero.raw.*
 import qupath.lib.scripting.QP
+import qupath.lib.gui.measure.ObservableMeasurementTableData;
 
 /*
  * = DEPENDENCIES =
@@ -34,26 +35,32 @@ import qupath.lib.scripting.QP
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-
-// set variables
-boolean deleteROI = false // if you want to delete ROIs on OMERO
-
-
 /**
- * Connect to OMERO and send all current annotations to OMERO as ROIs, 
+ * Connect to OMERO and send the detection measurement table to OMERO as an OMERO.table and a csv file, 
  * attached to the current opened image.
  * 
- * You can change the boolean to "true" if you want to delete all ROIs that are already present on OMERO.
  **/
 
 // get the current displayed image on QuPath
 ImageServer<?> server = QP.getCurrentServer()
 
 // get all annotations objects
-Collection<PathObject> pathObjects = QP.getAnnotationObjects()
+Collection<PathObject> pathObjects = QP.getDetectionObjects()
 
-// send annotations to OMERO
-OmeroRawTools.writePathObjects(pathObjects, server, deleteROI)
+// create an new table
+ObservableMeasurementTableData table = new ObservableMeasurementTableData();
 
-println "ROIs sent to OMERO \n"
+// get annotation measurement table
+table.setImageData(QP.getCurrentImageData(), pathObjects);
+
+// send the table to OMERO as OMERO.table
+String project_name = Projects.getBaseDirectory(QP.getProject()).getName()
+OmeroRawTools.writeMeasurementTableData(pathObjects, table, project_name, server);
+println "Detection table sent to OMERO as OMERO.table \n"
+
+// send the table to OMERO as csv file
+String project_path = QP.getProjectBaseDirectory()
+OmeroRawTools.writeMeasurementTableDataAsCSV(pathObjects, table, project_name, project_path, server);
+println "Detection table sent to OMERO as csv file \n"
+
 

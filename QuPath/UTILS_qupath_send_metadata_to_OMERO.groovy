@@ -35,25 +35,30 @@ import qupath.lib.scripting.QP
 */
 
 
+
 // set variables
-boolean deleteROI = false // if you want to delete ROIs on OMERO
+boolean deleteKeyValueInOmero = false  // if you want to delete all key-value pairs in OMERO
+boolean replaceKeyValueInOmero = true // if you just want to replace existing key-value pairs in OMERO by the one from qupath
 
 
 /**
- * Connect to OMERO and send all current annotations to OMERO as ROIs, 
+ * Connect to OMERO and send all current metadata to OMERO as key-value pairs, 
  * attached to the current opened image.
  * 
- * You can change the boolean to "true" if you want to delete all ROIs that are already present on OMERO.
  **/
-
+ 
 // get the current displayed image on QuPath
 ImageServer<?> server = QP.getCurrentServer()
 
-// get all annotations objects
-Collection<PathObject> pathObjects = QP.getAnnotationObjects()
+// get metadata
+Map<String,String> keyValues = new HashMap<>();
+def entry = QP.getProjectEntry()
+Collection<String> keys = entry.getMetadataKeys()
+keys.each{keyValues.put(it, entry.getMetadataValue(it))}
 
-// send annotations to OMERO
-OmeroRawTools.writePathObjects(pathObjects, server, deleteROI)
+// send metadata to OMERO
+OmeroRawTools.writeMetadata(keyValues, server, deleteKeyValueInOmero, replaceKeyValueInOmero)
 
-println "ROIs sent to OMERO \n"
+println "Metadata sent to OMERO \n"
+
 
