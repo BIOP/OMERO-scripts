@@ -69,7 +69,7 @@ if(!(server instanceof OmeroRawImageServer)){
 // get all rois from OMERO
 Collection<PathObject> roiFromOmero = OmeroRawScripting.importOmeroROIsToQuPath(server, removeAnnotations)
 
-// diaplay the success
+// display the success
 Dialogs.showInfoNotification("ROI import","ROIs successfully imported");
 
 

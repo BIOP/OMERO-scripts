@@ -35,6 +35,27 @@ import qupath.lib.scripting.QP
 */
 
 
+
+/**
+ * There is many implementations to send pathObjects to OMERO : 
+ * 
+ * /// for the three following methods, exitsing ROIs on OMERO are NOT deleted
+ * 		1. sendPathObjectsToOmero(server) ==> send all annotations AND all detections 
+ * 		2. sendAnnotationsToOmero(server) ==> send all annotations
+ * 		3. sendDetectionsToOmero(server) ==> send all detections
+ * 		
+ * 	/// for the three following methods, the user can choose to delete or not existing ROIs
+ * 		4. sendPathObjectsToOmero(server, deleteROI) ==> send all annotations AND all detections 
+ * 		5. sendAnnotationsToOmero(server, deleteROI) ==> send all annotations
+ * 		6. sendDetectionsToOmero(server, deleteROI) ==> send all detections
+ * 		
+ * 		7. sendPathObjectsToOmero(server, pathObjects) ==> send the given pathObjects to OMERO WITHOUT deleting existing ROIs
+ * 		8. sendPathObjectsToOmero(server, pathObjects, deleteROI) ==> send the given pathObjects to OMERO and 
+ * 		let the user choose to delete or not existing ROIs
+ * 
+ */
+ 
+
 // set variables
 boolean deleteROI = false // if you want to delete ROIs on OMERO
 
@@ -49,11 +70,19 @@ boolean deleteROI = false // if you want to delete ROIs on OMERO
 // get the current displayed image on QuPath
 ImageServer<?> server = QP.getCurrentServer()
 
+// check if the current server is an OMERO server. If not, throw an error
+if(!(server instanceof OmeroRawImageServer)){
+	Dialogs.showErrorMessage("ROI import","Your image is not from OMERO ; please use an image that comes from OMERO to use this script");
+	return
+}
+
 // get all annotations objects
 Collection<PathObject> pathObjects = QP.getAnnotationObjects()
 
 // send annotations to OMERO
-OmeroRawTools.writePathObjects(pathObjects, server, deleteROI)
+OmeroRawScripting.sendPathObjectsToOmero(server, pathObjects, deleteROI)
 
-println "ROIs sent to OMERO \n"
+// display the success
+Dialogs.showInfoNotification("ROI sending","ROIs successfully sent to OMERO");
+
 
