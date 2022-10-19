@@ -35,10 +35,19 @@ import qupath.lib.scripting.QP
 */
 
 
+/**
+ * There is three implementations of the method 
+ * 
+ *  	1. saveMetadataOnOmero(metadata, server) ===> Add new key value pairs on OMERO
+ * 
+ * 		2. saveMetadataOnOmeroAndUpdateKeyValues(metadata, server) ===> Update current key value pairs on OMERO
+ * 		and add new ones
+ * 		
+ * 		3. saveMetadataOnOmeroAndDeleteKeyValues(metadata, server) ===> Delete current key value pairs on OMERO
+ * 		and add new ones
+ * 
+ */
 
-// set variables
-boolean deleteKeyValueInOmero = false  // if you want to delete all key-value pairs in OMERO
-boolean replaceKeyValueInOmero = true // if you just want to replace existing key-value pairs in OMERO by the one from qupath
 
 
 /**
@@ -51,14 +60,12 @@ boolean replaceKeyValueInOmero = true // if you just want to replace existing ke
 ImageServer<?> server = QP.getCurrentServer()
 
 // get metadata
-Map<String,String> keyValues = new HashMap<>();
-def entry = QP.getProjectEntry()
-Collection<String> keys = entry.getMetadataKeys()
-keys.each{keyValues.put(it, entry.getMetadataValue(it))}
+Map<String,String> qpMetadata = QP.getProjectEntry().getMetadataMap()
 
 // send metadata to OMERO
-OmeroRawTools.writeMetadata(keyValues, server, deleteKeyValueInOmero, replaceKeyValueInOmero)
+OmeroRawScripting.saveMetadataOnOmero(qpMetadata, server)
 
+// display success
 println "Metadata sent to OMERO \n"
 
 
