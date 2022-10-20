@@ -51,7 +51,7 @@ import qupath.lib.scripting.QP
 
 
 /**
- * Connect to OMERO and send all current metadata to OMERO as key-value pairs, 
+ * Send all current metadata to OMERO as key-value pairs, 
  * attached to the current opened image.
  * 
  **/
@@ -69,9 +69,12 @@ if(!(server instanceof OmeroRawImageServer)){
 Map<String,String> qpMetadata = QP.getProjectEntry().getMetadataMap()
 
 // send metadata to OMERO
-OmeroRawScripting.sendMetadataOnOmero(qpMetadata, server)
+boolean wasSent = OmeroRawScripting.sendMetadataOnOmero(qpMetadata, server)
 
 // display success
-println "Metadata sent to OMERO \n"
+if(wasSent)
+	println "Metadata sent to OMERO"
+else
+	println "An issue occurs when trying to send metadata to OMERO"
 
 

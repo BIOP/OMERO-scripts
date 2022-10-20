@@ -72,11 +72,18 @@ Collection<PathObject> pathObjects = QP.getDetectionObjects()
 def imageData = QP.getCurrentImageData()
 
 // send the table to OMERO as OMERO.table
-OmeroRawScripting.sendDetectionMeasurementTable(pathObjects, server, imageData);
-println "Detection table sent to OMERO as OMERO.table \n"
+boolean wasSent = OmeroRawScripting.sendDetectionMeasurementTable(pathObjects, server, imageData);
+if(wasSent)
+	println "Detection table sent to OMERO as OMERO.table"
+else
+	println "An issue occurs when trying to send table to OMERO"
+
 
 // send the table to OMERO as csv file
-OmeroRawScripting.sendDetectionMeasurementTableAsCSV(pathObjects, server, imageData);
-println "Detection table sent to OMERO as csv file \n"
+wasSent = OmeroRawScripting.sendDetectionMeasurementTableAsCSV(pathObjects, server, imageData);
+if(wasSent)
+	println "Detection table sent to OMERO as csv file"
+else
+	println "An issue occurs when trying to send csv file to OMERO"
 
 

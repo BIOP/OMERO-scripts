@@ -59,7 +59,7 @@ import qupath.lib.scripting.QP
 
 
 /**
- * Connect to OMERO and import key value pairs to qupath from OMERO as metadata, 
+ * Import key value pairs to qupath from OMERO as metadata, 
  * attached to the current opened image.
  * 
  **/

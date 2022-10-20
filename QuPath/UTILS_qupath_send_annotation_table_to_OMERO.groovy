@@ -73,11 +73,16 @@ Collection<PathObject> pathObjects = QP.getAnnotationObjects()
 def imageData = QP.getCurrentImageData()
 
 // send the table to OMERO as OMERO.table
-OmeroRawScripting.sendAnnotationMeasurementTable(pathObjects, server, imageData);
-println "Annotation table sent to OMERO as OMERO.table \n"
+boolean wasSent = OmeroRawScripting.sendAnnotationMeasurementTable(pathObjects, server, imageData);
+if(wasSent)
+	println "Annotation table sent to OMERO as OMERO.table"
+else
+	println "An issue occurs when trying to send table to OMERO"
 
 // send the table to OMERO as csv file
-OmeroRawScripting.sendAnnotationMeasurementTableAsCSV(pathObjects, server, imageData);
-println "Annotation table sent to OMERO as csv file \n"
-
+wasSent = OmeroRawScripting.sendAnnotationMeasurementTableAsCSV(pathObjects, server, imageData);
+if(wasSent)
+	println "Annotation table sent to OMERO as csv file"
+else
+	println "An issue occurs when trying to send csv file to OMERO"
 

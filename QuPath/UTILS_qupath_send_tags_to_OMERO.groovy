@@ -47,7 +47,7 @@ import qupath.lib.scripting.QP
 
 
 /**
- * Connect to OMERO and send tags to OMERO, 
+ * Send tags to OMERO, 
  * attached to the current opened image.
  * 
  **/
@@ -61,15 +61,34 @@ if(!(server instanceof OmeroRawImageServer)){
 	return
 }
 
-// initialize tag(s)
+
+/****  send one tag  ****/
+// initialize tag
 String tag = "myNewTag"
+
+// send tags to OMERO
+boolean wasSent = OmeroRawScripting.sendTagToOmero(tag, server)
+
+// display success
+if(wasSent)
+	println "Tag sent to OMERO"
+else
+	println "An issue occurs when trying to send tag to OMERO"
+
+
+/****  send a list of tags  ****/
+// initialize tags
 List tags = ["tag1","tag2"]
 
 // send tags to OMERO
-OmeroRawScripting.sendTagToOmero(tag, server)
-OmeroRawScripting.sendTagsToOmero(tags, server)
+wasSent = OmeroRawScripting.sendTagsToOmero(tags, server)
 
 // display success
-println "Tag(s) sent to OMERO \n"
+if(wasSent)
+	println "List of tags sent to OMERO"
+else
+	println "An issue occurs when trying to send a list of tags to OMERO"
+
+
 
 

@@ -61,8 +61,7 @@ boolean deleteROI = false // if you want to delete ROIs on OMERO
 
 
 /**
- * Connect to OMERO and send all current annotations to OMERO as ROIs, 
- * attached to the current opened image.
+ * Send all current annotations to OMERO as ROIs, 
  * 
  * You can change the boolean to "true" if you want to delete all ROIs that are already present on OMERO.
  **/
@@ -72,17 +71,21 @@ ImageServer<?> server = QP.getCurrentServer()
 
 // check if the current server is an OMERO server. If not, throw an error
 if(!(server instanceof OmeroRawImageServer)){
-	Dialogs.showErrorMessage("ROI import","Your image is not from OMERO ; please use an image that comes from OMERO to use this script");
+	Dialogs.showErrorMessage("Sending ROIs","Your image is not from OMERO ; please use an image that comes from OMERO to use this script");
 	return
 }
 
-// get all annotations objects
+// get all annotation objects
 Collection<PathObject> pathObjects = QP.getAnnotationObjects()
 
 // send annotations to OMERO
-OmeroRawScripting.sendPathObjectsToOmero(server, pathObjects, deleteROI)
+boolean wasSent = OmeroRawScripting.sendPathObjectsToOmero(server, pathObjects, deleteROI)
 
-// display the success
-Dialogs.showInfoNotification("ROI sending","ROIs successfully sent to OMERO");
+// display success
+if(wasSent)
+	println "ROIs successfully sent to OMERO"
+else
+	println "An issue occurs when trying to send a ROIs to OMERO"
+
 
 

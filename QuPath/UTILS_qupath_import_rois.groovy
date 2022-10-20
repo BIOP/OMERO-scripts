@@ -50,8 +50,7 @@ boolean removeAnnotations = true // remove current qupath annotations, with chil
 
 
 /**
- * Connect to OMERO and send all current annotations to OMERO as ROIs, 
- * attached to the current opened image.
+ * Import all ROIs attatch to the image on OMERO to QuPath.
  * 
  * You can change the boolean to "true" if you want to delete all ROIs that are already present on OMERO.
  **/
@@ -70,6 +69,6 @@ if(!(server instanceof OmeroRawImageServer)){
 Collection<PathObject> roiFromOmero = OmeroRawScripting.importOmeroROIsToQuPath(server, removeAnnotations)
 
 // display the success
-Dialogs.showInfoNotification("ROI import","ROIs successfully imported");
+println "ROIs successfully imported"
 
 

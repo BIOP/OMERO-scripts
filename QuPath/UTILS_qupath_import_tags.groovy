@@ -37,7 +37,7 @@ import qupath.lib.scripting.QP
 
 
 /**
- * Connect to OMERO and import tags attached to the current opened image from OMERO, 
+ * Import tags attached to the current opened image from OMERO, 
  * 
  **/
  
