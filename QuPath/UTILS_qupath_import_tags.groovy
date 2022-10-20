@@ -44,6 +44,12 @@ import qupath.lib.scripting.QP
 // get the current displayed image on QuPath
 ImageServer<?> server = QP.getCurrentServer()
 
+// check if the current server is an OMERO server. If not, throw an error
+if(!(server instanceof OmeroRawImageServer)){
+	Dialogs.showErrorMessage("Tag importation","Your image is not from OMERO ; please use an image that comes from OMERO to use this script");
+	return
+}
+
 // send tags to OMERO
 List<String> tags = OmeroRawScripting.importOmeroTags(server)
 tags.each{println it}

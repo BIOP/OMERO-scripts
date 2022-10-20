@@ -69,7 +69,7 @@ ImageServer<?> server = QP.getCurrentServer()
 
 // check if the current server is an OMERO server. If not, throw an error
 if(!(server instanceof OmeroRawImageServer)){
-	Dialogs.showErrorMessage("Key value pairs import","Your image is not from OMERO ; please use an image that comes from OMERO to use this script");
+	Dialogs.showErrorMessage("Key value pairs importation","Your image is not from OMERO ; please use an image that comes from OMERO to use this script");
 	return
 }
 		
