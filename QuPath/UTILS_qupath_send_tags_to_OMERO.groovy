@@ -11,7 +11,7 @@ import qupath.lib.scripting.QP
  *  
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 14.10.2022
+ * 20.10.2022
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -36,22 +36,18 @@ import qupath.lib.scripting.QP
 
 
 /**
- * There is three implementations of the method 
+ * There is two implementations of the method 
  * 
- *  	1. sendMetadataOnOmero(metadata, server) ===> Add new key value pairs on OMERO
+ *  	1. sendTagToOmero(tag, server) ===> send one tag to OMERO
  * 
- * 		2. sendMetadataOnOmeroAndUpdateKeyValues(metadata, server) ===> Update current key value pairs on OMERO
- * 		and add new ones
- * 		
- * 		3. sendMetadataOnOmeroAndDeleteKeyValues(metadata, server) ===> Delete current key value pairs on OMERO
- * 		and add new ones
+ * 		2. sendTagsToOmero(List_of_tags, server) ===> send a list of tags on OMERO	
  * 
  */
 
 
 
 /**
- * Connect to OMERO and send all current metadata to OMERO as key-value pairs, 
+ * Connect to OMERO and send tags to OMERO, 
  * attached to the current opened image.
  * 
  **/
@@ -59,13 +55,15 @@ import qupath.lib.scripting.QP
 // get the current displayed image on QuPath
 ImageServer<?> server = QP.getCurrentServer()
 
-// get metadata
-Map<String,String> qpMetadata = QP.getProjectEntry().getMetadataMap()
+// initialize tag(s)
+String tag = "myNewTag"
+List tags = ["tag1","tag2"]
 
-// send metadata to OMERO
-OmeroRawScripting.sendMetadataOnOmero(qpMetadata, server)
+// send tags to OMERO
+OmeroRawScripting.sendTagToOmero(tag, server)
+OmeroRawScripting.sendTagsToOmero(tags, server)
 
 // display success
-println "Metadata sent to OMERO \n"
+println "Tag(s) sent to OMERO \n"
 
 

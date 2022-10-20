@@ -11,7 +11,7 @@ import qupath.lib.scripting.QP
  *  
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 14.10.2022
+ * 20.10.2022
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -35,37 +35,20 @@ import qupath.lib.scripting.QP
 */
 
 
-/**
- * There is three implementations of the method 
- * 
- *  	1. sendMetadataOnOmero(metadata, server) ===> Add new key value pairs on OMERO
- * 
- * 		2. sendMetadataOnOmeroAndUpdateKeyValues(metadata, server) ===> Update current key value pairs on OMERO
- * 		and add new ones
- * 		
- * 		3. sendMetadataOnOmeroAndDeleteKeyValues(metadata, server) ===> Delete current key value pairs on OMERO
- * 		and add new ones
- * 
- */
-
-
 
 /**
- * Connect to OMERO and send all current metadata to OMERO as key-value pairs, 
- * attached to the current opened image.
+ * Connect to OMERO and import tags attached to the current opened image from OMERO, 
  * 
  **/
  
 // get the current displayed image on QuPath
 ImageServer<?> server = QP.getCurrentServer()
 
-// get metadata
-Map<String,String> qpMetadata = QP.getProjectEntry().getMetadataMap()
-
-// send metadata to OMERO
-OmeroRawScripting.sendMetadataOnOmero(qpMetadata, server)
+// send tags to OMERO
+List<String> tags = OmeroRawScripting.importOmeroTags(server)
+tags.each{println it}
 
 // display success
-println "Metadata sent to OMERO \n"
+println "Tag(s) successfully imported from OMERO \n"
 
 
