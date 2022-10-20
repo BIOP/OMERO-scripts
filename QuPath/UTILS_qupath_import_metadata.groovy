@@ -11,7 +11,7 @@ import qupath.lib.scripting.QP
  *  
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 14.10.2022
+ * 20.10.2022
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -38,20 +38,28 @@ import qupath.lib.scripting.QP
 /**
  * There is three implementations of the method 
  * 
- *  	1. sendMetadataOnOmero(metadata, server) ===> Add new key value pairs on OMERO
+ * 		1. importOmeroKeyValues(server) ===> import OMERO key value pairs WITHOUT updating current QuPath metadata
  * 
- * 		2. sendMetadataOnOmeroAndUpdateKeyValues(metadata, server) ===> Update current key value pairs on OMERO
- * 		and add new ones
+ *  	2. addMetadata(metadata) ===> Add new metadata to the image in QuPath
+ *  	
+ *  	3. addAndUpdateMetadata(metadata) ===> Update current metadata in QuPath and add new ones
+ *  	
+ *  	4. addAndDeleteMetadata(metadata) ===> Delete all existing metadata in QuPath (for the current image only) and add new ones
+ * 
+ * 		5. addOmeroKeyValues(server) ===> import OMERO key value pairs and add them as metadata to the current image in QuPath
  * 		
- * 		3. sendMetadataOnOmeroAndDeleteKeyValues(metadata, server) ===> Delete current key value pairs on OMERO
- * 		and add new ones
+ * 		6. addOmeroKeyValuesAndUpdateMetadata(server) ===> import OMERO key value pairs, update current metadata in QuPath and 
+ * 		add new ones as metadata to the current image in QuPath
+ * 		
+ * 		7. addOmeroKeyValuesAndDeleteMetadata(server) ===> import OMERO key value pairs, delete all current metadata in QuPath and 
+ * 		add new ones as metadata to the current image in QuPath
  * 
  */
 
 
 
 /**
- * Connect to OMERO and send all current metadata to OMERO as key-value pairs, 
+ * Connect to OMERO and import key value pairs to qupath from OMERO as metadata, 
  * attached to the current opened image.
  * 
  **/
@@ -59,13 +67,21 @@ import qupath.lib.scripting.QP
 // get the current displayed image on QuPath
 ImageServer<?> server = QP.getCurrentServer()
 
-// get metadata
-Map<String,String> qpMetadata = QP.getProjectEntry().getMetadataMap()
-
-// send metadata to OMERO
-OmeroRawScripting.sendMetadataOnOmero(qpMetadata, server)
+// check if the current server is an OMERO server. If not, throw an error
+if(!(server instanceof OmeroRawImageServer)){
+	Dialogs.showErrorMessage("Key value pairs import","Your image is not from OMERO ; please use an image that comes from OMERO to use this script");
+	return
+}
+		
+		// OPTION 1 === import metadata from OMERO 
+		Map<String,String> metadata = OmeroRawScripting.importOmeroKeyValues(server)
+		OmeroRawScripting.addAndUpdateMetadata(metadata)
+		
+		// OPTION 2 === import metadata from OMERO 
+		OmeroRawScripting.addOmeroKeyValuesAndUpdateMetadata(server)
 
 // display success
-println "Metadata sent to OMERO \n"
+println "Metadata imported and updated in QuPath \n"
+
 
 
