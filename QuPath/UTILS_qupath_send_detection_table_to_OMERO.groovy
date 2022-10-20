@@ -12,7 +12,7 @@ import qupath.lib.gui.measure.ObservableMeasurementTableData;
  *  
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 14.10.2022
+ * 20.10.2022
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -35,8 +35,23 @@ import qupath.lib.gui.measure.ObservableMeasurementTableData;
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+
 /**
- * Connect to OMERO and send the detection measurement table to OMERO as an OMERO.table and a csv file, 
+ * There is many implementations to send pathObjects to OMERO : 
+ * 
+ * /// sending an OMERO.table 
+ * 		1. sendDetectionMeasurementTable(pathObjects, server, image_data) ==> send measurement table with only the specified pathObjects 
+ * 		2. sendDetectionMeasurementTable(server, image_data) ==> send measurement table with all detections
+ * 		
+ * 	/// sending a csv file
+ * 		1. sendDetectionMeasurementTableAsCSV(pathObjects, server, image_data) ==> send measurement table with only the specified pathObjects 
+ * 		2. sendDetectionMeasurementTableAsCSV(server, image_data) ==> send measurement table with all detections
+ * 
+ */
+ 
+
+/**
+ * Send the detection measurement table to OMERO as an OMERO.table and a csv file, 
  * attached to the current opened image.
  * 
  **/
@@ -44,23 +59,24 @@ import qupath.lib.gui.measure.ObservableMeasurementTableData;
 // get the current displayed image on QuPath
 ImageServer<?> server = QP.getCurrentServer()
 
-// get all annotations objects
+// check if the current server is an OMERO server. If not, throw an error
+if(!(server instanceof OmeroRawImageServer)){
+	Dialogs.showErrorMessage("Measurement table sending","Your image is not from OMERO ; please use an image that comes from OMERO to use this script");
+	return
+}
+
+// get all detection objects
 Collection<PathObject> pathObjects = QP.getDetectionObjects()
 
-// create an new table
-ObservableMeasurementTableData table = new ObservableMeasurementTableData();
-
-// get annotation measurement table
-table.setImageData(QP.getCurrentImageData(), pathObjects);
+// get image data
+def imageData = QP.getCurrentImageData()
 
 // send the table to OMERO as OMERO.table
-String project_name = Projects.getBaseDirectory(QP.getProject()).getName()
-OmeroRawTools.writeMeasurementTableData(pathObjects, table, project_name, server);
+OmeroRawScripting.sendDetectionMeasurementTable(pathObjects, server, imageData);
 println "Detection table sent to OMERO as OMERO.table \n"
 
 // send the table to OMERO as csv file
-String project_path = QP.getProjectBaseDirectory()
-OmeroRawTools.writeMeasurementTableDataAsCSV(pathObjects, table, project_name, project_path, server);
+OmeroRawScripting.sendDetectionMeasurementTableAsCSV(pathObjects, server, imageData);
 println "Detection table sent to OMERO as csv file \n"
 
 
