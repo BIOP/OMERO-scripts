@@ -31,5 +31,12 @@ For `simple-omero-client`, download the latest version of [simple-omero-client-[
 
 For the last two dependencies, look at the readme of [qupath-extension-biop-omero](https://github.com/BIOP/qupath-extension-biop-omero) to know how to install.
 
-### Documentation
-You can find all the documentation on how to use this extension on our [QuPath wiki page](https://wiki-biop.epfl.ch/en/Image_Storage/OMERO/OmeroQuPath).
+### How to use scripts
+- All the necessary methods to communicate with OMERO from QuPath are available under the static class `OmeroRawScripting`.
+- Before running any script, you will need to have an image, coming from OMERO, open in QuPath.
+- Download the script
+- On QuPath, go under `Automate->Show script editor`
+- Click on `File->Open` and select the script you want to run
+- Click on `run->run`
+
+
