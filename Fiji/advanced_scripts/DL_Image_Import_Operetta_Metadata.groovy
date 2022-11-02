@@ -1,6 +1,7 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
-#@Long(label="Plate ID", value=119273) id
+#@Long(label="ID", value=119273) id
+#@String(label="Object", choices={"plate","screen"}) object_type
 #@File(label="CSV file of plate info", value="") csvFile
 
 
@@ -55,6 +56,7 @@
  * 
  * == Bug Fix ==
  * - 05.10.2022 : make explicit .equals and convert String to Integer
+ * - 02-11-2022 : can now select a screen and process each plate inside
  */
 
 /**
@@ -80,8 +82,14 @@ if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-		processPlate(user_client, user_client.getPlates(id))
-		
+		switch ( object_type ){
+			case "plate":
+				processPlate(user_client, user_client.getPlates(id))
+				break
+			case "screen":
+				processScreen(user_client, user_client.getScreens(id))
+				break
+		}
 	} finally{
 		user_client.disconnect()
 		println "Disonnected "+host
@@ -119,7 +127,6 @@ def processImage(user_client, image_wpr, operettaKeyValues){
 	
 	// add operetta key values
 	addKeyValuetoOMERO(user_client, image_wpr, operettaKeyValues)
-	
 }
 
 
@@ -186,16 +193,32 @@ def processWell(user_client, well_wpr_list){
 
 
 /**
- * Import all images from a plate in Fiji
+ * get all wells within plates
  * 
  * inputs
  * 		user_client : OMERO client
- * 		plate_wpr_list : OMERO plates
+ * 		plate_wpr_list : OMERO list of plates
  * 
  * */
 def processPlate(user_client, plate_wpr_list){
 	plate_wpr_list.each{ plate_wpr ->	
 		processWell(user_client, plate_wpr.getWells(user_client))
+	} 
+}
+
+
+
+/**
+ * get all plates within screens
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		screen_wpr_list : OMERO list of screens
+ * 
+ * */
+def processScreen(user_client, screen_wpr_list){
+	screen_wpr_list.each{ screen_wpr ->	
+		processPlate(user_client, screen_wpr.getPlates())
 	} 
 }
 
