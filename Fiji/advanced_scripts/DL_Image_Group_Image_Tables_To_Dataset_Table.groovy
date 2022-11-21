@@ -2,7 +2,7 @@
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
 #@Long(label="Dataset ID", value=1945) id
 #@String(label="Table name" , value="ResultsTable") tableName
-#@File(label="Folder for saving",style="Directory for images") temp_folder
+#@File(label="Folder for saving",style="directory") temp_folder
 #@Boolean(label="Delete existing Tables") isDeleteExistingTables
 #@Boolean(label="Send Measurements to OMERO") isSendNewMeasurements
 

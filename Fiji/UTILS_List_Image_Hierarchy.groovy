@@ -2,7 +2,7 @@
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
 #@Long(label="ID", value=119273) id
 #@String(label="Object", choices={"image","dataset","project","well","plate","screen"}) object_type
-#@File(label="Output folder", value="") outputFolder
+#@File(label="Output folder", style="directory") outputFolder
 #@Boolean(label="Save as key-values") writeAsKVP
 #@Boolean(label="Show images") showImages
 
