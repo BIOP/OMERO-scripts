@@ -4,7 +4,6 @@
 #@String(label="Object", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@File(label="Output folder", style="directory") outputFolder
 #@Boolean(label="Save as key-values") writeAsKVP
-#@Boolean(label="Show images") showImages
 
 
 /* = CODE DESCRIPTION =
