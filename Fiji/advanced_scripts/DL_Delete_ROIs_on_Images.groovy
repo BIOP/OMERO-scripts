@@ -55,7 +55,7 @@
 
 // Connection to server
 Client user_client = new Client()
-host = "omero-poc.epfl.ch"
+host = "omero-server.epfl.ch"
 port = 4064
 
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray() );

@@ -63,32 +63,33 @@ if (user_client.isConnected()){
 	try{
 		
 		switch (object_type){
-		case "image":	
-			deleteKVP( user_client, user_client.getImage(id) )
-			break	
-		case "dataset":
-			deleteKVP( user_client, user_client.getDataset(id) )
-			break
-		case "project":
-			deleteKVP( user_client, user_client.getProject(id) )
-			break
-		case "well":
-			deleteKVP( user_client, user_client.getWell(id) )
-			break
-		case "plate":
-			deleteKVP( user_client, user_client.getPlate(id))
-			break
-		case "screen":
-			deleteKVP( user_client, user_client.getScreen(id))
-			break
+			case "image":	
+				deleteKVP( user_client, user_client.getImage(id) )
+				break	
+			case "dataset":
+				deleteKVP( user_client, user_client.getDataset(id) )
+				break
+			case "project":
+				deleteKVP( user_client, user_client.getProject(id) )
+				break
+			case "well":
+				deleteKVP( user_client, user_client.getWell(id) )
+				break
+			case "plate":
+				deleteKVP( user_client, user_client.getPlate(id))
+				break
+			case "screen":
+				deleteKVP( user_client, user_client.getScreen(id))
+				break
 		}
+		println "Key-value pairs deleted for "+object_type+ " "+id + "and its childs"
 		
 	} finally{
 		user_client.disconnect()
 		println "Disonnected "+host
 	}
 	
-	println "Key-value pairs deletion for "+object_type+ " "+id+" : DONE !"
+	
 	return
 	
 }else{
@@ -109,7 +110,7 @@ def deleteKVP(user_client, repository_wpr){
 	List<MapAnnotationWrapper> keyValues = repository_wpr.getMapAnnotations(user_client)
 	
 	// delete key-values											   
-	keyValues.each{user_client.delete(it)}
+	user_client.delete((Collection<GenericObjectWrapper<?>>)keyValues)
 }
 
 
