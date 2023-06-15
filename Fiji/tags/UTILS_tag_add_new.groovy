@@ -2,7 +2,7 @@
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
 #@Long(label="ID", value=119273) id
 #@String(label="Object", choices={"image","dataset","project","well","plate","screen"}) object_type
-#@String(label="New Tag", value = "new_tag") tagName
+#@String(label="New Tag(s)", value = "new_tag1,new_tag2") tags
 
 
 /* = CODE DESCRIPTION =
@@ -27,7 +27,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 18.05.2022
+ * 2022-05-18
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -48,6 +48,10 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023-06-15 : Add multiple tags at the same time + remove unnecessary imports.
+ * 
  */
 
 
@@ -69,32 +73,31 @@ if (user_client.isConnected()){
 	try{
 		
 		switch (object_type){
-		case "image":	
-			processTag( user_client, user_client.getImage(id) )
-			break	
-		case "dataset":
-			processTag( user_client, user_client.getDataset(id) )
-			break
-		case "project":
-			processTag( user_client, user_client.getProject(id) )
-			break
-		case "well":
-			processTag( user_client, user_client.getWells(id) )
-			break
-		case "plate":
-			processTag( user_client, user_client.getPlates(id))
-			break
-		case "screen":
-			processTag( user_client, user_client.getScreens(id))
-			break
+			case "image":	
+				processTag( user_client, user_client.getImage(id) )
+				break	
+			case "dataset":
+				processTag( user_client, user_client.getDataset(id) )
+				break
+			case "project":
+				processTag( user_client, user_client.getProject(id) )
+				break
+			case "well":
+				processTag( user_client, user_client.getWells(id) )
+				break
+			case "plate":
+				processTag( user_client, user_client.getPlates(id) )
+				break
+			case "screen":
+				processTag( user_client, user_client.getScreens(id) )
+				break
 		}
+		println "All tags added for "+object_type+ " "+id
 		
 	} finally{
 		user_client.disconnect()
 		println "Disonnected "+host
-	}
-	
-	println "Adding the tag "+tagName+" for "+object_type+ " "+id+" : DONE !"
+	}	
 	return
 	
 }else{
@@ -111,11 +114,27 @@ if (user_client.isConnected()){
  * 
  * */
 def processTag(user_client, wpr){
-	// find if the requested tag already exists
-	new_tag = user_client.getTags().find{ it.getName().equals(tagName) } ?: new TagAnnotationWrapper(new TagAnnotationData(tagName))
 	
-	// add the tag to the image if it is not already the case
-	wpr.getTags(user_client).find{ it.getName().equals(new_tag.getName()) } ?: wpr.addTag(user_client, new_tag)
+	def tagsToAdd = []
+	
+	// get existing tags
+	def groupTags = user_client.getTags()
+	def imageTags = wpr.getTags(user_client)
+	
+	// find if the tag to add already exists on OMERO. If yes, they are not added twice
+	tags.split(",").each{tag->
+		// find if the requested tag already exists
+		new_tag = groupTags.find{ it.getName().equals(tag) } ?: new TagAnnotationWrapper(new TagAnnotationData(tag))
+		
+		// add the tag if it is not already the case
+		imageTags.find{ it.getName().equals(new_tag.getName()) } ? println("Tag "+tag+" already attached to the "+object_type) : tagsToAdd.add(new_tag)
+	}
+	
+	println("Adding tags :")
+	tagsToAdd.each{println(it.getName())}
+	
+	// add all tags to the image
+	wpr.addTags(user_client, (TagAnnotationWrapper[])tagsToAdd.toArray())	
 }
 
 
@@ -123,14 +142,6 @@ def processTag(user_client, wpr){
  * imports  
  */
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.model.DatasetData;
 import omero.gateway.model.TagAnnotationData;
-import omero.model.NamedValue
-import ij.*
-import ij.plugin.*
-import ij.gui.PointRoi
-import java.io.*;
