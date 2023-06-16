@@ -48,51 +48,52 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * == HISTORY ==
- * - 2023-06-15 : delete all ROIs in one server call
+ * - 2023-06-16 : delete all ROIs in one server call
  */
 
 
 
 // Connection to server
-Client user_client = new Client()
 host = "omero-server.epfl.ch"
 port = 4064
 
-user_client.connect(host, port, USERNAME, PASSWORD.toCharArray() );
-println "Connected to "+host
+Client user_client = new Client()
+user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
-try{
-	
-	switch ( object_type ){
-		case "image":	
-			processImage( user_client, user_client.getImage(id) )
-			break	
-		case "dataset":
-			processDataset( user_client, user_client.getDataset(id) )
-			break
-		case "project":
-			processProject( user_client, user_client.getProject(id) )
-			break
-		case "well":
-			processWell( user_client, user_client.getWells(id) )
-			break
-		case "plate":
-			processPlate( user_client, user_client.getPlates(id) )
-			break
-		case "screen":
-			processScreen( user_client, user_client.getScreens(id) )
-			break
+if (user_client.isConnected()){
+	println "\nConnected to "+host
+
+	try{
+		switch (object_type){
+			case "image":	
+				processImage(user_client, user_client.getImage(id))
+				break	
+			case "dataset":
+				processDataset(user_client, user_client.getDataset(id))
+				break
+			case "project":
+				processProject(user_client, user_client.getProject(id))
+				break
+			case "well":
+				processWell(user_client, user_client.getWells(id))
+				break
+			case "plate":
+				processPlate(user_client, user_client.getPlates(id))
+				break
+			case "screen":
+				processScreen(user_client, user_client.getScreens(id))
+				break
+		}
+		println "Processing of "+object_type+", id "+id+": DONE !"
+		
+	} finally{
+		user_client.disconnect()
+		println "Disconnected from to "+host
 	}
-	println "Processing of "+object_type+", id "+id+": DONE !"
 	
-} finally{
-	user_client.disconnect()
-	println "Disconnected from to "+host
+} else {
+	println "Not able to connect to "+host
 }
-
-
-return
-
 
 
 def processImage(user_client, img_wpr){
@@ -183,7 +184,9 @@ def processScreen(user_client, screen_wpr_list){
 }
 
 
-
+/*
+ * imports 
+ */
 import fr.igred.omero.*
 import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*

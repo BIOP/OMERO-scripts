@@ -25,8 +25,8 @@
  *  - 
  * 
  * = DEPENDENCIES =
- *  - omero_ij : https://github.com/ome/omero-insight/releases/download/v5.7.0/omero_ij-5.7.0-all.jar
- *  - simple-omero-client : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - simple-omero-client 5.12.3 : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -54,6 +54,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023-06-16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + update documentation
  */
 
 
@@ -61,47 +64,53 @@ IJ.run("Close All", "");
 rm.reset()
 rt.reset()
 
-Client user_client = new Client();
+// Connection to server
+host = "omero-server.epfl.ch"
+port = 4064
 
-user_client.connect("omero-server.epfl.ch", 4064, USERNAME, PASSWORD.toCharArray() );
-println "Connection to Omero : Success"
+Client user_client = new Client()
+user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
-try{
-	
-	switch ( object_type ){
-		case "image":	
-			processImage( 	user_client, user_client.getImage(id) )
-			break	
-		case "dataset":
-			processDataset( user_client, user_client.getDataset(id) )
-			break
-		case "project":
-			processProject( user_client, user_client.getProject(id) )
-			break
-		case "well":
-			processWell( 	user_client, user_client.getWells(id) )
-			break
-		case "plate":
-			processPlate( 	user_client, user_client.getPlates(id))
-			break
-		case "screen":
-			processScreen( 	user_client, user_client.getScreens(id))
-			break
+if (user_client.isConnected()){
+	println "\nConnected to "+host
+
+	try{
+		switch (object_type){
+			case "image":	
+				processImage(user_client, user_client.getImage(id))
+				break	
+			case "dataset":
+				processDataset(user_client, user_client.getDataset(id))
+				break
+			case "project":
+				processProject(user_client, user_client.getProject(id))
+				break
+			case "well":
+				processWell(user_client, user_client.getWells(id))
+				break
+			case "plate":
+				processPlate(user_client, user_client.getPlates(id))
+				break
+			case "screen":
+				processScreen(user_client, user_client.getScreens(id))
+				break
+		}
+		println "Processing of "+object_type+", id "+id+": DONE !"
+
+	} finally{
+		user_client.disconnect()
+		println "Disonnected from "+host
 	}
-} finally{
-	user_client.disconnect()
-	println "Disconnection to Omero , user: Success"
-}
 
-println "processing of "+object_type+", id "+id+": DONE !"
-return
+} else {
+	println "Not able to connect to "+host
+}
 
 
 /*
  *  Helpers function for the different "layers" Image,Dataset,Project,Well,Plate,Screen
  *  ipas(imp) is where the Image Processing & Analysis take part 
  */
-
 def ipas(imp){
 	// add the Image Processing & Analysis part here 	
 	rt.reset()
@@ -124,8 +133,7 @@ def ipas(imp){
 	cell_cellpose_imp = cellCellpose.cellpose_imp ;
 	cell_cellpose_imp.show()
 	
-	IJ.run(cell_cellpose_imp, "Label image to ROIs", "");
-	
+	IJ.run(cell_cellpose_imp, "Label image to ROIs", "");	
 }
 
 /* OMERO helpers */
@@ -137,17 +145,17 @@ def processImage(user_client, image_wpr){
 	
 	println image_wpr.getName()
 	ImagePlus imp = image_wpr.toImagePlus(user_client);
-	if ( showImages ) imp.show()
+	if (showImages) imp.show()
 	
 	// delete existing ROIs
-	
 	if( isDeleteExistingROIs){
 		println "Deleting existing OMERO-ROIs"
-		image_wpr.getROIs(user_client).each{ user_client.delete(it) }
+		def roisToDelete = img_wpr.getROIs(user_client)
+		user_client.delete((Collection<GenericObjectWrapper<?>>)roisToDelete)
 	}
 	else {
 		println "Loading existing OMERO-ROIs"
-		new ROIWrapper().toImageJ(image_wpr.getROIs( user_client) ).each{rm.addRoi(it)}
+		ROIWrapper.toImageJ(image_wpr.getROIs( user_client) ).each{rm.addRoi(it)}
 	}
 	
 	// do the processing here 
@@ -158,23 +166,50 @@ def processImage(user_client, image_wpr){
 	// send ROIs to Omero
 	if (isSendNewROIs){
 		println "New ROIs uploading to OMERO"
-		new ROIWrapper().fromImageJ(rm.getRoisAsArray() as List).each{ image_wpr.saveROI(user_client , it)	}		
+		def roisToUpload = ROIWrapper.fromImageJ(rm.getRoisAsArray() as List)
+		img_wpr.saveROIs(user_client , roisToUpload)
 	}
 	
 }
 
+/**
+ * process all images within a dataset
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		dataset_wpr : OMERO dataset
+ * 
+ * */
 def processDataset( user_client, dataset_wpr ){
 	dataset_wpr.getImages(user_client).each{ img_wpr ->
 		processImage(user_client , img_wpr)
 	}
 }
 
+
+/**
+ * process all datasets within a project
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		project_wpr : OMERO project
+ * 
+ * */
 def processProject( user_client, project_wpr ){
 	project_wpr.getDatasets().each{ dataset_wpr ->
 		processDataset(user_client , dataset_wpr)
 	}
 }
 
+
+/**
+ * process all images within a well
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		well_wpr_listet_wpr :  list of OMERO wells
+ * 
+ * */
 def processWell(user_client, well_wpr_list){		
 	well_wpr_list.each{ well_wpr ->				
 		well_wpr.getWellSamples().each{			
@@ -183,12 +218,30 @@ def processWell(user_client, well_wpr_list){
 	}	
 }
 
+
+/**
+ * process all wells within a plate
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		plate_wpr_list : List of OMERO plates
+ * 
+ * */
 def processPlate(user_client, plate_wpr_list){
 	plate_wpr_list.each{ plate_wpr ->	
 		processWell(user_client, plate_wpr.getWells(user_client))
 	} 
 }
 
+
+/**
+ * process all plates within a screen
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		screen_wpr_list : List of OMERO screens
+ * 
+ * */
 def processScreen(user_client, screen_wpr_list){
 	screen_wpr_list.each{ screen_wpr ->	
 		processPlate(user_client, screen_wpr.getPlates())

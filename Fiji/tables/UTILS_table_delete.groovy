@@ -63,34 +63,32 @@ if (user_client.isConnected()){
 	try{
 		switch (object_type){
 		case "image":	
-			processTable( user_client, user_client.getImage(id) )
+			processTable(user_client, user_client.getImage(id))
 			break	
 		case "dataset":
-			processTable( user_client, user_client.getDataset(id) )
+			processTable(user_client, user_client.getDataset(id))
 			break
 		case "project":
-			processTable( user_client, user_client.getProject(id) )
+			processTable(user_client, user_client.getProject(id))
 			break
 		case "well":
-			processTable( user_client, user_client.getWells(id) )
+			processTable(user_client, user_client.getWells(id))
 			break
 		case "plate":
-			processTable( user_client, user_client.getPlates(id))
+			processTable(user_client, user_client.getPlates(id))
 			break
 		case "screen":
-			processTable( user_client, user_client.getScreens(id))
+			processTable(user_client, user_client.getScreens(id))
 			break
 		}
+		println "Deletion of OMERO.tables for "+object_type+ " "+id+" : DONE !"
 		
-	} finally{
+	} finally {
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disonnected from "+host
 	}
-	
-	println "Deletion of OMERO.tables for "+object_type+ " "+id+" : DONE !"
-	return
-	
-}else{
+
+} else {
 	println "Not able to connect to "+host
 }
 

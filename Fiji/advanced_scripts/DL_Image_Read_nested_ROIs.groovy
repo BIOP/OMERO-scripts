@@ -47,6 +47,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023-06-16 : Remove unnecessary calls to OMERO server and imports
  */
 
 /**
@@ -70,14 +73,11 @@ if (user_client.isConnected()){
 	
 	try{
 		processRois(user_client, user_client.getImage(id))
-		
+		println "ROIs importation in FIJI from the image, id "+id+": DONE !\n"
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disonnected from "+host
 	}
-	
-	println "ROIs importation in FIJI from the image, id "+id+": DONE !\n"
-	return
 	
 }else{
 	println "Not able to connect to "+host
@@ -89,7 +89,6 @@ if (user_client.isConnected()){
  * Display the image with ROIs.
  */
 def processRois(user_client, img_wpr){
-	
 	IJ.run("Close All", "");
 	rm.reset()
 	def roi_wpr_list = img_wpr.getROIs(user_client)
@@ -119,13 +118,14 @@ def readNestedRoiWithoutXor(roi_wpr){
 	def ij_roi_list = new ArrayList()
 	
 	println "BE CAREFUL : each nested ROI are imported as multiple ROIs, not as a grouped one"
+	def roiID = roi_wpr.getId()
 	
 	shape_list.each{
 		def roi = it.toImageJ()
 		String img_name = it.getText();
 	
 		 if (img_name.isEmpty()) {
-             roi.setName(String.format("%d-%d", roi_wpr.getId(), it.getId()));
+             roi.setName(String.format("%d-%d", roiID, it.getId()));
          } else {
              roi.setName(img_name);
          }
@@ -134,7 +134,7 @@ def readNestedRoiWithoutXor(roi_wpr){
 		 roi.setFillColor(null)
 		 roi.setStrokeWidth(1)
 		
-         roi.setProperty("ROI_ID", String.valueOf(roi_wpr.getId()));
+         roi.setProperty("ROI_ID", String.valueOf(roiID));
          ij_roi_list.add(roi)
 	}
 	
@@ -148,27 +148,5 @@ def readNestedRoiWithoutXor(roi_wpr){
 import fr.igred.omero.*
 import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*
-import fr.igred.omero.repository.PixelsWrapper
-import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.facility.MetadataFacility
-import omero.gateway.facility.BrowseFacility
-import omero.gateway.model.*
-import omero.model.NamedValue
-import omero.model.Experimenter.*
-import omero.model.TagAnnotationDataI.*
-import omero.gateway.model.TagAnnotationData.*
-import omero.gateway.model.TagAnnotationData
-import omero.gateway.model.FileAnnotationData.*
-import omero.gateway.model.FileAnnotationData
-import omero.gateway.model.RatingAnnotationData.*
-import omero.gateway.model.RatingAnnotationData
-import omero.model.ExperimenterI.*
-import omero.model.enums.UnitsLength
-import omero.model.enums.UnitsTemperature
-import omero.gateway.model.ImageAcquisitionData
 import ij.*
-import omero.RLong;
-import omero.model.*;
-import java.io.File
-import java.awt.Color;
+import java.awt.Color

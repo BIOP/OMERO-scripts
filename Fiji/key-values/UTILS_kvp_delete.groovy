@@ -15,7 +15,7 @@
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.12.3 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -43,6 +43,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023-06-16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports.
  */
 
 /**
@@ -61,38 +64,35 @@ if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-		
+		def n
 		switch (object_type){
 			case "image":	
-				deleteKVP( user_client, user_client.getImage(id) )
+				n = deleteKVP(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
-				deleteKVP( user_client, user_client.getDataset(id) )
+				n = deleteKVP(user_client, user_client.getDataset(id))
 				break
 			case "project":
-				deleteKVP( user_client, user_client.getProject(id) )
+				n = deleteKVP(user_client, user_client.getProject(id))
 				break
 			case "well":
-				deleteKVP( user_client, user_client.getWell(id) )
+				n = deleteKVP(user_client, user_client.getWell(id))
 				break
 			case "plate":
-				deleteKVP( user_client, user_client.getPlate(id))
+				n = deleteKVP(user_client, user_client.getPlate(id))
 				break
 			case "screen":
-				deleteKVP( user_client, user_client.getScreen(id))
+				n = deleteKVP(user_client, user_client.getScreen(id))
 				break
 		}
-		println "Key-value pairs deleted for "+object_type+ " "+id + "and its childs"
+		println n + " key-value pairs deleted for "+object_type+ " "+id + "and its childs"
 		
-	} finally{
+	} finally {
 		user_client.disconnect()
 		println "Disonnected "+host
 	}
-	
-	
-	return
-	
-}else{
+
+} else {
 	println "Not able to connect to "+host
 }
 
@@ -111,28 +111,14 @@ def deleteKVP(user_client, repository_wpr){
 	
 	// delete key-values											   
 	user_client.delete((Collection<GenericObjectWrapper<?>>)keyValues)
+	
+	return keyValues.size()
 }
-
 
 
 /*
  * imports  
  */
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.model.DatasetData;
-import omero.model.NamedValue
-import ij.*
-import ij.plugin.*
-import ij.gui.PointRoi
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.awt.Rectangle;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.util.StringTokenizer;

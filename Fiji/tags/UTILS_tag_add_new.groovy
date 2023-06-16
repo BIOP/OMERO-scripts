@@ -71,7 +71,6 @@ if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-		
 		switch (object_type){
 			case "image":	
 				processTag( user_client, user_client.getImage(id) )
@@ -96,9 +95,8 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disonnected from "+host
 	}	
-	return
 	
 }else{
 	println "Not able to connect to "+host

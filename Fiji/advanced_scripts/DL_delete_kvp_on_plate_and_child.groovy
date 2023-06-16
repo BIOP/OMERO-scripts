@@ -4,17 +4,15 @@
 
 /* 
  * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- *  - key and value to add to OMERO object
+ *  - credentials 	
+ *  - Plate ID
  * 
  * == OUTPUTS ==
- *  - key-value deletion
+ *  - key-value deletion on the plate and all its childs (wells and images)
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.12.3 : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -42,6 +40,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023-06-16 : Refactoring to reduce the number of server calls + remove unnecessary imports + update documentation
  */
 
 /**
@@ -60,66 +61,88 @@ if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-		processPlate( user_client, user_client.getPlate(id))
+		List<MapAnnotationWrapper> keyValuesToDelete = processPlate( user_client, user_client.getPlate(id))
+		deleteKVP(user_client, keyValuesToDelete)
+		println keyValuesToDelete.size() + " key-value pairs deleted from plate "+id+" and its childs"
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
-	}
-	
-	println "Key-value pairs deletion for the full plate "+id+" : DONE !"
-	return
-	
+		println "Disonnected from "+host
+	}	
 }else{
 	println "Not able to connect to "+host
 }
 
 
 /**
- *Add a new one to the last key-values
+ * get all the key-values attached to the image/container
  * 
  * inputs
  * 		user_client : OMERO client
  * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
  * 
  * */
-def deleteKVP(user_client, repository_wpr){
-	// get the current key-value pairs
-	List<MapAnnotationWrapper> keyValues = repository_wpr.getMapAnnotations(user_client)
-	
-	// delete key-values											   
-	keyValues.each{user_client.delete(it)}
+def getKVP(user_client, repository_wpr){
+	return repository_wpr.getMapAnnotations(user_client)
 }
 
 
 /**
- * get all images within a well
+ * delete the specified key-values
  * 
  * inputs
- * 	 	user_client : OMERO client
- * 		well_wpr_listet_wpr : OMERO list of wells
+ * 		user_client : OMERO client
+ * 		keyValues : list of MapAnnotationWrapper objects corresponding to OMERO key-values
  * 
  * */
-def processWell(user_client, well_wpr_list){		
-	well_wpr_list.each{ well_wpr ->		
-		deleteKVP(user_client, well_wpr)		
-		well_wpr.getWellSamples().each{			
-			deleteKVP(user_client, it.getImage())		
-		}
-	}	
+def deleteKVP(user_client, keyValues){										   
+	user_client.delete((Collection<GenericObjectWrapper<?>>)keyValues)
 }
 
 
 /**
- * get all wells within a plate
+ * process all images within a well
  * 
  * inputs
  * 	 	user_client : OMERO client
- * 		plate_wpr_list : OMERO list of plates
+ * 		well_wpr_list : List of OMERO wells
+ * 
+ * */
+def processWell(user_client, well_wpr_list){
+	def listOfKVPToDelete = []	
+
+	well_wpr_list.each{ well_wpr ->	
+		println("Process "+well_wpr.getName())	
+		// get the key-values attached to the well
+		listOfKVPToDelete.addAll(getKVP(user_client, well_wpr))	
+		
+		well_wpr.getWellSamples().each{	
+			// get the key-values attached to all images within the well		
+			listOfKVPToDelete.addAll(getKVP(user_client, it.getImage()))	
+		}
+	}	
+	
+	return listOfKVPToDelete
+}
+
+
+/**
+ * process all wells within a plate
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		plate_wpr : OMERO plate
  * 
  * */
 def processPlate(user_client, plate_wpr){
-	deleteKVP(user_client, plate_wpr)
-	processWell(user_client, plate_wpr.getWells(user_client))
+	def listOfKVPToDelete = []
+		
+	// get the key-values attached to the plate
+	listOfKVPToDelete.addAll(getKVP(user_client, plate_wpr))
+	
+	// get the key-values attached to all wells within the plate
+	listOfKVPToDelete.addAll(processWell(user_client, plate_wpr.getWells(user_client)))
+	
+	return listOfKVPToDelete
 }
 
 
@@ -127,20 +150,4 @@ def processPlate(user_client, plate_wpr){
  * imports  
  */
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
-import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.model.DatasetData;
-import omero.model.NamedValue
-import ij.*
-import ij.plugin.*
-import ij.gui.PointRoi
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.awt.Rectangle;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.util.StringTokenizer;

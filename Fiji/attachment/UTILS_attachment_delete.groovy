@@ -15,7 +15,7 @@
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.9.1 : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -43,6 +43,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023-06-16 : Limits the number of call to the OMERO server
  */
 
 /**
@@ -53,6 +56,7 @@
 // Connection to server
 host = "omero-server.epfl.ch"
 port = 4064
+
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
@@ -60,37 +64,34 @@ if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-		
 		switch (object_type){
-		case "image":	
-			processAttachment( user_client, user_client.getImage(id) )
-			break	
-		case "dataset":
-			processAttachment( user_client, user_client.getDataset(id) )
-			break
-		case "project":
-			processAttachment( user_client, user_client.getProject(id) )
-			break
-		case "well":
-			processAttachment( user_client, user_client.getWells(id) )
-			break
-		case "plate":
-			processAttachment( user_client, user_client.getPlates(id))
-			break
-		case "screen":
-			processAttachment( user_client, user_client.getScreens(id))
-			break
+			case "image":	
+				processAttachment(user_client, user_client.getImage(id))
+				break	
+			case "dataset":
+				processAttachment(user_client, user_client.getDataset(id))
+				break
+			case "project":
+				processAttachment(user_client, user_client.getProject(id))
+				break
+			case "well":
+				processAttachment(user_client, user_client.getWells(id))
+				break
+			case "plate":
+				processAttachment(user_client, user_client.getPlates(id))
+				break
+			case "screen":
+				processAttachment(user_client, user_client.getScreens(id))
+				break
 		}
+		println "Processing of attachments for "+object_type+ " "+id+" : DONE !"
 		
-	} finally{
+	} finally {
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disonnected from "+host
 	}
 	
-	println "Processing of attachments for "+object_type+ " "+id+" : DONE !"
-	return
-	
-}else{
+} else {
 	println "Not able to connect to "+host
 }
 
@@ -107,33 +108,34 @@ if (user_client.isConnected()){
 def processAttachment(user_client, repository_wpr){
 	
 	def file_wpr_list = repository_wpr.getFileAnnotations(user_client)
+	List<FileAnnotationWrapper> attachments_to_delete = []
 	
-	if  (repository_wpr.getOwner().getId() == user_client.getUser().getId() ){
+	def userId = user_client.getUser().getId()
+	def ownerRepoId = repository_wpr.getOwner().getId()
+	
+	if (ownerRepoId == userId){
 		file_wpr_list.each{file_wpr->
-			if  (file_wpr.getOwner().getId() == user_client.getUser().getId() ){
+			if  (file_wpr.getOwner().getId() == userId){
 					println file_wpr.getFileName() + " will be deleted"
-					user_client.delete(file_wpr)
-			}else
+					attachments_to_delete.add(file_wpr)
+			} else {
 				println file_wpr.getFileName() + " will NOT be deleted"
+			}
 		}
-	}else
+	} else {
 		println file_wpr.getName() + " will NOT be deleted"
+	}
+	
+	if(!attachments_to_delete.isEmpty())
+		user_client.delete((Collection<GenericObjectWrapper<?>>)attachments_to_delete)
+		
+	println attachments_to_delete.size() + " attachments deleted"
 }
 
 
 /*
  * imports  
  */
-
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.model.DatasetData;
-import omero.gateway.model.TagAnnotationData;
-import omero.model.NamedValue
-import ij.*
-import ij.plugin.*
-import ij.gui.PointRoi
-import java.io.*;

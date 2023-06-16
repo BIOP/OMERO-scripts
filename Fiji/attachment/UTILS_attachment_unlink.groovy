@@ -96,8 +96,7 @@ if (user_client.isConnected()){
 
 
 /**
- * Delete all the attachment from an object
- * BE CAREFUL : you will delete the attachment, not remove the attachment from the object. Meaning that every people that use this attachment will losse it.
+ * Unlink all the attachment from an object. Files will still be present on the server
  * 
  * inputs
  * 		user_client : OMERO client
