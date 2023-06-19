@@ -43,6 +43,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023.06.19 : Remove unnecessary imports 
  */
 
 /**
@@ -53,6 +56,7 @@
 // Connection to server
 host = "omero-server.epfl.ch"
 port = 4064
+
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
@@ -63,32 +67,30 @@ if (user_client.isConnected()){
 		
 		switch (object_type){
 		case "image":	
-			processAttachment( user_client, user_client.getImage(id) )
+			processAttachment(user_client, user_client.getImage(id))
 			break	
 		case "dataset":
-			processAttachment( user_client, user_client.getDataset(id) )
+			processAttachment(user_client, user_client.getDataset(id))
 			break
 		case "project":
-			processAttachment( user_client, user_client.getProject(id) )
+			processAttachment(user_client, user_client.getProject(id))
 			break
 		case "well":
-			processAttachment( user_client, user_client.getWells(id) )
+			processAttachment(user_client, user_client.getWells(id))
 			break
 		case "plate":
-			processAttachment( user_client, user_client.getPlates(id))
+			processAttachment(user_client, user_client.getPlates(id))
 			break
 		case "screen":
-			processAttachment( user_client, user_client.getScreens(id))
+			processAttachment(user_client, user_client.getScreens(id))
 			break
 		}
+		println "Processing of attachments for "+object_type+ " "+id+" : DONE !"
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disonnected from "+host
 	}
-	
-	println "Processing of attachments for "+object_type+ " "+id+" : DONE !"
-	return
 	
 }else{
 	println "Not able to connect to "+host
@@ -106,7 +108,7 @@ if (user_client.isConnected()){
 def processAttachment(user_client, repository_wpr){
 	
 	def file_wpr_list = repository_wpr.getFileAnnotations(user_client)
-	file_wpr_list.each{repository_wpr.unlink(client,it)}
+	file_wpr_list.each{repository_wpr.unlink(client, it)}
 }
 
 
@@ -115,14 +117,3 @@ def processAttachment(user_client, repository_wpr){
  */
 
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
-import fr.igred.omero.repository.*
-import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.model.DatasetData;
-import omero.gateway.model.TagAnnotationData;
-import omero.model.NamedValue
-import ij.*
-import ij.plugin.*
-import ij.gui.PointRoi
-import java.io.*;
