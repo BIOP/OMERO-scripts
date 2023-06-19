@@ -42,6 +42,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023.06.19 : Remove unnecessary imports
  */
 
 
@@ -61,34 +64,32 @@ if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-	
 		switch (object_type){
 			case "image":	
-				processTag( user_client, user_client.getImage(id) )
+				processTag(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
-				processTag( user_client, user_client.getDataset(id) )
+				processTag(user_client, user_client.getDataset(id))
 				break
 			case "project":
-				processTag( user_client, user_client.getProject(id) )
+				processTag(user_client, user_client.getProject(id))
 				break
 			case "well":
-				processTag( user_client, user_client.getWells(id) )
+				processTag(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				processTag( user_client, user_client.getPlates(id))
+				processTag(user_client, user_client.getPlates(id))
 				break
 			case "screen":
-				processTag( user_client, user_client.getScreens(id))
+				processTag(user_client, user_client.getScreens(id))
 				break
-			}
-	
+		}
+		println "Processing of key-values for "+object_type+ " "+id+" : DONE !"
+		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disonnected from "+host
 	}
-	println "Processing of key-values for "+object_type+ " "+id+" : DONE !"
-	return
 	
 }else{
 	println "Not able to connect to "+host
@@ -116,20 +117,8 @@ def processTag(user_client, repository_wpr){
 
 
 
-import ij.*
-import ij.plugin.*
-import ij.ImagePlus
-import ij.plugin.Concatenator
-import ij.io.FileSaver
-import ij.measure.ResultsTable
-import ij.gui.Roi
-
+/*
+ * imports
+ */
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
-import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-
-import org.apache.commons.io.FilenameUtils
-import omero.gateway.model.*
-import java.util.*

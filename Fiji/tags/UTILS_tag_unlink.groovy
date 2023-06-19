@@ -3,15 +3,18 @@
 #@Long(label="ID", value=119273) id
 #@String(label="Object", choices={"image","dataset","project","well","plate","screen"}) object_type
 
-/* 
+
+/* = CODE DESCRIPTION =
+ * This is a template to interact with OMERO . 
+ * User can specify the image to be imported (must be stored in a local environnement) and the ID of the dataset where to import the image.
+ * 
  * == INPUTS ==
  *  - credentials 
  *  - id
  *  - object type
- *  - key and value to add to OMERO object
  * 
  * == OUTPUTS ==
- *  - key-value on OMERO
+ *  - delete ALL tags attached on an image / container
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
@@ -22,7 +25,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 05.10.2022
+ * 18.05.2022
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -45,11 +48,12 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * == HISTORY ==
- * - 2023-06-16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports.
+ * - 2023.06.19 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports
+ * + turn the deletion into unlinking
  */
 
 /**
- * Main. Connect to OMERO, delete key-values for the current object and disconnect from OMERO
+ * Main. Connect to OMERO, process tags and disconnect from OMERO
  * 
  */
  
@@ -67,52 +71,43 @@ if (user_client.isConnected()){
 		def n
 		switch (object_type){
 			case "image":	
-				n = deleteKVP(user_client, user_client.getImage(id))
+				n = unlinkAllTagsOnImage(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
-				n = deleteKVP(user_client, user_client.getDataset(id))
+				n = unlinkAllTagsOnImage(user_client, user_client.getDataset(id))
 				break
 			case "project":
-				n = deleteKVP(user_client, user_client.getProject(id))
+				n = unlinkAllTagsOnImage(user_client, user_client.getProject(id))
 				break
 			case "well":
-				n = deleteKVP(user_client, user_client.getWell(id))
+				n = unlinkAllTagsOnImage(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				n = deleteKVP(user_client, user_client.getPlate(id))
+				n = unlinkAllTagsOnImage(user_client, user_client.getPlates(id))
 				break
 			case "screen":
-				n = deleteKVP(user_client, user_client.getScreen(id))
+				n = unlinkAllTagsOnImage(user_client, user_client.getScreens(id))
 				break
 		}
-		println n + " key-value pairs deleted for "+object_type+ " "+id + "and its childs"
+		println n + " tags unlinked for "+object_type+ " "+id
 		
-	} finally {
+	} finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "\n Disonnected from "+host
 	}
-
-} else {
+	
+}else{
 	println "Not able to connect to "+host
 }
 
 
-/**
- * Delete key-values
- * 
- * inputs
- * 		user_client : OMERO client
- * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
- * 
- * */
-def deleteKVP(user_client, repository_wpr){
-	// get the current key-value pairs
-	List<MapAnnotationWrapper> keyValues = repository_wpr.getMapAnnotations(user_client)
+def unlinkAllTagsOnImage(user_client, repository_wpr){
+	// get the current tags
+	List<TagAnnotationWrapper> tags = repository_wpr.getTags(user_client)
+
+	tags.each{repository_wpr.unlink(user_client, it)}
 	
-	// delete key-values											   
-	user_client.delete((Collection<GenericObjectWrapper<?>>)keyValues)
-	
-	return keyValues.size()
+	return tags.size()
 }
 
 
