@@ -42,6 +42,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023.06.19 : Remove unnecessary imports 
  */
 
 /**
@@ -60,35 +63,32 @@ if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-		
 		switch (object_type){
-		case "image":	
-			processKVP( user_client, user_client.getImage(id) )
-			break	
-		case "dataset":
-			processKVP( user_client, user_client.getDataset(id) )
-			break
-		case "project":
-			processKVP( user_client, user_client.getProject(id) )
-			break
-		case "well":
-			processKVP( user_client, user_client.getWell(id) )
-			break
-		case "plate":
-			processKVP( user_client, user_client.getPlate(id))
-			break
-		case "screen":
-			processKVP( user_client, user_client.getScreen(id))
-			break
+			case "image":	
+				processKVP(user_client, user_client.getImage(id))
+				break	
+			case "dataset":
+				processKVP(user_client, user_client.getDataset(id))
+				break
+			case "project":
+				processKVP(user_client, user_client.getProject(id))
+				break
+			case "well":
+				processKVP(user_client, user_client.getWell(id))
+				break
+			case "plate":
+				processKVP(user_client, user_client.getPlate(id))
+				break
+			case "screen":
+				processKVP(user_client, user_client.getScreen(id))
+				break
 		}
+		println "Processing of key-values for "+object_type+ " "+id+" : DONE !"
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disonnected from "+host
 	}
-	
-	println "Processing of key-values for "+object_type+ " "+id+" : DONE !"
-	return
 	
 }else{
 	println "Not able to connect to "+host
@@ -124,14 +124,5 @@ def processKVP(user_client, repository_wpr){
  */
 
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
-import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.model.DatasetData;
-import omero.gateway.model.TagAnnotationData;
 import omero.model.NamedValue
-import ij.*
-import ij.plugin.*
-import ij.gui.PointRoi
-import java.io.*;
