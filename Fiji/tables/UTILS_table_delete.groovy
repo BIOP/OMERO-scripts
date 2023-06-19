@@ -43,6 +43,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023.06.19 : Remove unnecessary imports + limits the number of server calls
  */
 
 /**
@@ -62,24 +65,24 @@ if (user_client.isConnected()){
 	
 	try{
 		switch (object_type){
-		case "image":	
-			processTable(user_client, user_client.getImage(id))
-			break	
-		case "dataset":
-			processTable(user_client, user_client.getDataset(id))
-			break
-		case "project":
-			processTable(user_client, user_client.getProject(id))
-			break
-		case "well":
-			processTable(user_client, user_client.getWells(id))
-			break
-		case "plate":
-			processTable(user_client, user_client.getPlates(id))
-			break
-		case "screen":
-			processTable(user_client, user_client.getScreens(id))
-			break
+			case "image":	
+				processTable(user_client, user_client.getImage(id))
+				break	
+			case "dataset":
+				processTable(user_client, user_client.getDataset(id))
+				break
+			case "project":
+				processTable(user_client, user_client.getProject(id))
+				break
+			case "well":
+				processTable(user_client, user_client.getWells(id))
+				break
+			case "plate":
+				processTable(user_client, user_client.getPlates(id))
+				break
+			case "screen":
+				processTable(user_client, user_client.getScreens(id))
+				break
 		}
 		println "Deletion of OMERO.tables for "+object_type+ " "+id+" : DONE !"
 		
@@ -106,10 +109,12 @@ if (user_client.isConnected()){
 def processTable(user_client, repository_wpr){
 	
 	def table_wpr_list = repository_wpr.getTables(user_client)
+	def ownerID = repository_wpr.getOwner().getId()
+	def userID = user_client.getUser().getId()
 	
 	table_wpr_list.each{table_wpr->
 		// check that user is owner
-		if  (repository_wpr.getOwner().getId() == user_client.getUser().getId() ){
+		if  (userID == ownerID){
 			println table_wpr.getName() + " will be deleted"
 			user_client.deleteFile(table_wpr.getId())
 		}
@@ -123,15 +128,3 @@ def processTable(user_client, repository_wpr){
  * imports  
  */
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
-import fr.igred.omero.repository.*
-import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.model.DatasetData;
-import omero.model.NamedValue
-import ij.*
-import ij.plugin.*
-import ij.gui.*
-import ij.gui.PointRoi
-import ij.measure.ResultsTable
-import java.io.*;
