@@ -70,14 +70,12 @@ if (user_client.isConnected()){
 	try{
 	
 		processImage(user_client, user_client.getImage(id))
-
+		println "Reading metadata on image, id "+id+": DONE !"
+		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disonnected from "+host
 	}
-	
-	println "Reading metadata on image, id "+id+": DONE !"
-	return
 	
 }else{
 	println "Not able to connect to "+host

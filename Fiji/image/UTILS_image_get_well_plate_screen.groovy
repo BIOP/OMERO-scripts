@@ -43,11 +43,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-// create the client and connect to the host
-Client user_client = new Client()
+// Connection to server
 host = "omero-server.epfl.ch"
 port = 4064
 
+Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
@@ -78,10 +78,12 @@ if (user_client.isConnected()){
 			println "Warning : Your image is part of a dataset/project, not part of a plate/screen"
 		}
 		
-	} finally{
+	} finally {
 		user_client.disconnect()
 		println "Disonnected from "+host
 	}
+} else {
+	println "Not able to connect to "+host
 }
 
 import fr.igred.omero.*
