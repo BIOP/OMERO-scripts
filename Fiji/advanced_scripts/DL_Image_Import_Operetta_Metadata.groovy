@@ -55,8 +55,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * == Bug Fix ==
- * - 05.10.2022 : make explicit .equals and convert String to Integer
- * - 02-11-2022 : can now select a screen and process each plate inside
+ * - 2022.10.05 : make explicit .equals and convert String to Integer
+ * - 2022.11.02 : can now select a screen and process each plate inside
+ * - 2023.06.19 : Remove unnecessary imports
  */
 
 /**
@@ -82,7 +83,7 @@ if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-		switch ( object_type ){
+		switch (object_type){
 			case "plate":
 				processPlate(user_client, user_client.getPlates(id))
 				break
@@ -90,13 +91,11 @@ if (user_client.isConnected()){
 				processScreen(user_client, user_client.getScreens(id))
 				break
 		}
+		println "Listing images in plate, id "+id+": DONE !\n"
 	} finally{
 		user_client.disconnect()
 		println "Disonnected "+host
 	}
-	
-	println "Listing images in plate, id "+id+": DONE !\n"
-	return
 	
 }else{
 	println "Not able to connect to "+host
@@ -223,34 +222,13 @@ def processScreen(user_client, screen_wpr_list){
 }
 
 
-
 /*
  * imports  
  */
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*
-import fr.igred.omero.repository.PixelsWrapper
 import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.facility.MetadataFacility
-import omero.gateway.facility.BrowseFacility
 import omero.gateway.model.*
 import omero.model.NamedValue
-import omero.model.Experimenter.*
-import omero.model.TagAnnotationDataI.*
-import omero.gateway.model.TagAnnotationData.*
-import omero.gateway.model.TagAnnotationData
-import omero.gateway.model.FileAnnotationData.*
-import omero.gateway.model.FileAnnotationData
-import omero.gateway.model.RatingAnnotationData.*
-import omero.gateway.model.RatingAnnotationData
-import omero.model.ExperimenterI.*
-import omero.model.enums.UnitsLength
-import omero.model.enums.UnitsTemperature
-import omero.gateway.model.ImageAcquisitionData
-import ij.*
-import omero.RLong;
-import omero.model.*;
 import java.io.File
 import java.lang.Integer

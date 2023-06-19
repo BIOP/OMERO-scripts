@@ -84,7 +84,6 @@ if (user_client.isConnected()){
 	}
 	
 	println "Process : DONE !"
-	return
 	
 }else{
 	println "Not able to connect to "+host

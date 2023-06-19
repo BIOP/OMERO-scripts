@@ -53,6 +53,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023.06.19 : Remove unnecessary imports
  */
 
 
@@ -71,66 +74,68 @@
 IJ.run("Close All", "");
 
 // Connection to server
-Client user_client = new Client()
 host = "omero-server.epfl.ch"
 port = 4064
 
-user_client.connect(host, port, USERNAME, PASSWORD.toCharArray());
-println "Connection to "+host+" : Success"
+Client user_client = new Client()
+user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 
-try{
-	// get the selected dataset
-	def dataset_wpr = user_client.getDataset(id)
+if (user_client.isConnected()){
+	println "\nConnected to "+host
 
-	// get tables attached to the current dataset
-	List<ImageWrapper> img_wpr_list = dataset_wpr.getImages(user_client)
+	try{
+		// get the selected dataset
+		def dataset_wpr = user_client.getDataset(id)
 	
-	// initialize variables
-	TableWrapper dataset_table_wpr = null;
-	ResultsTable rt_dataset = new ResultsTable()
-	
-	// loop on each image within the dataset
-	img_wpr_list.each{img_wpr->
-		println "Process image "+img_wpr.getName()+", id: "+ img_wpr.getId()
+		// get tables attached to the current dataset
+		List<ImageWrapper> img_wpr_list = dataset_wpr.getImages(user_client)
 		
-		// get the list of image tables
-		List<TableWrapper> table_wpr_list = img_wpr.getTables(user_client)
-		rt_dataset.reset()
+		// initialize variables
+		TableWrapper dataset_table_wpr = null;
+		ResultsTable rt_dataset = new ResultsTable()
 		
-		// build a dataset row
-		rt_dataset = buildDummyDatasetResultsTable(rt_dataset, img_wpr)
-		
-		// build the OMERO.table
-		List<Roi> rois =  new ArrayList<>(0)
-		if(dataset_table_wpr == null)
-			dataset_table_wpr = new TableWrapper(user_client, rt_dataset, img_wpr.getId(), rois)
-		else
-			dataset_table_wpr.addRows(user_client, rt_dataset , img_wpr.getId(), rois)
-		
-	}
-	
-	// attach the OMERO.table
-	print "Upload table to OMERO"
-	dataset_table_wpr.setName(dataset_wpr.getName()+"_"+tableName)
-	dataset_wpr.addTable(user_client, dataset_table_wpr)
-	println " : Done"
+		// loop on each image within the dataset
+		img_wpr_list.each{img_wpr->
+			println "Process image "+img_wpr.getName()+", id: "+ img_wpr.getId()
 			
-	// attach the corresponding csv file
-	print "Upload csv file to OMERO"
-	ResultsTable rt = getResultTable(dataset_table_wpr)
-	uploadResultsTable(user_client, dataset_wpr, rt)
+			// get the list of image tables
+			List<TableWrapper> table_wpr_list = img_wpr.getTables(user_client)
+			rt_dataset.reset()
+			
+			// build a dataset row
+			rt_dataset = buildDummyDatasetResultsTable(rt_dataset, img_wpr)
+			
+			// build the OMERO.table
+			List<Roi> rois =  new ArrayList<>(0)
+			if(dataset_table_wpr == null)
+				dataset_table_wpr = new TableWrapper(user_client, rt_dataset, img_wpr.getId(), rois)
+			else
+				dataset_table_wpr.addRows(user_client, rt_dataset , img_wpr.getId(), rois)
+			
+		}
+		
+		// attach the OMERO.table
+		print "Upload table to OMERO"
+		dataset_table_wpr.setName(dataset_wpr.getName()+"_"+tableName)
+		dataset_wpr.addTable(user_client, dataset_table_wpr)
+		println " : Done"
+				
+		// attach the corresponding csv file
+		print "Upload csv file to OMERO"
+		ResultsTable rt = getResultTable(dataset_table_wpr)
+		uploadResultsTable(user_client, dataset_wpr, rt)
+		
+		println "processing of dataset, id "+id+": DONE !"
 
+	} finally{
+		user_client.disconnect()
+		println "Disconnection to "+host+", user: Success"
+	}
 
-} finally{
-	user_client.disconnect()
-	println "Disconnection to "+host+", user: Success"
+} else {
+	println "Not able to connect to "+host
 }
-
-println "processing of dataset, id "+id+": DONE !"
-return
-
-
 
 /**
  * Build the image ResultTable from a TableWrapper
@@ -228,9 +233,5 @@ import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
 import ij.*
-import ij.plugin.*
-import ij.gui.PointRoi
-import ch.epfl.biop.wrappers.cellpose.ij2commands.Cellpose_SegmentImgPlusAdvanced
-import ch.epfl.biop.ij2command.*
 import ij.gui.Roi
 import ij.measure.ResultsTable

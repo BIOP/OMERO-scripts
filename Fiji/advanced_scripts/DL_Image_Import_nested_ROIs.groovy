@@ -19,7 +19,7 @@
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.12.3 : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -47,6 +47,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023-06-19 : Limit the number of server calls + update simple-omero-client to 5.12.3
  */
 
 /**
@@ -78,7 +81,6 @@ if (user_client.isConnected()){
 	}
 	
 	println "Import nested ROIs on image, id "+id+": DONE !\n"
-	return
 	
 }else{
 	println "Not able to connect to "+host
@@ -122,8 +124,8 @@ def processRois(user_client, image_wpr){
 				   		// if nested, group the rois together
 				   		hasfoundNested = true
 					   	def listOfRois = new ArrayList()
-						listOfRois.add(new ROIWrapper().fromImageJ(Collections.singletonList(imageJListOfRois.get(i))).get(0))
-						listOfRois.add(new ROIWrapper().fromImageJ(Collections.singletonList(imageJListOfRois.get(j))).get(0))
+						listOfRois.add(ROIWrapper.fromImageJ(Collections.singletonList(imageJListOfRois.get(i))).get(0))
+						listOfRois.add(ROIWrapper.fromImageJ(Collections.singletonList(imageJListOfRois.get(j))).get(0))
 						
 						reducedRois.put(counter,listOfRois)
 						allRois.replace(imageJListOfRois.get(i), false, true)
@@ -134,13 +136,14 @@ def processRois(user_client, image_wpr){
 		}
 		// if no nested, store rois one by one
 		if(!hasfoundNested && allRois.get(imageJListOfRois.get(i)) == false){
-			reducedRois.put(counter,new ROIWrapper().fromImageJ(Collections.singletonList(imageJListOfRois.get(i))))
+			reducedRois.put(counter, ROIWrapper.fromImageJ(Collections.singletonList(imageJListOfRois.get(i))))
 			allRois.replace(imageJListOfRois.get(i), false, true)
 			counter++
 		}
 	}
 	
 	// save each grouped/single rois to OMERO 
+	List<ROIWrapper> newRoisList = []
 	reducedRois.values().each{roiWrapperList->
 		def newRoi = new ROIWrapper()
 		roiWrapperList.each{roiWrapper->
@@ -150,8 +153,9 @@ def processRois(user_client, image_wpr){
 				newRoi.asROIData().addShapeData(it)
 			}
 		}
-		image_wpr.saveROI(user_client , newRoi)
+		newRoisList.add(newRoi)
 	}
+	image_wpr.saveROIs(user_client , newRoisList)
 }
 
 
@@ -161,26 +165,5 @@ def processRois(user_client, image_wpr){
 import fr.igred.omero.*
 import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*
-import fr.igred.omero.repository.PixelsWrapper
-import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.facility.MetadataFacility
-import omero.gateway.facility.BrowseFacility
-import omero.gateway.model.*
-import omero.model.NamedValue
-import omero.model.Experimenter.*
-import omero.model.TagAnnotationDataI.*
-import omero.gateway.model.TagAnnotationData.*
-import omero.gateway.model.TagAnnotationData
-import omero.gateway.model.FileAnnotationData.*
-import omero.gateway.model.FileAnnotationData
-import omero.gateway.model.RatingAnnotationData.*
-import omero.gateway.model.RatingAnnotationData
-import omero.model.ExperimenterI.*
-import omero.model.enums.UnitsLength
-import omero.model.enums.UnitsTemperature
-import omero.gateway.model.ImageAcquisitionData
 import ij.*
-import omero.RLong;
-import omero.model.*;
 import java.io.File
