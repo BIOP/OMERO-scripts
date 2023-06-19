@@ -62,6 +62,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023.06.19 : Remove unnecessary imports 
  */
 
 /**
@@ -82,7 +85,6 @@ if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-		
 		switch (object_type){
 			case "image":	
 				processImage(user_client, user_client.getImage(id))
@@ -105,14 +107,12 @@ if (user_client.isConnected()){
 		}
 		
 		makeCSVFileWithObjectList(data_list)
+		println "Listing images in "+object_type+", id "+id+": DONE !\n"
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disonnected from "+host
 	}
-	
-	println "Listing images in "+object_type+", id "+id+": DONE !\n"
-	return
 	
 }else{
 	println "Not able to connect to "+host
@@ -301,29 +301,7 @@ def processScreen(user_client, screen_wpr_list){
  * imports  
  */
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
-import fr.igred.omero.repository.*
-import fr.igred.omero.repository.PixelsWrapper
 import fr.igred.omero.annotations.*
-import fr.igred.omero.meta.*
-import omero.gateway.facility.MetadataFacility
-import omero.gateway.facility.BrowseFacility
-import omero.gateway.model.*
 import omero.model.NamedValue
-import omero.model.Experimenter.*
-import omero.model.TagAnnotationDataI.*
-import omero.gateway.model.TagAnnotationData.*
-import omero.gateway.model.TagAnnotationData
-import omero.gateway.model.FileAnnotationData.*
-import omero.gateway.model.FileAnnotationData
-import omero.gateway.model.RatingAnnotationData.*
-import omero.gateway.model.RatingAnnotationData
-import omero.model.ExperimenterI.*
-import omero.model.enums.UnitsLength
-import omero.model.enums.UnitsTemperature
-import omero.gateway.model.ImageAcquisitionData
-import ij.*
-import omero.RLong;
-import omero.model.*;
 import java.io.FileWriter
 import java.io.File

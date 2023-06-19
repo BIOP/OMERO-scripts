@@ -38,6 +38,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023.06.19 : Remove unnecessary imports 
  */
 
 /**
@@ -45,11 +48,11 @@
  * 
  */
  
-// create the client and connect to the host
-Client user_client = new Client()
+// Connection to server
 host = "omero-server.epfl.ch"
 port = 4064
 
+Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
@@ -60,11 +63,9 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disonnected from "+host
 	}
-	
-	return
-	
+
 }else{
 	println "Not able to connect to "+host
 }
@@ -94,7 +95,4 @@ def getUserInformation(user_client){
  * imports  
  */
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
-import fr.igred.omero.repository.*
-import fr.igred.omero.annotations.*
 import fr.igred.omero.meta.*
