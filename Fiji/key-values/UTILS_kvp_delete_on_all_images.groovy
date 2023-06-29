@@ -54,7 +54,7 @@
  */
  
 // Connection to server
-host = "omero-server.epfl.ch"
+host = "omero-poc.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
@@ -67,22 +67,22 @@ if (user_client.isConnected()){
 		def n
 		switch (object_type){
 			case "image":	
-				n = deleteKVP(user_client, user_client.getImage(id))
+				n = processImage(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
-				n = deleteKVP(user_client, user_client.getDataset(id))
+				n = processDataset(user_client, user_client.getDataset(id))
 				break
 			case "project":
-				n = deleteKVP(user_client, user_client.getProject(id))
+				n = processProject(user_client, user_client.getProject(id))
 				break
 			case "well":
-				n = deleteKVP(user_client, user_client.getWell(id))
+				n = processWell(user_client, user_client.getWell(id))
 				break
 			case "plate":
-				n = deleteKVP(user_client, user_client.getPlate(id))
+				n = processPlate(user_client, user_client.getPlate(id))
 				break
 			case "screen":
-				n = deleteKVP(user_client, user_client.getScreen(id))
+				n = processScreen(user_client, user_client.getScreen(id))
 				break
 		}
 		println n + " key-value pairs deleted for "+object_type+ " "+id + " and its childs"
@@ -105,14 +105,102 @@ if (user_client.isConnected()){
  * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
  * 
  * */
-def deleteKVP(user_client, repository_wpr){
-	// get the current key-value pairs
-	List<MapAnnotationWrapper> keyValues = repository_wpr.getMapAnnotations(user_client)
-	
-	// delete key-values											   
+def processImage(user_client, img_wpr) {
+	println "Deleting key-values on image " + img_wpr.getId() + " : " + img_wpr.getName()
+	List<MapAnnotationWrapper> keyValues = img_wpr.getMapAnnotations(user_client)										   
 	user_client.delete((Collection<GenericObjectWrapper<?>>)keyValues)
 	
 	return keyValues.size()
+}
+
+
+/**
+ * get all images within a dataset
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		dataset_wpr : OMERO dataset
+ * 
+ * */
+def processDataset( user_client, dataset_wpr ){
+	def dataset_table = null;
+	def sizeKVP = 0
+	dataset_wpr.getImages(user_client).each{ img_wpr ->
+		sizeKVP += processImage(user_client , img_wpr)
+	}
+	
+	return sizeKVP
+}
+
+
+/**
+ * get all datasets within a project
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		project_wpr : OMERO project
+ * 
+ * */
+def processProject( user_client, project_wpr ){
+	def sizeKVP = 0
+	project_wpr.getDatasets().each{ dataset_wpr ->
+		sizeKVP += processDataset(user_client , dataset_wpr)
+	}
+	
+	return sizeKVP
+}
+
+
+/**
+ * get all images within a well
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		well_wpr_listet_wpr : OMERO list of wells
+ * 
+ * */
+def processWell(user_client, well_wpr_list){	
+	def sizeKVP = 0	
+	well_wpr_list.each{ well_wpr ->				
+		well_wpr.getWellSamples().each{			
+			sizeKVP += processImage(user_client, it.getImage())		
+		}
+	}	
+	return sizeKVP
+}
+
+
+/**
+ * get all wells within a plate
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		plate_wpr_list : OMERO list of plates
+ * 
+ * */
+def processPlate(user_client, plate_wpr_list){
+	def sizeKVP = 0
+	plate_wpr_list.each{ plate_wpr ->	
+		sizeKVP += processWell(user_client, plate_wpr.getWells(user_client))
+	} 
+	return sizeKVP
+}
+
+
+/**
+ * get all plates within a screen
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		screen_wpr_list : OMERO list of screens
+ * 
+ * */
+def processScreen(user_client, screen_wpr_list){
+	def sizeKVP = 0
+	screen_wpr_list.each{ screen_wpr ->	
+		sizeKVP += processPlate(user_client, screen_wpr.getPlates())
+	} 
+	return sizeKVP
 }
 
 
