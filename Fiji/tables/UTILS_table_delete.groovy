@@ -15,7 +15,7 @@
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.14.0 : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -46,6 +46,7 @@
  * 
  * == HISTORY ==
  * - 2023.06.19 : Remove unnecessary imports + limits the number of server calls
+ * - 2023-06-29 : Delete tables with one API call + move to simple-omero-client 5.14.0
  */
 
 /**
@@ -112,15 +113,17 @@ def processTable(user_client, repository_wpr){
 	def ownerID = repository_wpr.getOwner().getId()
 	def userID = user_client.getUser().getId()
 	
+	def tables_to_delete = []
 	table_wpr_list.each{table_wpr->
 		// check that user is owner
 		if  (userID == ownerID){
 			println table_wpr.getName() + " will be deleted"
-			user_client.deleteFile(table_wpr.getId())
+			tables_to_delete.add(table_wpr)
 		}
 		else
 			println table_wpr.getName() + " will NOT be deleted"
 	}
+	user_client.deleteTables(tables_to_delete)
 }
 
 

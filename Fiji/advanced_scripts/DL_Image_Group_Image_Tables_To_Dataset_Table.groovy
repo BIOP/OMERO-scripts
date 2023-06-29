@@ -30,7 +30,7 @@
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.14.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -61,6 +61,7 @@
  * 
  * == HISTORY ==
  * - 2023.06.19 : Remove unnecessary imports
+ * - 2023-06-29 : Delete table with only one API call + move to simple-omero-client 5.14.0
  */
 
 
@@ -79,12 +80,11 @@
 IJ.run("Close All", "");
 
 // Connection to server
-Client user_client = new Client()
 host = "omero-server.epfl.ch"
 port = 4064
 
-user_client.connect(host, port, USERNAME, PASSWORD.toCharArray());
-println "Connection to "+host+" : Success"
+Client user_client = new Client()
+user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
@@ -139,12 +139,14 @@ if (user_client.isConnected()){
 			// delete all existing tables
 			if(isDeleteExistingTables){
 				println "Deleting existing OMERO-Tables"
+				def table_to_delete = []
 				dataset_wpr.getTables(user_client).each{
 					// get only the table corresponding to the tableName
 					if (it.getName().contains(tableName)){
-						user_client.delete(it)
+						table_to_delete.add(it)
 					}
 				 }
+				 user_client.deleteTables(table_to_delete)
 			}
 	
 			// send the dataset table on OMERO
@@ -165,7 +167,7 @@ if (user_client.isConnected()){
 
 	} finally{
 		user_client.disconnect()
-		println "Disconnection to "+host+", user: Success"
+		println "Disconnect from "+host
 	}
 
 } else {

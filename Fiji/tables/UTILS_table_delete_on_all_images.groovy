@@ -18,7 +18,7 @@
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.2 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.14.0 : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -46,53 +46,63 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * = HISTORY =
+ * - 2023-06-29 : Delete tables with one API call + move to simple-omero-client 5.14.0 + update script
  */
 
-
-
 // Connection to server
-Client user_client = new Client()
-host = "omero-poc.epfl.ch"
+host = "omero-server.epfl.ch"
 port = 4064
 
-user_client.connect(host, port, USERNAME, PASSWORD.toCharArray() );
-println "Connection to "+host+" : Success"
+Client user_client = new Client()
+user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
-try{
-	
-	switch ( object_type ){
-		case "image":	
-			processImage( user_client, user_client.getImage(id) )
-			break	
-		case "dataset":
-			processDataset( user_client, user_client.getDataset(id) )
-			break
-		case "project":
-			processProject( user_client, user_client.getProject(id) )
-			break
-		case "well":
-			processWell( user_client, user_client.getWells(id) )
-			break
-		case "plate":
-			processPlate( user_client, user_client.getPlates(id) )
-			break
-		case "screen":
-			processScreen( user_client, user_client.getScreens(id) )
-			break
+if (user_client.isConnected()){
+	println "\nConnected to "+host
+
+	try{
+		switch (object_type){
+			case "image":	
+				processImage(user_client, user_client.getImage(id))
+				break	
+			case "dataset":
+				processDataset(user_client, user_client.getDataset(id))
+				break
+			case "project":
+				processProject(user_client, user_client.getProject(id))
+				break
+			case "well":
+				processWell(user_client, user_client.getWells(id))
+				break
+			case "plate":
+				processPlate(user_client, user_client.getPlates(id))
+				break
+			case "screen":
+				processScreen(user_client, user_client.getScreens(id))
+				break
+		}
+		
+		println "processing of "+object_type+", id "+id+": DONE !"
+
+	} finally{
+		user_client.disconnect()
+		println "Disconnected from "+host
 	}
-} finally{
-	user_client.disconnect()
-	println "Disconnection to "+host+", user: Success"
+
+} else {
+	println "Not able to connect to "+host
 }
 
-println "processing of "+object_type+", id "+id+": DONE !"
-return
 
 
-
+/**
+ * Delete all tables attached to an image
+ */
 def processImage(user_client, img_wpr) {
 	println "Deleting existing OMERO-Tables on image " + img_wpr.getId() + " : " + img_wpr.getName()
-	img_wpr.getTables(user_client).each{ user_client.delete(it) }
+	def tables_to_delete = img_wpr.getTables(user_client)
+	user_client.deleteTables(tables_to_delete)
 }
 
 

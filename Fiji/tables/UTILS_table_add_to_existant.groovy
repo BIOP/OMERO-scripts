@@ -138,7 +138,7 @@ def processTable(user_client, repository_wpr){
 	
 	// if a previous table already exist, delete the previous one	
 	if (existingTable){
-		user_client.deleteFile( previousTable_ID )
+		user_client.deleteFile(previousTable_ID)
 		println "Previous table deleted"
 	}
 	

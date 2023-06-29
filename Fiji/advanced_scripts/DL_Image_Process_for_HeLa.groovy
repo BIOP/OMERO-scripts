@@ -39,7 +39,7 @@
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client 5.12.3 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client 5.14.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -70,6 +70,7 @@
  * 
  * == HISTORY ==
  * - 2023-06-16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + update documentation
+ * - 2023-06-29 : deletes tables with only one API call + move to simple-omero-client 5.14.0
  */
 
 /**
@@ -196,7 +197,8 @@ def processImage(user_client, img_wpr){
 	
 	if(isDeleteExistingTables){
 		println "Deleting existing OMERO-Tables"
-		img_wpr.getTables(user_client).each{user_client.delete(it)}
+		def tables_to_delete = img_wpr.getTables(user_client)
+		user_client.deleteTables(tables_to_delete)
 	}
 
 	// do the processing here 
