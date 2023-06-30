@@ -148,11 +148,13 @@ def processRois(user_client, image_wpr){
 		def newRoi = new ROIWrapper()
 		roiWrapperList.each{roiWrapper->
 			def shapes = roiWrapper.asROIData().getShapes()
+			def count = 0
 			shapes.each{
-				it.setText("CustomNested")
+				it.setText(""+(count++))
 				newRoi.asROIData().addShapeData(it)
 			}
 		}
+		newRoi.setName("CustomNested")
 		newRoisList.add(newRoi)
 	}
 	image_wpr.saveROIs(user_client , newRoisList)
