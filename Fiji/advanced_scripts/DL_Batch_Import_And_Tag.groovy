@@ -94,7 +94,7 @@ def compatibleFormatList =  [".tif", ".tiff", ".ome.tif", ".ome.tiff", ".lif", "
 	
 	
 // Connection to server
-host = "omero-poc.epfl.ch"
+host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
