@@ -89,7 +89,7 @@ rm.reset()
 rt_image.reset()
 
 // Connection to server
-host = "omero-server.epfl.ch"
+host = "omero-poc.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
@@ -138,7 +138,7 @@ def ipas(imp){
 	IJ.run(dapiCh_imp, "Median...", "radius=3");
 
 	// thresholding
-	IJ.setAutoThreshold(dapiCh_imp, "Triangle dark");
+	IJ.setAutoThreshold(dapiCh_imp, "Huang dark");
 	Prefs.blackBackground = true;
 	IJ.run(dapiCh_imp, "Convert to Mask", "");
 	
@@ -147,6 +147,7 @@ def ipas(imp){
 	IJ.run(dapiCh_imp, "Fill Holes", "");
 
 	// analyze connected components
+	IJ.run("Set Measurements...", "area min centroid center perimeter display redirect=None decimal=3");
 	IJ.run(dapiCh_imp, "Analyze Particles...", "clear add"); // If you clear, previous ROI are deleted
 
 	// get Rois from Roi manager
@@ -192,13 +193,15 @@ def processImage(user_client, img_wpr){
 	if(isDeleteExistingROIs){
 		println "Deleting existing OMERO-ROIs"
 		def roisToDelete = img_wpr.getROIs(user_client)
-		user_client.delete((Collection<GenericObjectWrapper<?>>)roisToDelete)
+		if (roisToDelete != null && !roisToDelete.isEmpty())
+			user_client.delete((Collection<GenericObjectWrapper<?>>)roisToDelete)
 	}
 	
 	if(isDeleteExistingTables){
 		println "Deleting existing OMERO-Tables"
 		def tables_to_delete = img_wpr.getTables(user_client)
-		user_client.deleteTables(tables_to_delete)
+		if (tables_to_delete != null && !tables_to_delete.isEmpty())
+			user_client.deleteTables(tables_to_delete)
 	}
 
 	// do the processing here 
