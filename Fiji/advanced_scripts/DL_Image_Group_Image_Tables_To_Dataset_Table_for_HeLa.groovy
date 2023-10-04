@@ -37,6 +37,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
+ * version : v1.3
  * 10.10.2022
  * 
  * = COPYRIGHT =
@@ -60,8 +61,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * == HISTORY ==
- * - 2023.06.19 : Remove unnecessary imports
- * - 2023-06-29 : Delete table with only one API call + move to simple-omero-client 5.14.0
+ * - 2023.06.19 : Remove unnecessary imports --v1.1
+ * - 2023-06-29 : Delete table with only one API call + move to simple-omero-client 5.14.0 --v1.2
+ * - 2023-10-04 : Fix bug when deleting tables if there is not table to delete --v1.3
+ * - 2023-10-04 : Fix bug on counting the number of positive cells in each channel --v1.3
+ * - 2023-10-04 : Rename script to "DL_Image_Group_Image_Table_To_Dataset_Table_For_HeLa" --v1.3
  */
 
 
@@ -146,7 +150,10 @@ if (user_client.isConnected()){
 						table_to_delete.add(it)
 					}
 				 }
-				 user_client.deleteTables(table_to_delete)
+				 if(table_to_delete != null && !table_to_delete.isEmpty()){
+				 	println "WARNING : No table to delete"
+				 	user_client.deleteTables(table_to_delete)
+				 }
 			}
 	
 			// send the dataset table on OMERO
@@ -264,7 +271,7 @@ def buildDatasetResultsTable(rt_image, rt_dataset, img_wpr){
 	rt_dataset.setValue("Average_area", 0, total_area/one_channel_size)		
 
 	// compute the average cell perimeter
-	def perimeter_list = rt_image.getColumn(6)
+	def perimeter_list = rt_image.getColumn(10)
 	double perimeter = 0
 	for(int i = 0; i < one_channel_size; i++){
 		perimeter += perimeter_list[i]

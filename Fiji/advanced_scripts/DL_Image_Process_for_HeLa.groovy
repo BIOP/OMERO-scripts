@@ -46,6 +46,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by romain guiet and Rémy Dornier, EPFL - SV -PTECH - BIOP 
+ * version v1.3
  * 12.07.2022
  * 
  * = COPYRIGHT =
@@ -69,8 +70,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * == HISTORY ==
- * - 2023-06-16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + update documentation
- * - 2023-06-29 : deletes tables with only one API call + move to simple-omero-client 5.14.0
+ * - 2023-06-16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + update documentation --v1.1
+ * - 2023-06-29 : deletes tables with only one API call + move to simple-omero-client 5.14.0 --v1.2
+ * - 2023-10-04 : Fix bug on counting the number of positive cells in each channel by adding new measurements --v1.3
+ * - 2023-10-04 : Move from Li to Huang thresholding method --v1.3
+ * - 2023-10-04 : Fix bug when deleting tables if there is not table to delete --v1.3
  */
 
 /**
@@ -147,7 +151,7 @@ def ipas(imp){
 	IJ.run(dapiCh_imp, "Fill Holes", "");
 
 	// analyze connected components
-	IJ.run("Set Measurements...", "area min centroid center perimeter display redirect=None decimal=3");
+	IJ.run("Set Measurements...", "area mean min centroid center perimeter display redirect=None decimal=3");
 	IJ.run(dapiCh_imp, "Analyze Particles...", "clear add"); // If you clear, previous ROI are deleted
 
 	// get Rois from Roi manager
