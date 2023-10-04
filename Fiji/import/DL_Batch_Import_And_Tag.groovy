@@ -60,10 +60,11 @@
  *  = AUTHOR INFORMATION =
  * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
  * date : 2023-08-10
- * version : v1.0
+ * version : v1.1
  * 
  * = HISTORY =
  * - 2023.08.10 : First release --v1.0
+ * - 2023.10.04 : Fix bug on GUI + remove numeric tags (i.e. only numbers) --v1.1
  * 
  */
 
@@ -110,7 +111,7 @@ if (user_client.isConnected()){
 		def cMap;
 		def imgMap
 		(cMap, imgMap, uList) = listImages(rawFolder, compatibleFormatList)
-		def option = true
+		def option = JOptionPane.YES_OPTION
 
 		// check if there are uncompatible images. In case, inform the user
 		if(!uList.isEmpty()){
@@ -130,7 +131,7 @@ if (user_client.isConnected()){
 			}
 			
 			// upload images
-			if(option == JOptionPane.OK_OPTION){
+			if(option == JOptionPane.OK_OPTION || option == JOptionPane.YES_OPTION){
 				def countRaw = 0
 				def datasetWrapper = getOmeroDataset(user_client, choice, newDatasetName, projectId, datasetId, useFolderName, rawFolder)
 				cMap.each{parentFolder,type->
@@ -176,7 +177,7 @@ def listImages(parentFolder, compatibleFormatList){
 	def fileImgMap = new HashMap<>()
 	def uncompatibleList = []
 	def isScreeningImage = false
-	
+
 	parentFolder.listFiles().each{imgFile->
 		// check for file
 		if(imgFile.isFile()){
@@ -363,8 +364,20 @@ def uploadImage(user_client, imgFile, rawFolder, datasetWrapper){
 					}
 				}
 			}
+			
+			// remove tags that are only numbers
+			def filteredTags = []
+			tags.each{tag->
+				try{
+					Integer.parseInt(tag)
+				}catch(Exception e){
+					filteredTags.add(tag)
+				}
+			
+			}
+			
 			print " :  "
-			saveTagsOnOmero(tags, imgWrapper, user_client)
+			saveTagsOnOmero(filteredTags, imgWrapper, user_client)
 			println "...... Done !"
 		}
 	}
