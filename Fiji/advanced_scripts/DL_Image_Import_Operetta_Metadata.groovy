@@ -1,9 +1,8 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
-#@Long(label="ID", value=119273) id
-#@String(label="Object", choices={"plate","screen"}) object_type
+#@String(label="Object to process", choices={"plate","screen"}) object_type
+#@Long(label="Object ID", value=119273) id
 #@File(label="CSV file of plate info", value="") csvFile
-
 
 /* = CODE DESCRIPTION =
  * - This is a template to interact with OMERO. 

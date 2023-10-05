@@ -1,7 +1,7 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
-#@Long(label="ID", value=119273) id
-#@String(label="Object", choices={"image","dataset","project","well","plate","screen"}) object_type
+#@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
+#@Long(label="Object ID", value=119273) id
 
 /* 
  * == INPUTS ==
