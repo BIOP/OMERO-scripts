@@ -93,7 +93,7 @@ rm.reset()
 rt_image.reset()
 
 // Connection to server
-host = "omero-poc.epfl.ch"
+host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
@@ -136,7 +136,7 @@ if (user_client.isConnected()){
 
 // add the Image Processing & Analysis part here 
 def ipas(imp){
-	def dapiCh_imp = new Duplicator().run(imp,1,1,1,1,1,1)
+	def dapiCh_imp = new Duplicator().run(imp,2,2,1,1,1,1)
 	def dapiCh_imp_final = dapiCh_imp.duplicate()
 	// filtering
 	IJ.run(dapiCh_imp, "Median...", "radius=3");
@@ -151,7 +151,7 @@ def ipas(imp){
 	IJ.run(dapiCh_imp, "Fill Holes", "");
 
 	// analyze connected components
-	IJ.run("Set Measurements...", "area mean min centroid center perimeter display redirect=None decimal=3");
+	IJ.run("Set Measurements...", "mean min centroid center display redirect=None decimal=3");
 	IJ.run(dapiCh_imp, "Analyze Particles...", "clear add"); // If you clear, previous ROI are deleted
 
 	// get Rois from Roi manager
@@ -164,6 +164,18 @@ def ipas(imp){
 
 	filtered_Rois.each{rm.addRoi(it)}
 	int chN = imp.getNChannels()
+	
+	int nROI = rm.getCount();
+	rm.runCommand("Associate", "true");
+	
+	for (int j=0; j<nROI; j++) {
+	    rm.select(j);
+	    IJ.run("Make Band...", "band=5");
+	    rm.runCommand("Update");
+	}
+	
+	rm.deselect();
+	IJ.run("Clear Results");
 
 	(1..chN).each{
 		imp.setPosition(it,1,1)
