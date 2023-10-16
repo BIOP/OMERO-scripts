@@ -2,7 +2,6 @@
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
 #@Long(label="Dataset ID", value=1945) id
 #@String(label="Table name" , value="ResultsTable") tableName
-#@File(label="Folder for saving",style="directory") temp_folder
 #@Boolean(label="Delete existing Tables") isDeleteExistingTables
 #@Boolean(label="Send Measurements to OMERO") isSendNewMeasurements
 
@@ -37,7 +36,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * version : v1.3
+ * version : v1.4
  * 10.10.2022
  * 
  * = COPYRIGHT =
@@ -66,6 +65,7 @@
  * - 2023-10-04 : Fix bug when deleting tables if there is not table to delete --v1.3
  * - 2023-10-04 : Fix bug on counting the number of positive cells in each channel --v1.3
  * - 2023-10-04 : Rename script to "DL_Image_Group_Image_Table_To_Dataset_Table_For_HeLa" --v1.3
+ * - 2023-10-16 : Replace user temporary folder input by ImageJ home directory --v1.4
  */
 
 
@@ -166,7 +166,8 @@ if (user_client.isConnected()){
 				// attach the corresponding csv file
 				print "Upload csv file to OMERO"
 				ResultsTable rt = getResultTable(dataset_table_wpr)
-				uploadResultsTable(user_client, dataset_wpr, rt)
+				def temp_folder =  Prefs.getHomeDir()
+				uploadResultsTable(user_client, dataset_wpr, rt, temp_folder)
 			}
 		}
 		
@@ -215,7 +216,7 @@ def getResultTable(table_wpr){
   * upload resultsTable as csv file
   * 
   */
-def uploadResultsTable(user_client, repository_wpr, rt){
+def uploadResultsTable(user_client, repository_wpr, rt, temp_folder){
 
 	def previous_name = rt.getTitle()
 	analysisimage_output_path = new File (temp_folder , repository_wpr.getName().replace(" ","_") + "_"+tableName+".csv" )
