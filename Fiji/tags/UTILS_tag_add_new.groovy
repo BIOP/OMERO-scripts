@@ -65,7 +65,15 @@ host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
-user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+
+try{
+	user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+}catch(Exception e){
+	JOptionPane.showMessageDialog(null, "Cannot connect to "+host+". Please check your credentials", "ERROR", JOptionPane.ERROR_MESSAGE);
+	return
+}
+
+hasFailed = false
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
@@ -73,33 +81,44 @@ if (user_client.isConnected()){
 	try{
 		switch (object_type){
 			case "image":	
-				processTag( user_client, user_client.getImage(id) )
+				processTag(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
-				processTag( user_client, user_client.getDataset(id) )
+				processTag(user_client, user_client.getDataset(id))
 				break
 			case "project":
-				processTag( user_client, user_client.getProject(id) )
+				processTag(user_client, user_client.getProject(id))
 				break
 			case "well":
-				processTag( user_client, user_client.getWells(id) )
+				processTag(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				processTag( user_client, user_client.getPlates(id) )
+				processTag(user_client, user_client.getPlates(id))
 				break
 			case "screen":
-				processTag( user_client, user_client.getScreens(id) )
+				processTag(user_client, user_client.getScreens(id))
 				break
 		}
-		println "All tags added for "+object_type+ " "+id
 		
-	} finally{
+		println "Tags '"+tags+"' have been successfully added on "+object_type+ " "+id
+		
+	}catch(Exception e){
+		println e
+		println getErrorStackTraceAsString(e)
+		hasFailed = true
+		JOptionPane.showMessageDialog(null, "An error has occurred when adding tags to OMERO. Please look at the logs.", "ERROR", JOptionPane.ERROR_MESSAGE);
+	}finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
+		if(!hasFailed) {
+			def message = "The tags '"+ tags +"' have been successfully added to OMERO"
+			JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
+		}
 	}	
 	
 }else{
 	println "Not able to connect to "+host
+	JOptionPane.showMessageDialog(null, "You are not connected to OMERO", "ERROR", JOptionPane.ERROR_MESSAGE);
 }
 
 
@@ -136,6 +155,15 @@ def processTag(user_client, wpr){
 }
 
 
+/**
+ * Return a formatted string of the exception
+ */
+def getErrorStackTraceAsString(Exception e){
+    return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
+}
+
+
+
 /*
  * imports  
  */
@@ -143,3 +171,4 @@ import fr.igred.omero.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
 import omero.gateway.model.TagAnnotationData;
+import javax.swing.JOptionPane; 

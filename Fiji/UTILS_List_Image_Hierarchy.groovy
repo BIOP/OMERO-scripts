@@ -26,7 +26,7 @@
  *  - id
  *  - object type
  *  - output folder where to save the csv file
- *  - display imported image or not
+ *  - True if you want to save the hierarchy as KVP
  * 
  * == OUTPUTS ==
  *  - create a csv file with the list of images contained inside the specfied object_type
@@ -42,6 +42,7 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
  * 22.08.2022
+ * version : v1.2
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -64,7 +65,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * == HISTORY ==
- * - 2023.06.19 : Remove unnecessary imports 
+ * - 2023.06.19 : Remove unnecessary imports --v1.1
+ * - 2023.10.16 : Add popup message at the end and in the case of error --v1.2
  */
 
 /**
@@ -77,9 +79,16 @@ host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
-user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+
+try{
+	user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+}catch(Exception e){
+	JOptionPane.showMessageDialog(null, "Cannot connect to "+host+". Please check your credentials", "ERROR", JOptionPane.ERROR_MESSAGE);
+	return
+}
 
 data_list = new ArrayList()
+hasFailed = false
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
@@ -106,12 +115,35 @@ if (user_client.isConnected()){
 				break
 		}
 		
-		makeCSVFileWithObjectList(data_list)
-		println "Listing images in "+object_type+", id "+id+": DONE !\n"
+		try{
+			makeCSVFileWithObjectList(data_list)
+		}catch(Exception e){
+			JOptionPane.showMessageDialog(null, "Cannot create a CSV file. Please check the logs", "ERROR", JOptionPane.ERROR_MESSAGE);
+			hasFailed = true
+			throw e
+		}
 		
-	} finally{
+		println "Images in "+object_type+", id "+id+" have been SUCCESSFULLY listed !"
+		
+	}catch(Exception e){
+		println e
+		println getErrorStackTraceAsString(e)
+		if(!hasFailed){
+			hasFailed = true
+			JOptionPane.showMessageDialog(null, "An error has occurred. Please look at the logs.", "ERROR", JOptionPane.ERROR_MESSAGE);
+		}
+	}finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
+		if(!hasFailed) {
+			def message
+			if(writeAsKVP)
+				message = "The list of images has been saved as KVP on OMERO and saved as CSV in "+outputFolder.getAbsolutePath()
+			else
+				message =  "The list of images has been saved as CSV in "+outputFolder.getAbsolutePath()
+		
+		JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
+		}
 	}
 	
 }else{
@@ -142,7 +174,13 @@ def processImage(user_client, image_wpr){
 			List<NamedValue> keyValues = new ArrayList()
 	   		keyValues.add(new NamedValue("Dataset", dataset_wpr.getName())) 
 	   		keyValues.add(new NamedValue("Project", project_wpr.getName())) 
-			addKeyValuetoOMERO(user_client, image_wpr, keyValues)
+	   		try{
+				addKeyValuetoOMERO(user_client, image_wpr, keyValues)
+	   		}catch(Exception e){
+	   			JOptionPane.showMessageDialog(null, "Key Values cannot be attached to image "+image_wpr.getName() +":"+image_wpr.getId(), "ERROR", JOptionPane.ERROR_MESSAGE);
+	   			hasFailed = true
+				throw e
+	   		}
 		}
 	}
 	
@@ -159,7 +197,13 @@ def processImage(user_client, image_wpr){
 	   		keyValues.add(new NamedValue("Well", well_wpr.getName())) 
 	   		keyValues.add(new NamedValue("Plate", plate_wpr.getName())) 
 	   		keyValues.add(new NamedValue("Screen", screen_wpr.getName())) 
-			addKeyValuetoOMERO(user_client, image_wpr, keyValues)
+			try{
+				addKeyValuetoOMERO(user_client, image_wpr, keyValues)
+	   		}catch(Exception e){
+	   			JOptionPane.showMessageDialog(null, "Key Values cannot be attached to image "+image_wpr.getName() +":"+image_wpr.getId(), "ERROR", JOptionPane.ERROR_MESSAGE);
+		   		hasFailed = true
+				throw e
+	   		}
 		}
 	}
 	
@@ -296,6 +340,12 @@ def processScreen(user_client, screen_wpr_list){
 }
 
 
+/**
+ * Return a formatted string of the exception
+ */
+def getErrorStackTraceAsString(Exception e){
+    return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
+}
 
 /*
  * imports  
@@ -305,3 +355,4 @@ import fr.igred.omero.annotations.*
 import omero.model.NamedValue
 import java.io.FileWriter
 import java.io.File
+import javax.swing.JOptionPane; 
