@@ -11,8 +11,9 @@ OUTPUTS
 ----------------------------------------------------------------
 DEPENDENCIES
     * Python 3.8 or >
-    * ezomero 1.2.1 or
+    * ezomero 1.2.1 or >
     * PySimpleGUI 4.60.55 or >
+    * Matplotlib
 ----------------------------------------------------------------
 INSTALLATION
 Open the script in PyCharm and run it
@@ -51,6 +52,8 @@ COPYRIGHT
 
 import ezomero
 import PySimpleGUI as sg
+import matplotlib.pyplot as plt
+
 
 """
 Main method to connect to OMERO
@@ -58,10 +61,11 @@ Main method to connect to OMERO
 if __name__ == "__main__":
     layout = [[sg.Text("Username"), sg.Input(key='user')],
               [sg.Text('Password'), sg.InputText('', key='password', password_char='*')],
+              [sg.Text('Image ID'), sg.Input('', key='ids')],
               [sg.Button('Ok'), sg.Button('Cancel')]]
 
     # Create the window
-    window = sg.Window('Connect to OMERO', layout)
+    window = sg.Window('Import image from OMERO', layout)
     event, values = window.read()
 
     # Finish up by removing from the screen
@@ -70,16 +74,24 @@ if __name__ == "__main__":
     if event == 'Ok':
         user = values.get('user')
         password = values.get('password')
+        omero_image_ids = str(values.get('ids'))
 
-        conn = ezomero.connect(user=user, password=password, group='your_group',
+        conn = ezomero.connect(user=user, password=password, group='ptbiop',
                                host='omero-server.epfl.ch', port=4064, secure=True, config_path=None)
 
         if conn is not None and conn.isConnected():
             try:
-                # Do some stuff
-                print("Hello")
+                for idx, omero_image_id in enumerate(omero_image_ids.split(",")):
 
+                    img_omero_obj, img_nparray = ezomero.get_image(conn, int(omero_image_id))
+                    print("The image "+str(img_omero_obj.getId())+" has been imported from OMERO")
+
+                    # the image is stored in the order TZYXC
+                    plt.figure(idx)
+                    plt.imshow(img_nparray[0][0])
+                plt.show()
             finally:
                 conn.close()
+
         else:
             print("ERROR: Not able to connect to OMERO server. Please check your credentials, group and hostname")
