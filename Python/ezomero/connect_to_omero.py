@@ -50,25 +50,36 @@ COPYRIGHT
 """
 
 import ezomero
-import pyautogui
-
+import PySimpleGUI as sg
 
 """
 Main method to connect to OMERO
 """
 if __name__ == "__main__":
-    user = pyautogui.prompt(text='Username', title='OMERO')
-    password = pyautogui.password(text='Password', title='OMERO', default='', mask='*')
+    layout = [[sg.Text("Username"), sg.Input(key='user')],
+              [sg.Text('Password'), sg.InputText('', key='password', password_char='*')],
+              [sg.Button('Ok'), sg.Button('Cancel')]]
 
-    conn = ezomero.connect(user=user, password=password, group='your_group',
-                           host='omero-server.epfl.ch', port=4064, secure=True, config_path=None)
+    # Create the window
+    window = sg.Window('Window Title', layout)
+    event, values = window.read()
 
-    if conn is not None and conn.isConnected():
-        try:
-            # Do some stuff
-            print("Hello")
+    # Finish up by removing from the screen
+    window.close()
 
-        finally:
-            conn.close()
-    else:
-        print("ERROR: Not able to connect to OMERO server. Please check your credentials, group and hostname")
+    if event == 'Ok':
+        user = values.get('user')
+        password = values.get('password')
+
+        conn = ezomero.connect(user=user, password=password, group='your_group',
+                               host='omero-server.epfl.ch', port=4064, secure=True, config_path=None)
+
+        if conn is not None and conn.isConnected():
+            try:
+                # Do some stuff
+                print("Hello")
+
+            finally:
+                conn.close()
+        else:
+            print("ERROR: Not able to connect to OMERO server. Please check your credentials, group and hostname")
