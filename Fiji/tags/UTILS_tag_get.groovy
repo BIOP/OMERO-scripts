@@ -45,6 +45,7 @@
  * 
  * == HISTORY ==
  * - 2023.06.19 : Remove unnecessary imports
+ * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running
  */
 
 
@@ -58,41 +59,61 @@ host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
-user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+
+try{
+	user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+}catch(Exception e){
+	JOptionPane.showMessageDialog(null, "Cannot connect to "+host+". Please check your credentials", "ERROR", JOptionPane.ERROR_MESSAGE);
+	return
+}
+
+hasFailed = false
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
+		def tags
 		switch (object_type){
 			case "image":	
-				processTag(user_client, user_client.getImage(id))
+				tags = processTag(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
-				processTag(user_client, user_client.getDataset(id))
+				tags = processTag(user_client, user_client.getDataset(id))
 				break
 			case "project":
-				processTag(user_client, user_client.getProject(id))
+				tags = processTag(user_client, user_client.getProject(id))
 				break
 			case "well":
-				processTag(user_client, user_client.getWells(id))
+				tags = processTag(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				processTag(user_client, user_client.getPlates(id))
+				tags = processTag(user_client, user_client.getPlates(id))
 				break
 			case "screen":
-				processTag(user_client, user_client.getScreens(id))
+				tags = processTag(user_client, user_client.getScreens(id))
 				break
 		}
-		println "Processing of key-values for "+object_type+ " "+id+" : DONE !"
 		
-	} finally{
+		println "Tags '"+tags+"' have been successfully retrieved from "+object_type+ " "+id
+		
+	}catch(Exception e){
+		println e
+		println getErrorStackTraceAsString(e)
+		hasFailed = true
+		JOptionPane.showMessageDialog(null, "An error has occurred when getting tags from OMERO. Please look at the logs.", "ERROR", JOptionPane.ERROR_MESSAGE);
+	}finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
+		if(!hasFailed) {
+			def message = "The tags '"+ tags +"' have been successfully retrieved from OMERO"
+			JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
+		}
 	}
 	
 }else{
 	println "Not able to connect to "+host
+	JOptionPane.showMessageDialog(null, "You are not connected to OMERO", "ERROR", JOptionPane.ERROR_MESSAGE);
 }
 
 def processTag(user_client, repository_wpr){
@@ -113,8 +134,17 @@ def processTag(user_client, repository_wpr){
 	// print tags
 	println "\ngroup tags"
 	group_tags.each{println "Name : " +it.getName()+" (id : "+it.getId()+")"}
+	
+	return image_tags.collect{e->e.getName()}
 }
 
+
+/**
+ * Return a formatted string of the exception
+ */
+def getErrorStackTraceAsString(Exception e){
+    return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
+}
 
 
 /*
@@ -122,3 +152,4 @@ def processTag(user_client, repository_wpr){
  */
 import fr.igred.omero.*
 import fr.igred.omero.annotations.*
+import javax.swing.JOptionPane; 

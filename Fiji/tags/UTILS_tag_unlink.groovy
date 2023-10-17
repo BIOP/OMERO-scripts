@@ -50,6 +50,7 @@
  * == HISTORY ==
  * - 2023.06.19 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports
  * + turn the deletion into unlinking
+ * - 2023.10.17 : Add popup message at the end of the script and if an error occurs while running
  */
 
 /**
@@ -62,42 +63,62 @@ host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
-user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+
+try{
+	user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+}catch(Exception e){
+	JOptionPane.showMessageDialog(null, "Cannot connect to "+host+". Please check your credentials", "ERROR", JOptionPane.ERROR_MESSAGE);
+	return
+}
+
+hasFailed = false
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
-		def n
+		def tags
 		switch (object_type){
 			case "image":	
-				n = unlinkAllTagsOnImage(user_client, user_client.getImage(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
-				n = unlinkAllTagsOnImage(user_client, user_client.getDataset(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getDataset(id))
 				break
 			case "project":
-				n = unlinkAllTagsOnImage(user_client, user_client.getProject(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getProject(id))
 				break
 			case "well":
-				n = unlinkAllTagsOnImage(user_client, user_client.getWells(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				n = unlinkAllTagsOnImage(user_client, user_client.getPlates(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getPlates(id))
 				break
 			case "screen":
-				n = unlinkAllTagsOnImage(user_client, user_client.getScreens(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getScreens(id))
 				break
 		}
-		println n + " tags unlinked for "+object_type+ " "+id
 		
-	} finally{
+		println "Tags '"+tags+"' have been successfully unlinked from "+object_type+ " "+id
+		
+	}catch(Exception e){
+		println e
+		println getErrorStackTraceAsString(e)
+		if(!hasFailed) {
+			hasFailed = true
+			JOptionPane.showMessageDialog(null, "An error has occurred when unlinking tags on OMERO. Please look at the logs.", "ERROR", JOptionPane.ERROR_MESSAGE);
+		}
+	}finally{
 		user_client.disconnect()
-		println "\n Disonnected from "+host
+		println "Disconnected from "+host
+		if(!hasFailed) {
+			def message = "The tags '"+ tags +"' have been successfully unlinked from OMERO"
+			JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
+		}
 	}
-	
 }else{
 	println "Not able to connect to "+host
+	JOptionPane.showMessageDialog(null, "You are not connected to OMERO", "ERROR", JOptionPane.ERROR_MESSAGE);
 }
 
 
@@ -107,7 +128,15 @@ def unlinkAllTagsOnImage(user_client, repository_wpr){
 
 	tags.each{repository_wpr.unlink(user_client, it)}
 	
-	return tags.size()
+	return tags
+}
+
+
+/**
+ * Return a formatted string of the exception
+ */
+def getErrorStackTraceAsString(Exception e){
+    return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
 
 
@@ -117,3 +146,4 @@ def unlinkAllTagsOnImage(user_client, repository_wpr){
 import fr.igred.omero.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
+import javax.swing.JOptionPane; 

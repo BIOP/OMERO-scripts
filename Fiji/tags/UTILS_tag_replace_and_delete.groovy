@@ -57,6 +57,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * == HISTORY ==
+ * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running
  */
 
 if(toCsv && !path.exists()){
@@ -70,7 +73,15 @@ host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
-user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+
+try{
+	user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+}catch(Exception e){
+	JOptionPane.showMessageDialog(null, "Cannot connect to "+host+". Please check your credentials", "ERROR", JOptionPane.ERROR_MESSAGE);
+	return
+}
+
+hasFailed = false
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
@@ -164,18 +175,32 @@ if (user_client.isConnected()){
 					
 					if(mode.equalsIgnoreCase("Replace and delete")){
 						// delete the tag
-						print "!!!!!! Delete tag '"+tagToDeleteName+"'..."
-						user_client.delete(tagToDelete)
-						println "Done !!!!!!!!"
+						try{
+							print "!!!!!! Delete tag '"+tagToDeleteName+"'..."
+							user_client.delete(tagToDelete)
+							println "Done !!!!!!!!"
+						}catch(Exception e){
+							println "FAILED  !!!!!!!!"
+							println "You don't have the permission to delete this tag"
+							println e
+							println getErrorStackTraceAsString(e)
+						}
 					}
 				}
 				
 				// send the report
 				if(toCsv){
-					println "Create the CSV report..."
-					makeReport(tagToRepoMap, newTag, path, user_client)
+					try{
+						println "Create the CSV report..."
+						makeReport(tagToRepoMap, newTag, path, user_client)
+					}catch(Exception e){
+						hasFailed = true
+						def message = "An error occurred during the CSV report creation. No report has been saved. Please look at the logs"
+						println message
+						JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
+						throw e
+					}
 				}
-				
 			} else {
 				println "The new tag '"+newTagStr+"' does not exist on OMERO"
 			}			
@@ -183,15 +208,27 @@ if (user_client.isConnected()){
 			println "The tag to delete '"+tagToDeleteStr+"' does not exist on OMERO"
 		}
 		
-	} finally{
+	}catch(Exception e){
+		println e
+		println getErrorStackTraceAsString(e)
+		if(!hasFailed) {
+			hasFailed = true
+			JOptionPane.showMessageDialog(null, "An error has occurred when replacing tags on OMERO. Please look at the logs.", "ERROR", JOptionPane.ERROR_MESSAGE);
+		}
+	}finally{
 		user_client.disconnect()
 		println "Disconnected "+host
+		if(!hasFailed) {
+			def message = "The tags '"+ tags +"' have been successfully retrieved from OMERO"
+			JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
+		}
 	}
 	
 	return
 	
 } else {
 	println "Not able to connect to "+host
+	JOptionPane.showMessageDialog(null, "You are not connected to OMERO", "ERROR", JOptionPane.ERROR_MESSAGE);
 }
 
 
@@ -215,8 +252,13 @@ def loopOverRepo(user_client, repoWprList, tagToDelete, newTag){
 			}
 			
 			// unlink the tag from the repo
-			wpr.unlink(user_client, tagToDelete)
-			println className+" "+wpr.getName()+" : Add tag '"+newTag.getName()+"' and unlink tag '"+tagToDelete.getName()+"'"
+			try{
+				wpr.unlink(user_client, tagToDelete)
+				println className+" "+wpr.getName()+" : Add tag '"+newTag.getName()+"' and unlink tag '"+tagToDelete.getName()+"'"
+			}catch(Exception e){
+				hasFailed = true
+				println className+" "+wpr.getName()+" : Add tag '"+newTag.getName()+" but you do not have the right to unlink the tag"
+			}
 		}
 		return [newTag, true]
 	} else{
@@ -288,6 +330,16 @@ def writeCSVFile(path, name, fileContent){
 }
 
 
+
+/**
+ * Return a formatted string of the exception
+ */
+def getErrorStackTraceAsString(Exception e){
+    return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
+}
+
+
+
 /*
  * imports  
  */
@@ -307,3 +359,4 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import javax.swing.JOptionPane; 

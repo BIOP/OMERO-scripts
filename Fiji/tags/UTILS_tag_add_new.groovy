@@ -51,6 +51,7 @@
  * 
  * == HISTORY ==
  * - 2023-06-15 : Add multiple tags at the same time + remove unnecessary imports.
+ * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running
  * 
  */
 
