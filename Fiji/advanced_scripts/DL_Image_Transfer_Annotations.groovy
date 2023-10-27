@@ -268,7 +268,7 @@ if (user_client.isConnected()){
 			// print final popup
 			if(!hasFailed) {
 				if(!hasSilentlyFailed){
-					message = "The transfer has been successfully done"
+					message = "The transfer has been successfully done and a report created in your Downloads"
 					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
 				}else{
 					message = "The transfer has been done with some errors. Please look at the report to know more"
