@@ -87,7 +87,7 @@
 IJ.run("Close All", "");
 
 // Connection to server
-host = "omero-poc.epfl.ch"
+host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
