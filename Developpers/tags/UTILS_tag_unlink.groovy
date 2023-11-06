@@ -51,6 +51,7 @@
  * - 2023.06.19 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports
  * + turn the deletion into unlinking
  * - 2023.10.17 : Add popup message at the end of the script and if an error occurs while running
+ * - 2023.11.06 : Remove popup messages from template
  */
 
 /**
@@ -63,15 +64,7 @@ host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
-
-try{
-	user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
-}catch(Exception e){
-	JOptionPane.showMessageDialog(null, "Cannot connect to "+host+". Please check your credentials", "ERROR", JOptionPane.ERROR_MESSAGE);
-	return
-}
-
-hasFailed = false
+user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
@@ -101,24 +94,12 @@ if (user_client.isConnected()){
 		
 		println "Tags '"+tags+"' have been successfully unlinked from "+object_type+ " "+id
 		
-	}catch(Exception e){
-		println e
-		println getErrorStackTraceAsString(e)
-		if(!hasFailed) {
-			hasFailed = true
-			JOptionPane.showMessageDialog(null, "An error has occurred when unlinking tags on OMERO. Please look at the logs.", "ERROR", JOptionPane.ERROR_MESSAGE);
-		}
 	}finally{
 		user_client.disconnect()
 		println "Disconnected from "+host
-		if(!hasFailed) {
-			def message = "The tags '"+ tags +"' have been successfully unlinked from OMERO"
-			JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
-		}
 	}
 }else{
 	println "Not able to connect to "+host
-	JOptionPane.showMessageDialog(null, "You are not connected to OMERO", "ERROR", JOptionPane.ERROR_MESSAGE);
 }
 
 
@@ -146,4 +127,3 @@ def getErrorStackTraceAsString(Exception e){
 import fr.igred.omero.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
-import javax.swing.JOptionPane; 

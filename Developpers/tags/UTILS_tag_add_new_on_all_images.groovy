@@ -50,7 +50,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * == HISTORY ==
- * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running
+ * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running.
+ * - 2023.11.06 : Remove popup messages from template
  * 
  */
 
@@ -65,15 +66,7 @@ host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
-
-try{
-	user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
-}catch(Exception e){
-	JOptionPane.showMessageDialog(null, "Cannot connect to "+host+". Please check your credentials", "ERROR", JOptionPane.ERROR_MESSAGE);
-	return
-}
-
-hasFailed = false
+user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
@@ -102,23 +95,13 @@ if (user_client.isConnected()){
 		
 		println "Tags '"+tags+"' have been successfully added on all images contained in "+object_type+ " "+id
 		
-	}catch(Exception e){
-		println e
-		println getErrorStackTraceAsString(e)
-		hasFailed = true
-		JOptionPane.showMessageDialog(null, "An error has occurred when adding tags to OMERO. Please look at the logs.", "ERROR", JOptionPane.ERROR_MESSAGE);
 	}finally{
 		user_client.disconnect()
 		println "Disconnected from "+host
-		if(!hasFailed) {
-			def message = "The tags '"+ tags +"' have been successfully added to OMERO"
-			JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
-		}
 	}	
 	
 }else{
 	println "Not able to connect to "+host
-	JOptionPane.showMessageDialog(null, "You are not connected to OMERO", "ERROR", JOptionPane.ERROR_MESSAGE);
 }
 
 
@@ -248,4 +231,3 @@ import fr.igred.omero.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
 import omero.gateway.model.TagAnnotationData;
-import javax.swing.JOptionPane; 
