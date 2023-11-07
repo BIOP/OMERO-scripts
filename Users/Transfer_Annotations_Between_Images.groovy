@@ -49,7 +49,7 @@
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.15.0 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.16.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
