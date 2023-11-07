@@ -117,7 +117,7 @@ CMP = "OMERO Compatibility"
 TAG = "Tags"
 
 // Connection to server
-host = "omero-poc.epfl.ch"
+host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 
@@ -573,7 +573,6 @@ def generateCSVReport(transferSummaryList){
 	String header = PAR_FOL + "," + IMG_NAME + "," + IMG_PATH + "," + CMP + "," + STS + "," + TYPE + "," + OMR_ID + "," + TAG
 
 	String statusOverallSummary = ""
-	String contentOverallSummary = ""
 
 	transferSummaryList.each{imgSummaryMap -> 
 		String statusSummary = ""
