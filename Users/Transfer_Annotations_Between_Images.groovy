@@ -538,7 +538,7 @@ def generateCSVReport(transferSummaryList){
 	String content = header + "\n"+statusOverallSummary+"\n"+contentOverallSummary
 					
 	// save the report
-	def name = "Transfer_Annotations_from_dataset_"+srcDatasetId+"_to_dataset_"+tgtDatasetId+"_report"
+	def name = getCurrentDateAndHour()+"_Transfer_Annotations_from_dataset_"+srcDatasetId+"_to_dataset_"+tgtDatasetId+"_report"
 	String path = System.getProperty("user.home") + File.separator +"Downloads"
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
@@ -759,6 +759,17 @@ def IJLoggerWarn(String title, String message){
 def IJLoggerInfo(String title, String message){
 	IJ.log("[INFO]   ["+title+"] -- "+message); 
 }
+def getCurrentDateAndHour(){
+    LocalDateTime localDateTime = LocalDateTime.now();
+    LocalTime localTime = localDateTime.toLocalTime();
+    LocalDate localDate = localDateTime.toLocalDate();
+    return ""+localDate.getYear()+
+            (localDate.getMonthValue() < 10 ? "0"+localDate.getMonthValue():localDate.getMonthValue()) +
+            (localDate.getDayOfMonth() < 10 ? "0"+localDate.getDayOfMonth():localDate.getDayOfMonth())+"-"+
+            (localTime.getHour() < 10 ? "0"+localTime.getHour():localTime.getHour())+"h"+
+            (localTime.getMinute() < 10 ? "0"+localTime.getMinute():localTime.getMinute())+"m"+
+            (localTime.getSecond() < 10 ? "0"+localTime.getSecond():localTime.getSecond());
+}
 
 
 /*
@@ -776,3 +787,6 @@ import omero.model.NamedValue
 import ij.IJ
 import omero.gateway.model.ChannelData;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
