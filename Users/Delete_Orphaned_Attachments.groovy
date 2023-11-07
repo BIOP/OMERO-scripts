@@ -213,7 +213,7 @@ if (user_client.isConnected()){
 			// print final popup
 			if(!hasFailed) {
 				if(!hasSilentlyFailed){
-					message = "The upload has been successfully done and a report is created in your Downloads"
+					message = "Orphaned attachments have been successfully deleted and a report is created in your Downloads"
 					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
 				}else{
 					message = "The script ended with some errors. Please look at the logs and the report to know more"

@@ -184,7 +184,7 @@ if (user_client.isConnected()){
 
 
 /**
- * Create teh CSV report from all info cleecting during the processing
+ * Create the CSV report from all info cleecting during the processing
  */
 def generateCSVReport(transferSummaryList){
 	// define the header
