@@ -25,7 +25,7 @@
  *  - True if you want to save the hierarchy as KVP
  * 
  * == OUTPUTS ==
- *  - create a csv file with the list of images contained inside the specfied object_type
+ *  - create a csv file with the list of images contained inside the specfied object_type in the Downloads folder
  *  - key values on OMERO
  * 
  * = DEPENDENCIES =

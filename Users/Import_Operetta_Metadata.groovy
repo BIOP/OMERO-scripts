@@ -5,22 +5,20 @@
 #@File(label="CSV file of plate info", value="") csvFile
 
 /* = CODE DESCRIPTION =
- * - This is a template to interact with OMERO. 
  * - The user enter the plate ID and give the path to his/her csv file containing the plate layout information foamtted as described here:
  * https://wiki-biop.epfl.ch/en/Image_Storage/OMERO/Importation
  * - The code reads the csv file and extracts key-values.
  * - Each of the key-value is then imported on corresponding images on OMERO
- * - Extra key-values corresponding to images arborescence are also added.
  * 
  * == INPUTS ==
  *  - credentials 
  *  - id
  *  - object type
- *  - output folder where to save the csv file
- *  - display imported image or not
+ *  - CSV file to read
  * 
  * == OUTPUTS ==
  *  - key value on OMERO
+ *  - CSV report in the Downloads folder
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
@@ -30,8 +28,9 @@
  *  Open Script and Run
  * 
  * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
+ * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
  * 22.08.2022
+ * version 2.0
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -57,74 +56,98 @@
  * - 2022.10.05 : make explicit .equals and convert String to Integer
  * - 2022.11.02 : can now select a screen and process each plate inside
  * - 2023.06.19 : Remove unnecessary imports
+ * - 2023.11.08 : Add popup messages, IJ logs and CSV report --v2.0
  */
 
 /**
  * Main. 
- * Connect to OMERO, 
- * read csv file
- * generate key-values
- * import key-values on OMERO
- * disconnect from OMERO
- * 
  */
 
 // Connection to server
-host = "omero-server.epfl.ch"
+host = "omero-poc.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
-user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
-data_list = new ArrayList()
+try{
+	user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+}catch(Exception e){
+	IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+	def message = "Cannot connect to "+host+". Please check your credentials"
+	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
+	return
+}
+
+
+// global variables for popup messages
+hasFailed = false
+hasSilentlyFailed = false
+message = ""
+
+// global keys for the summary report
+IMG_NAME= "Image name"
+IMG_ID = "Image Id"
+WELL_NAME = "Well name"
+PLT_NAME = "Plate name"
+SCR_NAME = "Screen name"
+KVP = "Key values"
+STS = "Status"
 
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	IJLoggerInfo("OMERO","Connected to "+host)
+	List<Map<String, String>> transferSummary = new ArrayList<>()
 	
 	try{
 		switch (object_type){
 			case "plate":
-				processPlate(user_client, user_client.getPlates(id))
+				transferSummary = processPlate(user_client, user_client.getPlates(id), null)
 				break
 			case "screen":
-				processScreen(user_client, user_client.getScreens(id))
+				transferSummary = processScreen(user_client, user_client.getScreens(id))
 				break
 		}
-		println "Listing images in plate, id "+id+": DONE !\n"
-	} finally{
-		user_client.disconnect()
-		println "Disonnected "+host
+				
+		if(hasSilentlyFailed)
+			message = "The script ended with some errors."
+		else 
+			message = "The KVPs have been successfully added."
+			
+	}catch(Exception e){
+		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		if(!hasFailed){
+			hasFailed = true
+			message = "An error has occurred. Please look at the logs and the report to know where the processing has failed."
+		}
+	}finally{
+		// generate CSV report
+		try{
+			IJLoggerInfo("CSV report", "Generate the CSV report...")
+			generateCSVReport(transferSummary)
+		}catch(Exception e2){
+			IJLoggerError(e2.toString(), "\n"+getErrorStackTraceAsString(e2))
+			hasFailed = true
+			message += " An error has occurred during csv report generation."
+		}finally{
+			// disconnect
+			user_client.disconnect()
+			IJLoggerInfo("OMERO","Disconnected from "+host)
+			
+			// print final popup
+			if(!hasFailed) {
+				message += " A CSV report has been created in your 'Downloads' folder."
+				if(hasSilentlyFailed){
+					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.WARNING_MESSAGE);
+				}else{
+					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
+				}
+			}else{
+				JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
+			}
+		}
 	}
-	
 }else{
-	println "Not able to connect to "+host
-}
-
-
-/**
- * Add key value pairs to OMERO
- * 
- * inputs
- * 		user_client : OMERO client
- * 		image_wpr : OMERO image
- * 		operettaKeyValues : key-value from operetta csv file
- * 
- * */
-def processImage(user_client, image_wpr, operettaKeyValues){
-
-	def well_wpr =  image_wpr.getWells(user_client).get(0)
-	def plate_wpr = image_wpr.getPlates(user_client).get(0)
-	def screen_wpr = image_wpr.getScreens(user_client).get(0)
-
-	// add arborescence key values
-	List<NamedValue> keyValues = new ArrayList()
-	keyValues.add(new NamedValue("Well", well_wpr.getName())) 
-	keyValues.add(new NamedValue("Plate", plate_wpr.getName())) 
-	keyValues.add(new NamedValue("Screen", screen_wpr.getName())) 
-	addKeyValuetoOMERO(user_client, image_wpr, keyValues)
-	
-	// add operetta key values
-	addKeyValuetoOMERO(user_client, image_wpr, operettaKeyValues)
+	message = "Not able to connect to "+host
+	IJLoggerError("OMERO", message)
+	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 }
 
 
@@ -137,7 +160,7 @@ def processImage(user_client, image_wpr, operettaKeyValues){
  * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
  * 
  * */
-def addKeyValuetoOMERO(user_client, repository_wpr, keyValues){
+def addKeyValuesToOMERO(user_client, repository_wpr, keyValues){
 	MapAnnotationWrapper newKeyValues = new MapAnnotationWrapper(keyValues)
 	newKeyValues.setNameSpace("openmicroscopy.org/omero/client/mapAnnotation")
 	repository_wpr.addMapAnnotation(user_client, newKeyValues)
@@ -157,15 +180,22 @@ def addKeyValuetoOMERO(user_client, repository_wpr, keyValues){
  * 		well_wpr_list : OMERO wells
  * 
  * */
-def processWell(user_client, well_wpr_list){		
-	well_wpr_list.each{ well_wpr ->		
-			
+def processWell(user_client, well_wpr_list, screen_wpr, plate_wpr){	
+	// read the csv file
+	def lines
+	try{
+		lines = csvFile.readLines()
+	}catch(Exception e){
+		hasFailed = true
+		message = "The CSV file you provided cannot be read : "+csvFile.getAbsolutePath()
+		IJLoggerError("OMERO", message)
+		throw e
+	}
+	List<Map<String, String>> transferSummary = new ArrayList<>()
+	def header = lines[0].split(",")
+	
+	well_wpr_list.each{ well_wpr ->			
 		def wellLine = ""
-		// read the csv file
-		def lines = csvFile.readLines()
-		
-		// get the header
-		def header = lines[0].split(",")
 		
 		// find the current well in the csv file
 		for(int i = 1; i<lines.size(); i++){
@@ -180,13 +210,35 @@ def processWell(user_client, well_wpr_list){
 		for(int i = 0; i<wellLine.size(); i++){
 			keyValues.add(new NamedValue(header[i], wellLine[i])) 
 		}
-		
+
 		// add key-values to images within the current well on OMERO
-		addKeyValuetoOMERO(user_client, well_wpr, keyValues)
-		well_wpr.getWellSamples().each{			
-			processImage(user_client, it.getImage(), keyValues)		
+		addKeyValuesToOMERO(user_client, well_wpr, keyValues)
+		well_wpr.getWellSamples().each{	
+			def imageWpr = it.getImage()
+			Map<String, String> imgSummaryMap = new HashMap<>()
+			imgSummaryMap.put(IMG_NAME, imageWpr.getName().replace(",",";"))
+			imgSummaryMap.put(IMG_ID, imageWpr.getId())
+			imgSummaryMap.put(WELL_NAME, well_wpr.getName().replace(",",";"))
+			imgSummaryMap.put(PLT_NAME, plate_wpr.getName().replace(",",";"))
+			imgSummaryMap.put(SCR_NAME, screen_wpr == null ? " - " : screen_wpr.getName().replace(",",";"))
+			
+			try{
+				IJLoggerInfo("OMERO", "Adding key-values on image '"+imageWpr.getName()+"'")
+				addKeyValuesToOMERO(user_client, imageWpr, keyValues)	
+				imgSummaryMap.put(KVP, keyValues.collect{it.name + ":"+it.value}.join(" ; "))
+				imgSummaryMap.put(STS, "Added")
+			}catch(Exception e){
+				hasSilentlyFailed = true
+				message = "Cannot add KVPs on image '"+imageWpr.getName()+"'"					
+				IJLoggerError("OMERO", message)
+				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+			}
+			
+			transferSummary.add(imgSummaryMap)
 		}
 	}	
+	
+	return transferSummary
 }
 
 
@@ -198,10 +250,12 @@ def processWell(user_client, well_wpr_list){
  * 		plate_wpr_list : OMERO list of plates
  * 
  * */
-def processPlate(user_client, plate_wpr_list){
+def processPlate(user_client, plate_wpr_list, screen_wpr){
+	List<Map<String, String>> transferSummary = []
 	plate_wpr_list.each{ plate_wpr ->	
-		processWell(user_client, plate_wpr.getWells(user_client))
+		transferSummary.addAll(processWell(user_client, plate_wpr.getWells(user_client), screen_wpr, plate_wpr))
 	} 
+	return transferSummary
 }
 
 
@@ -215,11 +269,99 @@ def processPlate(user_client, plate_wpr_list){
  * 
  * */
 def processScreen(user_client, screen_wpr_list){
+	List<Map<String, String>> transferSummary = []
 	screen_wpr_list.each{ screen_wpr ->	
-		processPlate(user_client, screen_wpr.getPlates())
+		transferSummary.addAll(processPlate(user_client, screen_wpr.getPlates(), screen_wpr))
 	} 
+	return transferSummary
 }
 
+
+/**
+ * Create the CSV report from all info cleecting during the processing
+ */
+def generateCSVReport(transferSummaryList){
+	// define the header
+	String header = IMG_NAME + "," + IMG_ID + "," + WELL_NAME + "," + PLT_NAME + "," + SCR_NAME + "," + KVP + "," + STS
+
+	String statusOverallSummary = ""
+
+	transferSummaryList.each{imgSummaryMap -> 
+		String statusSummary = ""
+		
+		// For keys that should always exist
+		statusSummary += imgSummaryMap.get(IMG_NAME)+","
+		statusSummary += imgSummaryMap.get(IMG_ID)+","
+		statusSummary += imgSummaryMap.get(WELL_NAME)+","
+		statusSummary += imgSummaryMap.get(PLT_NAME)+","
+		statusSummary += imgSummaryMap.get(SCR_NAME)+","
+		
+		// in case of error, the results for that key is failed
+		if(imgSummaryMap.containsKey(KVP))
+			statusSummary += imgSummaryMap.get(KVP)+","
+		else
+			statusSummary +=  " - ,"
+
+		// Nothing to add if there is no error
+		if(imgSummaryMap.containsKey(STS))
+			statusSummary += imgSummaryMap.get(STS)+","
+		else
+			statusSummary += "Failed"
+		
+		statusOverallSummary += statusSummary + "\n"
+	}
+	String content = header + "\n"+statusOverallSummary
+					
+	// save the report
+	def name = getCurrentDateAndHour() + "_Key_values_to_" + object_type + "_" + id
+	String path = System.getProperty("user.home") + File.separator + "Downloads"
+	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
+	writeCSVFile(path, name, content)	
+	IJLoggerInfo("CSV report", "DONE!")
+}
+
+
+/**
+ * Save a csv file in the given path, with the given name
+ */
+def writeCSVFile(path, name, fileContent){
+	// create the file locally
+    File file = new File(path.toString() + File.separator + name + ".csv");
+
+    try (BufferedWriter buffer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8))) {
+        buffer.write(fileContent);
+	}catch(Exception e){
+		throw e
+	}
+}
+
+
+/**
+ * Logger methods
+ */
+def getErrorStackTraceAsString(Exception e){
+    return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
+}
+def IJLoggerError(String title, String message){
+	IJ.log("[ERROR]   ["+title+"] -- "+message); 
+}
+def IJLoggerWarn(String title, String message){
+	IJ.log("[WARNING]   ["+title+"] -- "+message); 
+}
+def IJLoggerInfo(String title, String message){
+	IJ.log("[INFO]   ["+title+"] -- "+message); 
+}
+def getCurrentDateAndHour(){
+    LocalDateTime localDateTime = LocalDateTime.now();
+    LocalTime localTime = localDateTime.toLocalTime();
+    LocalDate localDate = localDateTime.toLocalDate();
+    return ""+localDate.getYear()+
+            (localDate.getMonthValue() < 10 ? "0"+localDate.getMonthValue():localDate.getMonthValue()) +
+            (localDate.getDayOfMonth() < 10 ? "0"+localDate.getDayOfMonth():localDate.getDayOfMonth())+"-"+
+            (localTime.getHour() < 10 ? "0"+localTime.getHour():localTime.getHour())+"h"+
+            (localTime.getMinute() < 10 ? "0"+localTime.getMinute():localTime.getMinute())+"m"+
+            (localTime.getSecond() < 10 ? "0"+localTime.getSecond():localTime.getSecond());
+}
 
 /*
  * imports  
@@ -231,3 +373,9 @@ import omero.gateway.model.*
 import omero.model.NamedValue
 import java.io.File
 import java.lang.Integer
+import java.nio.charset.StandardCharsets;
+import ij.IJ;
+import javax.swing.JOptionPane;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;

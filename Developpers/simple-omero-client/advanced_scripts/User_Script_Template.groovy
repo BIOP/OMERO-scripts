@@ -221,8 +221,8 @@ def generateCSVReport(transferSummaryList){
 	String content = header + "\n"+statusOverallSummary
 					
 	// save the report
-	def name = getCurrentDateAndHour()+"_My_report_name"
-	String path = System.getProperty("user.home") + File.separator +"Downloads"
+	def name = getCurrentDateAndHour() + "_My_report_name"
+	String path = System.getProperty("user.home") + File.separator + "Downloads"
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
 	IJLoggerInfo("CSV report", "DONE!")
