@@ -8,8 +8,8 @@ This folder groups scripts for general purposes that can be directly used by any
 - ImageJ Logs to follow what the script is doing
 - A CSV report which summarizes what has been successfully done and what has been failed.
 
-They can all be customized according to your needs. Please contact us in such case. This service will only be given for EPFL students.
+They can all be customized according to your needs. Please contact us in such case. **This service will only be given for EPFL students.**
 
 # Developpers
 This folder groups template scripts to interact with OMERO. These scripts implement simple commands on OMERO features. They are not intended to be used directly ; 
-the purpose of tehse scripts is to help people developping their own scripts with the simple-omero-client API. No popup messages neither error catching are implemented in the template scripts.
+the purpose of those scripts is to help people developping their own scripts with the ``simple-omero-client`` API. No popup messages neither error catching are implemented in the template scripts.
