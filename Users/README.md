@@ -4,7 +4,7 @@ The scripts are based on simple-omero-client API and are running on Fiji. We use
 # Installation
 
 - Download the latest version of [simple-omero-client-x.x.x.jar](https://github.com/GReD-Clermont/simple-omero-client/releases) 
-- Download the `OMERO-java dependencies` .jar file from the [OMERO download page](https://www.openmicroscopy.org/omero/downloads/), under "ImageJ / Fiji".
+- Download the `OMERO-java dependencies` .jar file from the [OMERO download page](https://www.openmicroscopy.org/omero/downloads/), under ``ImageJ / Fiji``.
 
 Copy both jars in the `Plugins` folder of Fiji. 
 
