@@ -59,7 +59,7 @@
  */
 
 // Connection to server
-host = "omero-poc.epfl.ch"
+host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 
@@ -203,10 +203,15 @@ if (user_client.isConnected()){
 				 	repoMap.put(STS_DEL_OLD_TAG, (tagDeleted ? "Yes": "No"))					
 				}
 				transferSummary.addAll(tmpTransferSummary)
-				
 			}
+			
+			if(hasSilentlyFailed)
+				message = "The script ended with some errors."
+			else 
+				message = "The tags have been successfully replaced."
 		} else {
-			IJLoggerWarn("OMERO", "The tag to delete '"+tagToDeleteStr+"' does not exist on OMERO")
+			message = "The tag to delete '"+tagToDeleteStr+"' does not exist on OMERO."
+			IJLoggerWarn("OMERO", message)
 		}
 		
 	}catch(Exception e){
@@ -223,7 +228,7 @@ if (user_client.isConnected()){
 		}catch(Exception e2){
 			IJLoggerError(e2.toString(), "\n"+getErrorStackTraceAsString(e2))
 			hasFailed = true
-			message += " An error has occurred during csv report generation"
+			message += " An error has occurred during csv report generation."
 		}finally{
 			// disconnect
 			user_client.disconnect()
@@ -231,12 +236,11 @@ if (user_client.isConnected()){
 			
 			// print final popup
 			if(!hasFailed) {
-				if(!hasSilentlyFailed){
-					message = "The tags have been successfully replaced and a report is created in your Downloads"
-					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
-				}else{
-					message = "The script ended with some errors. Please look at the logs and the report to know more"
+				message += " A CSV report has been created in your 'Downloads' folder."
+				if(hasSilentlyFailed){
 					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.WARNING_MESSAGE);
+				}else{
+					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
 				}
 			}else{
 				JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
@@ -244,10 +248,10 @@ if (user_client.isConnected()){
 		}
 	}
 }else{
-	IJLoggerError("OMERO","Not able to connect to "+host)
-	JOptionPane.showMessageDialog(null, "Not able to connect to "+host, "ERROR", JOptionPane.ERROR_MESSAGE);
+	message = "Not able to connect to "+host
+	IJLoggerError("OMERO", message)
+	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 }
-
 
 /**
  * Parse the repoList to replace the old tag by the new one

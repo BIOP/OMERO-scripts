@@ -311,6 +311,13 @@ if (user_client.isConnected()){
 				imgSummaryMap.put(CMP, "Uncompatible")
 				transferSummary.add(imgSummaryMap)
 			}
+			
+			if(hasSilentlyFailed)
+				message = "The script ended with some errors."
+			else 
+				message = "The upload and tagging have been successfully done."
+		}else{
+			message = "The script was ended by the user."
 		}
 	}catch(Exception e){
 		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
@@ -326,7 +333,7 @@ if (user_client.isConnected()){
 		}catch(Exception e2){
 			IJLoggerError(e2.toString(), "\n"+getErrorStackTraceAsString(e2))
 			hasFailed = true
-			message += " An error has occurred during csv report generation"
+			message += " An error has occurred during csv report generation."
 		}finally{
 			// disconnect
 			user_client.disconnect()
@@ -334,12 +341,11 @@ if (user_client.isConnected()){
 			
 			// print final popup
 			if(!hasFailed) {
-				if(!hasSilentlyFailed){
-					message = "The upload has been successfully done and a report is created in your Downloads"
-					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
-				}else{
-					message = "The script ended with some errors. Please look at the logs and the report to know more"
+				message += " A CSV report has been created in your 'Downloads' folder."
+				if(hasSilentlyFailed){
 					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.WARNING_MESSAGE);
+				}else{
+					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
 				}
 			}else{
 				JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
@@ -347,8 +353,9 @@ if (user_client.isConnected()){
 		}
 	}
 }else{
-	IJLoggerError("OMERO","Not able to connect to "+host)
-	JOptionPane.showMessageDialog(null, "Not able to connect to "+host, "ERROR", JOptionPane.ERROR_MESSAGE);
+	message = "Not able to connect to "+host
+	IJLoggerError("OMERO", message)
+	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 }
 
 
