@@ -14,17 +14,14 @@
 
 
 /* = CODE DESCRIPTION =
- * This is a template to interact with OMERO . 
- * User can specify the ID of an "image","dataset","project","well","plate","screen"
- * An image processing pipeline is applied on a dataset of images (HeLa cells). 
- * Results are then uploaded on OMERO
+ * This script is working on the dataset "Hela-Organelle", available on our public folder (EPFL only). 
+ * All images within the specified container (i.e dataset) are processed in Fiji and results (ROIs and ResultsTable)
+ * are sent to OMERO, attached to the corresponding image.
+ * If specified, previous ROIs / OMERO.table can also be deleted from OMERO.
  * 
- * = BEFORE RUNNING =
- * - Check in "Analyze->Set Measurements..." ONLY the following checkboxes : Area, Mean gray value, Min & max gray value, Perimeter, Display label
- * 
- * = DATASET =
- *  - Downlaod HeLa cells images dataset from this zenodo repository : https://zenodo.org/record/4248921#.Ys0TM4RBybg
- *  - Import this dataset in OMERO. See the following link to know how to import data on OMERO : https://wiki-biop.epfl.ch/en/Image_Storage/OMERO/Importation
+ * Here, we measure the intensity around the nucleus on channel 'ProtX' and for channel 'Organelle".
+ * The nucleus are first segmented (median filter, threshold, morphological ops, analyse particules). Then, 
+ * a band is created around each nucleus and the intensity is measured.
  * 
  * == INPUTS ==
  *  - credentials 
@@ -34,19 +31,21 @@
  *  - choices to delete existing or import new ROIs/measurements
  * 
  * == OUTPUTS ==
- *  - open the image defined by id (or all images one after another from the dataset/project/... defined by id)
+ *  - Open the image in Fiji
  *  - Send to OMERO computed ROIs/measurement if defined so.
+ *  - Delete ROIs/measurement on OMERO if defined so
+ *  - CSV report save in your Downloads folder
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client 5.14.0 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client 5.15.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
  * 
  * = AUTHOR INFORMATION =
- * Code written by romain guiet and Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * version v1.3
+ * Code written by romain guiet and Rémy Dornier, EPFL - SV - PTECH - BIOP 
+ * version v2.0
  * 12.07.2022
  * 
  * = COPYRIGHT =
@@ -75,6 +74,7 @@
  * - 2023-10-04 : Fix bug on counting the number of positive cells in each channel by adding new measurements --v1.3
  * - 2023-10-04 : Move from Li to Huang thresholding method --v1.3
  * - 2023-10-04 : Fix bug when deleting tables if there is not table to delete --v1.3
+ * - 2023.11.14 : Update with user script template --v2.0
  */
 
 /**
