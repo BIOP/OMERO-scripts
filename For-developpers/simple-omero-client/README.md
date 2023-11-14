@@ -1,3 +1,5 @@
+# simple-omero-client
+
 Most of the scripts are grouped according to the OMERO features. 
 The more complex scripts (mixing different features, using Cellpose/Stardist, create project/dataset on OMERO...) are grouped under ``advanced_scripts`` folder.
 
