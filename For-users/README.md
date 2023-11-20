@@ -1,6 +1,6 @@
 # Users
 
-The scripts are based on simple-omero-client API and are running on Fiji. We use groovy language to interact with OMERO.
+The scripts are based on [simple-omero-client](https://github.com/GReD-Clermont/simple-omero-client) API and are running on Fiji. Groovy language is used to interact with OMERO.
 
 
 # Installation
