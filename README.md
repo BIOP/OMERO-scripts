@@ -12,4 +12,4 @@ They can all be customized according to your needs. Please contact us in such ca
 
 # For developpers
 This folder groups template scripts to interact with OMERO. These scripts implement simple commands on OMERO features. They are not intended to be used directly ; 
-the purpose of those scripts is to help people developping their own scripts with the ``simple-omero-client`` API. No popup messages neither error catching are implemented in the template scripts.
+the purpose of those scripts is to help people developping their own scripts with the [simple-omero-client](https://github.com/GReD-Clermont/simple-omero-client) API. No popup messages neither error catching are implemented in the template scripts.
