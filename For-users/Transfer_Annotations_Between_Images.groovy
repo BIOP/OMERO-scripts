@@ -49,7 +49,7 @@
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.15.0 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.16.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
@@ -98,7 +98,6 @@ if(!csvFile.exists()){
 // Connection to server
 host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 
 try{
@@ -227,20 +226,31 @@ if (user_client.isConnected()){
 						transferSummary.add(imgSummaryMap)
 					}else{
 						message = "The image '"+tgtImgName+"' doesn't exist in the target dataset "+tgtDatasetId
+						hasSilentlyFailed = true
 						IJLoggerError(srcImgName, message)
 						transferSummary.add(imgSummaryMap)
 					}
 				}else{
 					message = "The image '"+srcImgName+"' doesn't exist in the source dataset "+srcDatasetId
+					hasSilentlyFailed = true
 					IJLoggerError(srcImgName, message)
 					transferSummary.add(imgSummaryMap)
 				}
 			}else{
 				message = "The image '"+names[0]+"' doesn't have any target"
+				hasSilentlyFailed = true
 				IJLoggerError(names[0], message)
 				imgSummaryMap.put(SRC_IMG, names[0])
 				transferSummary.add(imgSummaryMap)
 			}
+		}
+		
+		// final message
+		if(hasSilentlyFailed){
+			message = "The script ended with some errors."
+		}
+		else {
+			message = "The annotations have been successfully transferred."
 		}
 		
 		
@@ -259,7 +269,7 @@ if (user_client.isConnected()){
 		}catch(Exception e2){
 			IJLoggerError(e2.toString(), "\n"+getErrorStackTraceAsString(e2))
 			hasFailed = true
-			message = "An error has occurred during csv report generation"
+			message = "An error has occurred during csv report generation."
 		}finally{
 			// disconnect
 			user_client.disconnect()
@@ -267,22 +277,21 @@ if (user_client.isConnected()){
 			
 			// print final popup
 			if(!hasFailed) {
-				if(!hasSilentlyFailed){
-					message = "The transfer has been successfully done and a report created in your Downloads"
-					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
-				}else{
-					message = "The transfer has been done with some errors. Please look at the report to know more"
+				message += " A CSV report has been created in your 'Downloads' folder."
+				if(hasSilentlyFailed){
 					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.WARNING_MESSAGE);
+				}else{
+					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
 				}
 			}else{
 				JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 			}
 		}
 	}
-	
 }else{
-	IJLoggerError("OMERO", "Not able to connect to "+host)
-	JOptionPane.showMessageDialog(null, "You are not connected to OMERO", "ERROR", JOptionPane.ERROR_MESSAGE);
+	message = "Not able to connect to "+host
+	IJLoggerError("OMERO", message)
+	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 }
 
 
@@ -538,7 +547,7 @@ def generateCSVReport(transferSummaryList){
 	String content = header + "\n"+statusOverallSummary+"\n"+contentOverallSummary
 					
 	// save the report
-	def name = "Transfer_Annotations_from_dataset_"+srcDatasetId+"_to_dataset_"+tgtDatasetId+"_report"
+	def name = getCurrentDateAndHour()+"_Transfer_Annotations_from_dataset_"+srcDatasetId+"_to_dataset_"+tgtDatasetId+"_report"
 	String path = System.getProperty("user.home") + File.separator +"Downloads"
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
@@ -759,6 +768,17 @@ def IJLoggerWarn(String title, String message){
 def IJLoggerInfo(String title, String message){
 	IJ.log("[INFO]   ["+title+"] -- "+message); 
 }
+def getCurrentDateAndHour(){
+    LocalDateTime localDateTime = LocalDateTime.now();
+    LocalTime localTime = localDateTime.toLocalTime();
+    LocalDate localDate = localDateTime.toLocalDate();
+    return ""+localDate.getYear()+
+            (localDate.getMonthValue() < 10 ? "0"+localDate.getMonthValue():localDate.getMonthValue()) +
+            (localDate.getDayOfMonth() < 10 ? "0"+localDate.getDayOfMonth():localDate.getDayOfMonth())+"-"+
+            (localTime.getHour() < 10 ? "0"+localTime.getHour():localTime.getHour())+"h"+
+            (localTime.getMinute() < 10 ? "0"+localTime.getMinute():localTime.getMinute())+"m"+
+            (localTime.getSecond() < 10 ? "0"+localTime.getSecond():localTime.getSecond());
+}
 
 
 /*
@@ -776,3 +796,6 @@ import omero.model.NamedValue
 import ij.IJ
 import omero.gateway.model.ChannelData;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;

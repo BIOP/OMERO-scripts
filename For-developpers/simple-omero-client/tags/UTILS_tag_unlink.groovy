@@ -2,7 +2,6 @@
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
-#@String(label="New Tag(s)", value = "new_tag1,new_tag2") tags
 
 
 /* = CODE DESCRIPTION =
@@ -13,21 +12,20 @@
  *  - credentials 
  *  - id
  *  - object type
- *  - tag
  * 
  * == OUTPUTS ==
- * - Add a tag on object to OMERO
+ *  - delete ALL tags attached on an image / container
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.12.3 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = INSTALLATION = 
  *  Open Script and Run
  * 
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 2022-05-18
+ * 18.05.2022
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -50,11 +48,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * 
  * == HISTORY ==
- * - 2023-06-15 : Add multiple tags at the same time + remove unnecessary imports.
- * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running
- * 
+ * - 2023.06.19 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports
+ * + turn the deletion into unlinking
+ * - 2023.10.17 : Add popup message at the end of the script and if an error occurs while running
+ * - 2023.11.06 : Remove popup messages from template
  */
-
 
 /**
  * Main. Connect to OMERO, process tags and disconnect from OMERO
@@ -66,93 +64,52 @@ host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
-
-try{
-	user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
-}catch(Exception e){
-	JOptionPane.showMessageDialog(null, "Cannot connect to "+host+". Please check your credentials", "ERROR", JOptionPane.ERROR_MESSAGE);
-	return
-}
-
-hasFailed = false
+user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
 	
 	try{
+		def tags
 		switch (object_type){
 			case "image":	
-				processTag(user_client, user_client.getImage(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
-				processTag(user_client, user_client.getDataset(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getDataset(id))
 				break
 			case "project":
-				processTag(user_client, user_client.getProject(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getProject(id))
 				break
 			case "well":
-				processTag(user_client, user_client.getWells(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				processTag(user_client, user_client.getPlates(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getPlates(id))
 				break
 			case "screen":
-				processTag(user_client, user_client.getScreens(id))
+				tags = unlinkAllTagsOnImage(user_client, user_client.getScreens(id))
 				break
 		}
 		
-		println "Tags '"+tags+"' have been successfully added on "+object_type+ " "+id
+		println "Tags '"+tags+"' have been successfully unlinked from "+object_type+ " "+id
 		
-	}catch(Exception e){
-		println e
-		println getErrorStackTraceAsString(e)
-		hasFailed = true
-		JOptionPane.showMessageDialog(null, "An error has occurred when adding tags to OMERO. Please look at the logs.", "ERROR", JOptionPane.ERROR_MESSAGE);
 	}finally{
 		user_client.disconnect()
 		println "Disconnected from "+host
-		if(!hasFailed) {
-			def message = "The tags '"+ tags +"' have been successfully added to OMERO"
-			JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
-		}
-	}	
-	
+	}
 }else{
 	println "Not able to connect to "+host
-	JOptionPane.showMessageDialog(null, "You are not connected to OMERO", "ERROR", JOptionPane.ERROR_MESSAGE);
 }
 
 
-/**
- * Add a new tags to the object.
- * 
- * inputs
- * 		user_client : OMERO client
- * 		wpr : OMERO object wrapper (image, dataset, project, well, plate, screen)
- * 
- * */
-def processTag(user_client, wpr){
+def unlinkAllTagsOnImage(user_client, repository_wpr){
+	// get the current tags
+	List<TagAnnotationWrapper> tags = repository_wpr.getTags(user_client)
+
+	tags.each{repository_wpr.unlink(user_client, it)}
 	
-	def tagsToAdd = []
-	
-	// get existing tags
-	def groupTags = user_client.getTags()
-	def imageTags = wpr.getTags(user_client)
-	
-	// find if the tag to add already exists on OMERO. If yes, they are not added twice
-	tags.split(",").each{tag->
-		// find if the requested tag already exists
-		new_tag = groupTags.find{ it.getName().equals(tag) } ?: new TagAnnotationWrapper(new TagAnnotationData(tag))
-		
-		// add the tag if it is not already the case
-		imageTags.find{ it.getName().equals(new_tag.getName()) } ? println("Tag "+tag+" already attached to the "+object_type) : tagsToAdd.add(new_tag)
-	}
-	
-	println("Adding tags :")
-	tagsToAdd.each{println(it.getName())}
-	
-	// add all tags to the image
-	wpr.addTags(user_client, (TagAnnotationWrapper[])tagsToAdd.toArray())	
+	return tags
 }
 
 
@@ -164,12 +121,9 @@ def getErrorStackTraceAsString(Exception e){
 }
 
 
-
 /*
  * imports  
  */
 import fr.igred.omero.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
-import omero.gateway.model.TagAnnotationData;
-import javax.swing.JOptionPane; 

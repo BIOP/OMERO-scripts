@@ -1,19 +1,15 @@
-# OMERO-scripts
-Series of script to make use of OMERO
+# For teaching
+This folder groups all the scripts used during the OMERO training and the ones referenced in the examples described in [the OMERO-Fiji documentation](https://wiki-biop.epfl.ch/en/data-management/omero/fiji)
 
-## Fiji scripts
-Under `Fiji` folder, you will find scripts that use simple-omero-client to send/import images/tags/key-value-pairs... in OMERO.
+# For users
+This folder groups scripts for general purposes that can be directly used by any users. These scripts are as generic as possible. They are provided with 
+- a simple GUI at the beginning 
+- Popup messages to inform in case of error
+- ImageJ Logs to follow what the script is doing
+- A CSV report which summarizes what has been successfully done and what has been failed.
 
-### Installation
-To make scripts work, download the latest version of [simple-omero-client-x.x.x.jar](https://github.com/GReD-Clermont/simple-omero-client/releases) and copy it to the `Plugins` folder of Fiji. 
+They can all be customized according to your needs. Please contact us in such case. **This service will only be given for EPFL students.**
 
-The `OMERO-java dependencies` are required to make this extension working. Download the .jar file from the [OMERO download page](https://www.openmicroscopy.org/omero/downloads/), under "OMERO Java". Copy it to the `Plugins` folder of Fiji. 
-
-### Documentation
-You can find all the documentation on how to use some of our scripts on our [Fiji wiki page](https://wiki-biop.epfl.ch/en/data-management/omero/fiji), under `Analyze OMERO data using simple-omero-client`
-
-### Available scripts
-Scripts are grouped by categories. The folder "tag" groups all scripts that are dealing with tags.
-All scripts, except advanced scripts, are basic and ready-to-use and show you the necessary commands to import, add, get and delete images, tables and annotations.
-
-Advanced scripts perform deeper image analysis and parameters have to be changed to make the script working on your datasets.
+# For developpers
+This folder groups template scripts to interact with OMERO. These scripts implement simple commands on OMERO features. They are not intended to be used directly ; 
+the purpose of those scripts is to help people developping their own scripts with the [simple-omero-client](https://github.com/GReD-Clermont/simple-omero-client) API. No popup messages neither error catching are implemented in the template scripts.
