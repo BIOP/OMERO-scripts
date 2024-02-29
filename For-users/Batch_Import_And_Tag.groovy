@@ -27,8 +27,11 @@
  * 		- group them by fileset and copy each filset in a separate folder
  * 		- the script will upload only the first image of the fileset ; all images within the fileset are automatically uploaded
  * 
- * The name of the image, as well as the name of the serie, is parsed with underscores and tokens are used as tags on OMERO.
- * If the name of the image is : tk1_tk2-tk3_tk4.tif [tk5_tk6] then tags are : tk1 / tk2-tk3 / tk4 / tk5 / tk6
+ * The name of the image is parsed with:  underscores 
+ * The serie name is pasred with:  underscores / space / comma.
+ * Tokens are used as tags on OMERO.
+ * If the name of the image is : 'tk1_tk2-tk3_tk4.tif [tk5_tk6, tk7_tk8]' then tags are : tk1 / tk2-tk3 / tk4 / tk5 / tk6 / tk7 / tk8
+ * 
  * The folder hierarchy (with subfolders) is also added as tags on OMERO but THERE IS NO PARSING OF THE NAMES (no convention for folder name)
  * 
  * The script automatically generates a CSV report that summarizes which image has been uploaded, with which tags.
@@ -46,7 +49,7 @@
  * 	- You can configure the tags you want to add to your images on OMERO
  * 		- Image tags : onyl image name (without serie name) is parsed (with underscore parsing)
  * 		- Folder hierarchy : The folder and sub-folders name are used as tags (with underscore parsing)
- * 		- Serie name : the name of the serie is parsed (with underscore parsing)
+ * 		- Serie name : the name of the serie is parsed (with underscore, coma and space parsing)
  * 	
  * 
  * == OUTPUTS ==	
@@ -63,7 +66,7 @@
  *  = AUTHOR INFORMATION =
  * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
  * date : 2023-08-10
- * version : v2.0
+ * version : v2.1
  * 
  * = HISTORY =
  * - 2023.08.10 : First release --v1.0
@@ -72,6 +75,7 @@
  * - 2023.11.07 : Add popup messages --v2.0
  * - 2023.11.07 : Catch errors --v2.0
  * - 2023.11.07 : Generate a CSV report in the download folder --v2.0
+ * - 2024.02.29 : Add support for the fluorescence VSI images from new Slide Scanner (i.e. split serie name with comma) --v2.1
  * 
  */
 
@@ -506,6 +510,7 @@ def saveTagsOnOmero(tags, imgWpr, user_client){
 def linkTagsToImage(user_client, ids, imgFile, rawFolder){
 	def nameToParse = imgFile.getName().split("\\.")[0]
 	def uploadedTags = []
+	def patternSerieName = /[_, ]/
 
 	if(serieTags || folderTags || imageTags){
 		ids.each{id->
@@ -530,7 +535,7 @@ def linkTagsToImage(user_client, ids, imgFile, rawFolder){
 					
 					if(matcher.find()){
 						def serieName = matcher.group("serie")
-						tags.addAll(serieName.split("_") as List)
+						tags.addAll(serieName.split(patternSerieName) as List)
 					}
 				}
 			}
@@ -559,7 +564,7 @@ def linkTagsToImage(user_client, ids, imgFile, rawFolder){
 			}
 			
 			log += " :  " + filteredTags.join(" ; ")
-			saveTagsOnOmero(filteredTags, imgWrapper, user_client)
+			saveTagsOnOmero(filteredTags.findAll(), imgWrapper, user_client)
 			log += "...... Done !"
 			IJLoggerInfo(imgWrapper.getName(), log)
 			

@@ -9,9 +9,10 @@
  * This script batch tag images on OMERO, taking into account the name of the image and the name of the serie.
  * However, it doesn't take into account the original import path, as the Autotag plugin of OMERO.web does.
  * 
- * The name of the image, as well as the name of the serie, is parsed with underscores/space/forward_slash/backward_slash
- * and tokens are used as tags on OMERO.
- * If the name of the image is : 'tk1 tk2-tk3_tk4.tif [tk5_tk6]' then tags are : tk1 / tk2-tk3 / tk4 / tk5 / tk6
+ * The name of the image is parsed with:  underscores / space / forward_slash / backward_slash.
+ * The serie name is pasred with:  underscores / space / forward_slash / backward_slash / comma.
+ * Tokens are used as tags on OMERO.
+ * If the name of the image is : 'tk1 tk2-tk3_tk4.tif [tk5_tk6, tk7_tk8]' then tags are : tk1 / tk2-tk3 / tk4 / tk5 / tk6 / tk7 / tk8
  * 
  * The script automatically generates a CSV report that summarizes which image has been tagged, with which tags
  * The CSV report is saved in your Downloads folder.
@@ -37,10 +38,11 @@
  *  = AUTHOR INFORMATION =
  * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
  * date : 2023.11.08
- * version : v1.0
+ * version : v1.1
  * 
  * = HISTORY =
  * - 2023.11.08 : First release --v1.0
+ * - 2024.02.29 : Add support for the fluorescence VSI images from new Slide Scanner (i.e. split serie name with comma) --v1.1
  * 
  */
 
@@ -203,6 +205,7 @@ def saveTagsOnOmero(tags, imgWpr, user_client){
 def linkTagsToImage(user_client, imgWrapper){
 	def patternSplitExtension = /\.[a-zA-Z0-9]*/
 	def patternName = /[_ \/]/
+	def patternSerieName = /[_, \/]/
 	def patternSerie = /.*\[(?<serie>.*)\]/
 	
 	def nameToParse = imgWrapper.getName().split(patternSplitExtension)[0]
@@ -227,7 +230,7 @@ def linkTagsToImage(user_client, imgWrapper){
 			
 			if(matcher.find()){
 				def serieName = matcher.group("serie")
-				tags.addAll(serieName.split(patternName) as List)
+				tags.addAll(serieName.split(patternSerieName) as List)
 			}
 		}
 		
@@ -241,7 +244,7 @@ def linkTagsToImage(user_client, imgWrapper){
 		}
 		
 		log += " :  " + filteredTags.join(" ; ")
-		saveTagsOnOmero(filteredTags, imgWrapper, user_client)
+		saveTagsOnOmero(filteredTags.findAll(), imgWrapper, user_client)
 		log += "...... Done !"
 		IJLoggerInfo(imgWrapper.getName(), log)
 	}
