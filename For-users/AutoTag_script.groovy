@@ -1,25 +1,28 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
-#@Long(label="Dataset ID", value=119273, required=false) datasetId
+#@String(label="Datasets ID", value=119273, required=false) datasetsId
 #@String(label="TAG CONFIGURATION : ", visibility=MESSAGE, required=false) msg1
 #@Boolean(label="Image name tags",value=true) imageTags
 #@Boolean(label="Serie name tags",value=true) serieTags
 
 /* == CODE DESCRIPTION ==
  * This script batch tag images on OMERO, taking into account the name of the image and the name of the serie.
- * However, it doesn't take into account the original import path, as the Autotag plugin of OMERO.web does.
+ * However, it doesn't take into account the original import path, like the Autotag plugin of OMERO.web does.
  * 
- * The name of the image is parsed with:  underscores / space / forward_slash / backward_slash.
+ * The name of the image is parsed with:  underscores / space / forward_slash / backward_slash
+.
  * The serie name is pasred with:  underscores / space / forward_slash / backward_slash / comma.
  * Tokens are used as tags on OMERO.
- * If the name of the image is : 'tk1 tk2-tk3_tk4.tif [tk5_tk6, tk7_tk8]' then tags are : tk1 / tk2-tk3 / tk4 / tk5 / tk6 / tk7 / tk8
+ * If the name of the image is : 'tk1 tk2-tk3_tk4.tif [tk5_tk6, tk7_tk8]' then tags are : tk1 / tk2-tk3 / tk4 / tk5 / tk6
+ / tk7 / tk8
  * 
  * The script automatically generates a CSV report that summarizes which image has been tagged, with which tags
  * The CSV report is saved in your Downloads folder.
  * 		
  * == INPUTS ==
  *  - credentials 
- *  - enter the ID of the dataset
+ *  - enter the ID of one or more dataset
+s. If multiple dataset, separate them with ONLY a semi-colon ;
  * 	- You can configure the tags you want to add to your images on OMERO
  * 		- Image tags : onyl image name (without serie name) is parsed
  * 		- Serie name : the name of the serie is parsed
@@ -38,12 +41,12 @@
  *  = AUTHOR INFORMATION =
  * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
  * date : 2023.11.08
- * version : v1.1
+ * version : v2.0
  * 
  * = HISTORY =
  * - 2023.11.08 : First release --v1.0
  * - 2024.02.29 : Add support for the fluorescence VSI images from new Slide Scanner (i.e. split serie name with comma) --v1.1
- * 
+ * - 2024.03.11 : Add support for multiple datasets --v2.0
  */
 
 
@@ -54,6 +57,8 @@ message = ""
 
 IMG_NAME = "Image name"
 IMG_ID = "Image Id"
+DST_NAME = "Dataset name"
+DST_ID = "Dataset Id"
 STS = "Status"
 TAG = "Tags"
 
@@ -75,56 +80,63 @@ if (user_client.isConnected()){
 	IJLoggerInfo("OMERO","Connected to "+host)
 	List<Map<String, String>> transferSummary = new ArrayList<>()
 	
-	try{		
-		// get the dataset
-		def datasetWrapper
-		try{
-			IJLoggerInfo("OMERO","Getting dataset "+datasetId)
-			datasetWrapper = user_client.getDataset(datasetId) 
-		}catch(Exception e){
-			hasFailed = true
-			message = "The dataset '"+datasetId+"' cannot be found on OMERO."
-			IJLoggerError("OMERO", message)
-			throw e
-		}
 	
-		IJLoggerInfo("","*****************");
-		
-		// get images to process
-		IJLoggerInfo("OMERO", "Read images from dataset '" + datasetWrapper.getName() + "' : " + datasetWrapper.getId())
-		def imgWrapperList
-		try{
-			imgWrapperList = datasetWrapper.getImages(user_client)
-		}catch(Exception e){
-		    hasFailed = true
-			message = "An error occurred when reading images from '" + datasetWrapper.getName() + "' : " + datasetWrapper.getId()
-			IJLoggerError("OMERO", message)
-			throw e
-		}
-		
-		// link tags
-		for(ImageWrapper imgWrapper : imgWrapperList){
-			Map<String, String> imgSummaryMap = new HashMap<>()
-			imgSummaryMap.put(IMG_ID, imgWrapper.getId())
-			imgSummaryMap.put(IMG_NAME, imgWrapper.getName())
-			
+	try{		
+		def datasetIDList = datasetsId.split(";") as List
+		for(String datasetId : datasetIDList){
+			// get the dataset
+			def datasetWrapper
 			try{
-				IJLoggerInfo(imgWrapper.getName(),"Parse image name and link tags")
-				def tags = linkTagsToImage(user_client, imgWrapper)
-				imgSummaryMap.put(TAG, tags.join(" ; "))
-				imgSummaryMap.put(STS, "Added")
+				IJLoggerInfo("OMERO","Getting dataset "+datasetId)
+				datasetWrapper = user_client.getDataset(Long.parseLong(datasetId)) 
 			}catch(Exception e){
 				hasSilentlyFailed = true
-    			message = "Impossible to link tags to this image"
-				IJLoggerError(imgWrapper.getName(), message)
+				message = "The dataset '"+datasetId+"' cannot be found on OMERO."
+				IJLoggerError("OMERO", message)
 				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
 				continue
 			}
-			transferSummary.add(imgSummaryMap)
-				
-			IJLoggerInfo("", "*****************");
-		}
 		
+			IJLoggerInfo("","*****************");
+			
+			// get images to process
+			IJLoggerInfo("OMERO", "Read images from dataset '" + datasetWrapper.getName() + "' : " + datasetWrapper.getId())
+			def imgWrapperList
+			try{
+				imgWrapperList = datasetWrapper.getImages(user_client)
+			}catch(Exception e){
+			    hasSilentlyFailed = true
+				message = "An error occurred when reading images from '" + datasetWrapper.getName() + "' : " + datasetWrapper.getId()
+				IJLoggerError("OMERO", message)
+				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				continue
+			}
+			
+			// link tags
+			for(ImageWrapper imgWrapper : imgWrapperList){
+				Map<String, String> imgSummaryMap = new HashMap<>()
+				imgSummaryMap.put(IMG_ID, imgWrapper.getId())
+				imgSummaryMap.put(IMG_NAME, imgWrapper.getName())
+				imgSummaryMap.put(DST_ID, datasetWrapper.getId())
+				imgSummaryMap.put(DST_NAME, datasetWrapper.getName())
+				
+				try{
+					IJLoggerInfo(imgWrapper.getName(),"Parse image name and link tags")
+					def tags = linkTagsToImage(user_client, imgWrapper)
+					imgSummaryMap.put(TAG, tags.join(" ; "))
+					imgSummaryMap.put(STS, "Added")
+				}catch(Exception e){
+					hasSilentlyFailed = true
+	    			message = "Impossible to link tags to this image"
+					IJLoggerError(imgWrapper.getName(), message)
+					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+					continue
+				}
+				transferSummary.add(imgSummaryMap)
+					
+				IJLoggerInfo("", "*****************");
+			}
+		}
 		if(hasSilentlyFailed)
 			message = "The script ended with some errors."
 		else 
@@ -168,7 +180,8 @@ if (user_client.isConnected()){
 	IJLoggerError("OMERO", message)
 	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 }
-return
+
+return
 
 
 /**
@@ -259,7 +272,7 @@ def linkTagsToImage(user_client, imgWrapper){
  */
 def generateCSVReport(transferSummaryList){
 	// define the header
-	String header = IMG_NAME + "," + IMG_ID + "," + TAG + "," + STS
+	String header = DST_NAME + "," + DST_ID + "," + IMG_NAME + "," + IMG_ID + "," + TAG + "," + STS
 
 	String statusOverallSummary = ""
 
@@ -267,6 +280,8 @@ def generateCSVReport(transferSummaryList){
 		String statusSummary = ""
 		
 		// Source image
+		statusSummary += imgSummaryMap.get(DST_NAME)+","
+		statusSummary += imgSummaryMap.get(DST_ID)+","
 		statusSummary += imgSummaryMap.get(IMG_NAME)+","
 		statusSummary += imgSummaryMap.get(IMG_ID)+","
 		
@@ -287,7 +302,7 @@ def generateCSVReport(transferSummaryList){
 	String content = header + "\n"+statusOverallSummary
 					
 	// save the report
-	def name = getCurrentDateAndHour() + "_AutoTag_on_images_from_dataset_"+datasetId
+	def name = getCurrentDateAndHour() + "_AutoTag_on_images_from_dataset_"+datasetsId
 	String path = System.getProperty("user.home") + File.separator + "Downloads"
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
