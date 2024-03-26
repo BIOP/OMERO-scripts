@@ -3,8 +3,8 @@
 #@Long(label="Dataset ID", value=1945) id
 #@String(label="Table name" , value="ResultsTable") tableName
 #@String (choices={"OMERO table", "CSV file"}, style="radioButtonHorizontal") fileChoice
-#@Boolean(label="Delete existing Tables") isDeleteExistingTables
-#@Boolean(label="Send Measurements to OMERO") isSendNewMeasurements
+#@Boolean(label="Delete existing Tables", value=false) isDeleteExistingTables
+#@Boolean(label="Send Measurements to OMERO", value=true) isSendNewMeasurements
 
 
 

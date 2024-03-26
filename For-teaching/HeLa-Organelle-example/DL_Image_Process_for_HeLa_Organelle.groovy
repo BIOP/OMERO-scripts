@@ -3,11 +3,11 @@
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 #@String(label="Table name", value="ResultsTable") table_name
-#@Boolean(label="Show images") showImages
-#@Boolean(label="Delete existing ROIs") isDeleteExistingROIs
-#@Boolean(label="Delete existing Tables") isDeleteExistingTables
-#@Boolean(label="Send ROIs to OMERO") isSendNewROIs
-#@Boolean(label="Send Measurements to OMERO") isSendNewMeasurements
+#@Boolean(label="Show images", value=false) showImages
+#@Boolean(label="Delete existing ROIs", value=false) isDeleteExistingROIs
+#@Boolean(label="Delete existing Tables", value=false) isDeleteExistingTables
+#@Boolean(label="Send ROIs to OMERO", value=true) isSendNewROIs
+#@Boolean(label="Send Measurements to OMERO", value=true) isSendNewMeasurements
 
 #@ResultsTable rt_image
 #@RoiManager rm
