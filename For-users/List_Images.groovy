@@ -464,13 +464,13 @@ def getErrorStackTraceAsString(Exception e){
     return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
 def IJLoggerError(String title, String message){
-	IJ.log("[ERROR]   ["+title+"] -- "+message); 
+	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
 }
 def IJLoggerWarn(String title, String message){
-	IJ.log("[WARNING]   ["+title+"] -- "+message); 
+	IJ.log(getCurrentDateAndHour() + "   [WARNING]    ["+title+"] -- "+message); 
 }
 def IJLoggerInfo(String title, String message){
-	IJ.log("[INFO]   ["+title+"] -- "+message); 
+	IJ.log(getCurrentDateAndHour() + "   [INFO]             ["+title+"] -- "+message); 
 }
 def getCurrentDateAndHour(){
     LocalDateTime localDateTime = LocalDateTime.now();
