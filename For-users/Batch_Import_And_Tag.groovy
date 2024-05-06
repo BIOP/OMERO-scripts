@@ -105,7 +105,7 @@ STANDARD = "standard"
 OME_TIFF = "ome_tiff"
 def compatibleFormatList =  [".tif", ".tiff", ".ome.tif", ".ome.tiff", ".lif", ".czi", ".nd", ".nd2", ".vsi", ".lsm", ".dv", ".zvi",
 	".png", ".jpeg", ".stk", ".gif", ".jp2", ".xml", ".jpg", ".pgm", ".qptiff", ".h5", ".avi", ".ics", ".ids", ".lof", ".oif", ".tf2",
-	".tf8", ".btf", ".pic", ".ims", ".bmp", ".xcde", ".ome", ".svs", ".ndpi"]
+	".tf8", ".btf", ".pic", ".ims", ".bmp", ".xcde", ".ome", ".svs", ".ndpi", ".dcm", ".oir"]
 
 hasFailed = false
 hasSilentlyFailed = false
