@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Name of the tag to replace") tagToDeleteStr
 #@Boolean(label="Case insensitive ?", value=true) caseInsensitive
 #@String(label="Name of the new tag") newTagStr
@@ -31,7 +31,7 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
  * 20.07.2023
- * version v2.0
+ * version v2.1
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2023
@@ -56,6 +56,7 @@
  * == HISTORY ==
  * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running
  * - 2023.11.07 : Improve popup message, improve CSV report and add IJ logs --v2.0
+ * - 2024.05.07 : Trim tag to remove noisy spaces and fix bug when trying to replace a tag by the same one -- v2.1
  */
 
 // Connection to server
@@ -113,15 +114,15 @@ if (user_client.isConnected()){
 		// check if the tag to delete exists or not
 		def tagsToDelete
 		if(caseInsensitive)
-			tagsToDelete = groupTags.findAll{it.getName().equalsIgnoreCase(tagToDeleteStr)}
+			tagsToDelete = groupTags.findAll{it.getName().trim().equalsIgnoreCase(tagToDeleteStr.trim())}
 		else
-			tagsToDelete = groupTags.findAll{it.getName().equals(tagToDeleteStr)}
+			tagsToDelete = groupTags.findAll{it.getName().trim().equals(tagToDeleteStr.trim())}
 			
 		if(!tagsToDelete.isEmpty()){
 			IJLoggerInfo("OMERO", "Found following tags to delete : " + tagsToDelete.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList()).join(" ; "))
 
 			// check if the new tag already exists. Create it otherwise or return null if the tag should exist
-			def newTag = groupTags.find{it.getName().equalsIgnoreCase(newTagStr)} ?: new TagAnnotationWrapper(new TagAnnotationData(newTagStr))
+			def newTag = new TagAnnotationWrapper(new TagAnnotationData(newTagStr.trim()))
 			IJLoggerInfo("OMERO", "The old tag(s) will be replaced by tag '"+newTag.getName()+"'")
 			
 			tagsToDelete.each{tagToDelete->
@@ -283,7 +284,7 @@ def loopOverRepo(user_client, repoWprList, tagToDelete, newTag, experimenterMap)
 			
 			// update the TagAnnotationWrapper with the one from OMERO
 			if(newTag.getId() < 0){
-				newTag = user_client.getTags(newTag.getName()).get(0)
+				newTag = user_client.getTags(newTag.getName()).reverse().get(0)
 			}
 			
 			// unlink the tag from the repo if the tag is not the same as the one we've just linked
@@ -448,3 +449,4 @@ import javax.swing.JOptionPane;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collections
