@@ -103,6 +103,8 @@ if (user_client.isConnected()){
 				break
 		}
 		
+		IJLoggerInfo("OMERO", "Total download time "+((new Date().getTime() - start.getTime())/1000)+" s")
+		
 		// final message
 		if(hasSilentlyFailed)
 			message = "The script ended with some errors."
