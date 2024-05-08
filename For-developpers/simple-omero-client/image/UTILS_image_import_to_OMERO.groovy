@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@File(label="Image path") imgPath
 #@Long(label="Dataset ID", value=119273) id
 #@Boolean(label="Show images") showImages

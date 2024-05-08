@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=true) PASSWORD
+#@String(label="Password", style='password', persist=true) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 #@Boolean showImages

@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Image ID", value=119273) id
 
 // Connection to server

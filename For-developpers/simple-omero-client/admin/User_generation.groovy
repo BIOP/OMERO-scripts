@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Base username", value="baseuser") baseUsername
 #@Long(label="Host group ID") groupId
 

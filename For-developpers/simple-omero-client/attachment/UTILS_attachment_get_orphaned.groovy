@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@String(choices={"Only my files", "All files within my group"}, style="radioButtonHorizontal", persist=false) choice
 
 

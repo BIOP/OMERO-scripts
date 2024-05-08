@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Source dataset ID", value=119273) srcDatasetId
 #@Long(label="Target dataset ID", value=119273) tgtDatasetId
 #@File(label="CSV table") csvFile

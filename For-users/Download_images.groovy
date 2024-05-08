@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","plate","screen"}) object_type
 #@Long(label="ID") id
 #@File(label="Choose the destination folder", style='directory') dir

@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Datasets ID", value=119273, required=false) datasetsId
 #@String(label="TAG CONFIGURATION : ", visibility=MESSAGE, required=false) msg1
 #@Boolean(label="Image name tags",value=true) imageTags

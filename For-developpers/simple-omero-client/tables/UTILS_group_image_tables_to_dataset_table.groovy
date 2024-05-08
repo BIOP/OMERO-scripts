@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Dataset ID", value=1945) id
 #@String(label="Table name" , value="ResultsTable") tableName
 #@String (choices={"OMERO table", "CSV file"}, style="radioButtonHorizontal") fileChoice

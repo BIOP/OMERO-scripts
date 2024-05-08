@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@File(label="Folder",style="directory") rawFolder
 #@String(choices={"New dataset", "Existing dataset"}, style="radioButtonHorizontal") choice
 #@String(label="FOR AN EXISTING DATASET : ", visibility=MESSAGE, required=false) msg1
