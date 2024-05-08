@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 #@String(label="Table name", value="ResultsTable") table_name
@@ -585,13 +585,13 @@ def getErrorStackTraceAsString(Exception e){
     return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
 def IJLoggerError(String title, String message){
-	IJ.log("[ERROR]   ["+title+"] -- "+message); 
+	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
 }
 def IJLoggerWarn(String title, String message){
-	IJ.log("[WARNING]   ["+title+"] -- "+message); 
+	IJ.log(getCurrentDateAndHour() + "   [WARNING]    ["+title+"] -- "+message); 
 }
 def IJLoggerInfo(String title, String message){
-	IJ.log("[INFO]   ["+title+"] -- "+message); 
+	IJ.log(getCurrentDateAndHour() + "   [INFO]             ["+title+"] -- "+message); 
 }
 def getCurrentDateAndHour(){
     LocalDateTime localDateTime = LocalDateTime.now();

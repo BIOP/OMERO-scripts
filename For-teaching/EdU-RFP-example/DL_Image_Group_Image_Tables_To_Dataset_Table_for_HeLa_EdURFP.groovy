@@ -1,5 +1,5 @@
 #@String(label="Username") USERNAME
-#@String(label="Password", style='password' , value=PASSWORD , persist=false) PASSWORD
+#@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Dataset ID", value=1945) id
 #@String(label="Table name" , value="ResultsTable") tableName
 #@String (choices={"OMERO table", "CSV file"}, style="radioButtonHorizontal") fileChoice
@@ -631,13 +631,13 @@ def getErrorStackTraceAsString(Exception e){
     return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
 def IJLoggerError(String title, String message){
-	IJ.log("[ERROR]   ["+title+"] -- "+message); 
+	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
 }
 def IJLoggerWarn(String title, String message){
-	IJ.log("[WARNING]   ["+title+"] -- "+message); 
+	IJ.log(getCurrentDateAndHour() + "   [WARNING]    ["+title+"] -- "+message); 
 }
 def IJLoggerInfo(String title, String message){
-	IJ.log("[INFO]   ["+title+"] -- "+message); 
+	IJ.log(getCurrentDateAndHour() + "   [INFO]             ["+title+"] -- "+message); 
 }
 def getCurrentDateAndHour(){
     LocalDateTime localDateTime = LocalDateTime.now();
