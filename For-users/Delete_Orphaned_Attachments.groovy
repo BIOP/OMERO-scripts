@@ -27,10 +27,10 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
  * 27.02.2023
- * version v2.0
+ * version v2.0.1
  * 
  * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -51,6 +51,7 @@
  * 
  * == HISTORY ==
  * - 2023.11.07 : Update script with formatted CSV file, popup messages and error catching --v2.0
+ * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.0.1
  */
 
 
@@ -70,6 +71,8 @@ try{
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 FL_NAME = "File name"
 FL_ID = "File ID"
@@ -161,6 +164,7 @@ if (user_client.isConnected()){
 					fileSummaryMap.put(STS, "Yes")
 				}catch(Exception e){
 				    hasSilentlyFailed = true
+				    fileSummaryMap.put(STS, "No")
 					message = "Cannot delete orphaned files"
 					IJLoggerError("OMERO", message)
 					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
@@ -172,7 +176,8 @@ if (user_client.isConnected()){
 		// summarizes the linked files info
 		linkedFiles.each{file->
 			Map<String, String> fileSummaryMap = summarizeFileInfo(user_client, file, experimenters, groupData)
-			
+			fileSummaryMap.put(ORPH, "No")
+
 			// add parents to the csv file
 			linkedParents = linkedParentsMap.get(file.getId())
 			def formattedParentList = []
@@ -183,7 +188,7 @@ if (user_client.isConnected()){
 					formattedParentList.add(link.class.toString().replace("class omero.model.","") + "_" + link.getName().getValue() + "_" + link.getId().getValue())
 			}
 			
-			fileSummaryMap.put(PRT, formattedParentList.join(" ; "))
+			fileSummaryMap.put(PRT, formattedParentList.join(tokenSeparator))
 			transferSummary.add(fileSummaryMap)
 		}
 		
@@ -320,41 +325,22 @@ def summarizeFileInfo(user_client, file, experimenters, groupData){
  * Create teh CSV report from all info cleecting during the processing
  */
 def generateCSVReport(transferSummaryList){
-	// define the header
-	String header = STS + "," + ORPH + "," + PRT + "," + FL_NAME + "," + FL_ID + "," + FL_FORMAT + "," + FL_SIZE + "," + 
-					OWN + "," + GRP
+	def headerList = [STS, ORPH, PRT, FL_NAME, FL_ID, FL_FORMAT, FL_SIZE, OWN, GRP]
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
-
-	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
 	
-		// Status
-		if(imgSummaryMap.containsKey(STS))
-			statusSummary += imgSummaryMap.get(STS)+","
-		else
-			statusSummary += "No,"
-			
-		// Orphaned
-		if(imgSummaryMap.containsKey(ORPH))
-			statusSummary += imgSummaryMap.get(ORPH)+","
-		else
-			statusSummary += "No,"
-
-		// file links
-		if(imgSummaryMap.containsKey(PRT))
-			statusSummary += imgSummaryMap.get(PRT)+","
-		else
-			statusSummary += " - ,"
+	// get all summaries
+	transferSummaryList.each{imgSummaryMap -> 
+		def statusSummaryList = []
+		//loop over the parameters
+		headerList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
 		
-		// File info
-		statusSummary += imgSummaryMap.get(FL_NAME)+","
-		statusSummary += imgSummaryMap.get(FL_ID)+","
-		statusSummary += imgSummaryMap.get(FL_FORMAT)+","
-		statusSummary += imgSummaryMap.get(FL_SIZE)+","		
-		statusSummary += imgSummaryMap.get(OWN)+","
-		statusSummary += imgSummaryMap.get(GRP)+","
-
-		statusOverallSummary += statusSummary + "\n"
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 	String content = header + "\n"+statusOverallSummary
 					

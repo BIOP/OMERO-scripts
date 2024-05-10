@@ -3,11 +3,11 @@
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 #@String(label="Table name", value="ResultsTable") table_name
-#@Boolean(label="Show images") showImages
-#@Boolean(label="Delete existing ROIs") isDeleteExistingROIs
-#@Boolean(label="Delete existing Tables") isDeleteExistingTables
-#@Boolean(label="Send ROIs to OMERO") isSendNewROIs
-#@Boolean(label="Send Measurements to OMERO") isSendNewMeasurements
+#@Boolean(label="Show images", value=false) showImages
+#@Boolean(label="Delete existing ROIs", value=false) isDeleteExistingROIs
+#@Boolean(label="Delete existing Tables", value=false) isDeleteExistingTables
+#@Boolean(label="Send ROIs to OMERO", value=true) isSendNewROIs
+#@Boolean(label="Send Measurements to OMERO", value=true) isSendNewMeasurements
 
 #@ResultsTable rt_image
 #@RoiManager rm
@@ -45,8 +45,8 @@
  *  Open Script and Run
  * 
  * = AUTHOR INFORMATION =
- * Code written by romain guiet and Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * version v1.3
+ * Code written by romain guiet and Rémy Dornier, EPFL - SV - PTECH - BIOP 
+ * version v2.0.1
  * 12.07.2022
  * 
  * = COPYRIGHT =
@@ -75,6 +75,8 @@
  * - 2023-10-04 : Fix bug on counting the number of positive cells in each channel by adding new measurements --v1.3
  * - 2023-10-04 : Move from Li to Huang thresholding method --v1.3
  * - 2023-10-04 : Fix bug when deleting tables if there is not table to delete --v1.3
+ * - 2023.11.14 : Update with user script template --v2.0
+ * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.0.1
  */
 
 /**
@@ -111,6 +113,8 @@ try{
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 // global keys for the summary report
 ROI_DEL = "Previous ROIs deleted"
@@ -496,50 +500,21 @@ def processScreen(user_client, screen_wpr_list){
  */
 def generateCSVReport(transferSummaryList){
 	// define the header
-	String header = IMG_NAME + "," + IMG_ID + "," + READ + "," + IPAS + "," + ROI_DEL + "," + TAB_DEL + 
-					"," + ROI_NEW + "," + TAB_NEW
-
+	def headerList = [IMG_NAME, IMG_ID, READ, IPAS, ROI_DEL, TAB_DEL, ROI_NEW, TAB_NEW]
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
-
+	
+	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
-		
-		// Image info
-		statusSummary += imgSummaryMap.get(IMG_NAME)+","
-		statusSummary += imgSummaryMap.get(IMG_ID)+","
-		statusSummary += imgSummaryMap.get(READ)+","
-		
-		// has been processed
-		if(imgSummaryMap.containsKey(IPAS))
-			statusSummary += imgSummaryMap.get(IPAS)+","
-		else
-			statusSummary += " - ,"
-
-		// delete rois
-		if(imgSummaryMap.containsKey(ROI_DEL))
-			statusSummary += imgSummaryMap.get(ROI_DEL)+","
-		else
-			statusSummary += " - ,"
-			
-		// delete tables
-		if(imgSummaryMap.containsKey(TAB_DEL))
-			statusSummary += imgSummaryMap.get(TAB_DEL)+","
-		else
-			statusSummary += " - ,"
-			
-		// new rois
-		if(imgSummaryMap.containsKey(ROI_NEW))
-			statusSummary += imgSummaryMap.get(ROI_NEW)+","
-		else
-			statusSummary += " - ,"
-		
-		// new tables
-		if(imgSummaryMap.containsKey(TAB_NEW))
-			statusSummary += imgSummaryMap.get(TAB_NEW)+","
-		else
-			statusSummary += " - ,"
-			
-		statusOverallSummary += statusSummary + "\n"
+		def statusSummaryList = []
+		//loop over the parameters
+		headerList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 	String content = header + "\n"+statusOverallSummary
 					

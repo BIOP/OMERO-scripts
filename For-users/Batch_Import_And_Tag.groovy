@@ -66,7 +66,7 @@
  *  = AUTHOR INFORMATION =
  * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
  * date : 2023-08-10
- * version : v2.1
+ * version : v2.1.1
  * 
  * = HISTORY =
  * - 2023.08.10 : First release --v1.0
@@ -76,6 +76,7 @@
  * - 2023.11.07 : Catch errors --v2.0
  * - 2023.11.07 : Generate a CSV report in the download folder --v2.0
  * - 2024.02.29 : Add support for the fluorescence VSI images from new Slide Scanner (i.e. split serie name with comma) --v2.1
+ * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.1.1
  * 
  */
 
@@ -110,6 +111,8 @@ def compatibleFormatList =  [".tif", ".tiff", ".ome.tif", ".ome.tiff", ".lif", "
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 PAR_FOL = "Parent folder"
 IMG_NAME = "Image name"
@@ -227,10 +230,11 @@ if (user_client.isConnected()){
 							IJLoggerInfo(imgFile.getName(),"Upload on OMERO...")
 							ids = saveImageOnOmero(user_client, imgFile, datasetWrapper)
 							countRaw += ids.size()
-							imgSummaryMap.put(OMR_ID, ids.join(" ; "))
+							imgSummaryMap.put(OMR_ID, ids.join(tokenSeparator))
 							imgSummaryMap.put(STS, "Uploaded")
 						}catch(Exception e){
 							hasSilentlyFailed = true
+							imgSummaryMap.put(STS, "Failed")
 			    			message = "Impossible to upload this image on OMERO"						
 							IJLoggerError(imgFile.getName(), message)
 							IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
@@ -241,7 +245,7 @@ if (user_client.isConnected()){
 						try{
 							IJLoggerInfo(imgFile.getName(),"Parse image name and link tags to OMERO...")
 							def tags = linkTagsToImage(user_client, ids, imgFile, rawFolder)
-							imgSummaryMap.put(TAG, tags.join(" ; "))
+							imgSummaryMap.put(TAG, tags.join(tokenSeparator))
 						}catch(Exception e){
 							hasSilentlyFailed = true
 			    			message = "Impossible to link tags to this image"
@@ -269,7 +273,7 @@ if (user_client.isConnected()){
 						IJLoggerInfo(child.get(0).getName(),"Upload on OMERO...")
 						ids = saveImageOnOmero(user_client, child.get(0), datasetWrapper)
 						countRaw += ids.size()
-						imgSummaryMap.put(OMR_ID, ids.join(" ; "))
+						imgSummaryMap.put(OMR_ID, ids.join(tokenSeparator))
 						imgSummaryMap.put(STS, "Uploaded")
 					}catch(Exception e){
 						hasSilentlyFailed = true
@@ -283,7 +287,7 @@ if (user_client.isConnected()){
 					try{
 						IJLoggerInfo(child.get(0).getName(),"Parse image name and link tags to OMERO...")
 						def tags = linkTagsToImage(user_client, ids, child.get(0), rawFolder)
-						imgSummaryMap.put(TAG, tags.join(" ; "))
+						imgSummaryMap.put(TAG, tags.join(tokenSeparator))
 					}catch(Exception e){
 						hasSilentlyFailed = true
 		    			message = "Impossible to link tags to this image"
@@ -563,7 +567,7 @@ def linkTagsToImage(user_client, ids, imgFile, rawFolder){
 				}
 			}
 			
-			log += " :  " + filteredTags.join(" ; ")
+			log += " :  " + filteredTags.join(tokenSeparator)
 			saveTagsOnOmero(filteredTags.findAll(), imgWrapper, user_client)
 			log += "...... Done !"
 			IJLoggerInfo(imgWrapper.getName(), log)
@@ -571,7 +575,6 @@ def linkTagsToImage(user_client, ids, imgFile, rawFolder){
 			uploadedTags.addAll(filteredTags)
 		}
 	}
-	
 	return uploadedTags.unique()
 }
 
@@ -581,45 +584,23 @@ def linkTagsToImage(user_client, ids, imgFile, rawFolder){
  * Create teh CSV report from all info cleecting during the processing
  */
 def generateCSVReport(transferSummaryList){
-	// define the header
-	String header = PAR_FOL + "," + IMG_NAME + "," + IMG_PATH + "," + CMP + "," + STS + "," + TYPE + "," + OMR_ID + "," + TAG
 
+	def headerList = [PAR_FOL, IMG_NAME, IMG_PATH, CMP, STS, TYPE, OMR_ID, TAG]
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
-
+	
+	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
+		def statusSummaryList = []
+		//loop over the parameters
+		headerList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
 		
-		// Source image
-		statusSummary += imgSummaryMap.get(PAR_FOL)+","
-		statusSummary += imgSummaryMap.get(IMG_NAME)+","
-		statusSummary += imgSummaryMap.get(IMG_PATH)+","
-		statusSummary += imgSummaryMap.get(CMP)+","
-		
-		// Source image id
-		if(imgSummaryMap.containsKey(STS))
-			statusSummary += imgSummaryMap.get(STS)+","
-		else
-			statusSummary += "Failed,"
-
-		// Target image
-		if(imgSummaryMap.containsKey(TYPE))
-			statusSummary += imgSummaryMap.get(TYPE)+","
-		else
-			statusSummary += " - ,"
-
-		// Target image id
-		if(imgSummaryMap.containsKey(OMR_ID))
-			statusSummary += imgSummaryMap.get(OMR_ID)+","
-		else
-			statusSummary += " - ,"
-			
-		// tags
-		if(imgSummaryMap.containsKey(TAG))
-			statusSummary += imgSummaryMap.get(TAG)+","
-		else
-			statusSummary += " - ,"
-		
-		statusOverallSummary += statusSummary + "\n"
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 	String content = header + "\n"+statusOverallSummary
 					

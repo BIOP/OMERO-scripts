@@ -36,16 +36,19 @@
  * 
  * = PROJECT INFORMATION =
  * date : 2024.05.06
- * version : v1.0
+ * version : v1.0.1
  * 
  * = HISTORY =
  * - 2024.05.06 : First release --v1.0
+ * - 2024.05.10 : Update token separtor --v1.0.1
  * 
  */
 
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 // constants for csv file
 PAR_FOL = "Parent folder"
@@ -275,7 +278,7 @@ if (user_client.isConnected()){
 								ids = datasetWrapper.importImage(user_client, imageToUpload.getAbsolutePath())
 								if(ids != null){
 									countImg += ids.size()
-									imgSummaryMap.put(IMG_ID, ids.join(" ; "))
+									imgSummaryMap.put(IMG_ID, ids.join(tokenSeparator))
 									imgSummaryMap.put(STS, "Uploaded")
 								}
 							}catch(Exception e){
@@ -309,7 +312,7 @@ if (user_client.isConnected()){
 										try{
 											IJLoggerInfo("OMERO", "Linking tags to image '"+imageWpr.getName()+"'...")
 											saveTagsOnOmero(user_client, imageWpr, tagsToLink)
-											imgSummaryMap.put(TAG, tagsToLink.join(" ; "))
+											imgSummaryMap.put(TAG, tagsToLink.join(tokenSeparator))
 										}catch(Exception e){
 											hasSilentlyFailed = true
 							    			message = "Impossible to link tags to image '"+imageWpr.getName()+"'"
@@ -367,7 +370,7 @@ if (user_client.isConnected()){
 							}
 						}
 						
-						dstSummaryMap.put(ATT, linkedAttachments.join(" ; "))
+						dstSummaryMap.put(ATT, linkedAttachments.join(tokenSeparator))
 						transferSummary.add(dstSummaryMap)
 					}else{
 						IJLoggerInfo("OMERO", "Info files are not attached to the dataset")
@@ -561,22 +564,21 @@ def saveTagsOnOmero(user_client, imgWpr, tags){
 def generateCSVReport(transferSummaryList){
 	// define the header
 	def headerList = [PAR_FOL, PRJ, PRJ_ID, DST, DST_ID, IMG_NAME, IMG_PATH, TYPE, STS, IMG_ID, TAG, NME, ATT]
-	String header = headerList.join(",")
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
 	
 	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
-		
+		def statusSummaryList = []
 		//loop over the parameters
 		headerList.each{outputParam->
 			if(imgSummaryMap.containsKey(outputParam))
-				statusSummary += imgSummaryMap.get(outputParam)+","
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
 			else
-				statusSummary += "-,"
+				statusSummaryList.add("-")
 		}
 		
-		statusOverallSummary += statusSummary + "\n"
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 	String content = header + "\n"+statusOverallSummary
 					

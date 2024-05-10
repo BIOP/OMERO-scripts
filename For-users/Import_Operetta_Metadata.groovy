@@ -30,10 +30,10 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
  * 22.08.2022
- * version 2.0
+ * version 2.0.1
  * 
  * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -57,6 +57,7 @@
  * - 2022.11.02 : can now select a screen and process each plate inside
  * - 2023.06.19 : Remove unnecessary imports
  * - 2023.11.08 : Add popup messages, IJ logs and CSV report --v2.0
+ * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.0.1
  */
 
 /**
@@ -64,7 +65,7 @@
  */
 
 // Connection to server
-host = "omero-poc.epfl.ch"
+host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 
@@ -82,6 +83,8 @@ try{
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 // global keys for the summary report
 IMG_NAME= "Image name"
@@ -225,10 +228,11 @@ def processWell(user_client, well_wpr_list, screen_wpr, plate_wpr){
 			try{
 				IJLoggerInfo("OMERO", "Adding key-values on image '"+imageWpr.getName()+"'")
 				addKeyValuesToOMERO(user_client, imageWpr, keyValues)	
-				imgSummaryMap.put(KVP, keyValues.collect{it.name + ":"+it.value}.join(" ; "))
+				imgSummaryMap.put(KVP, keyValues.collect{it.name + ":"+it.value}.join(tokenSeparator))
 				imgSummaryMap.put(STS, "Added")
 			}catch(Exception e){
 				hasSilentlyFailed = true
+				imgSummaryMap.put(STS, "Failed")
 				message = "Cannot add KVPs on image '"+imageWpr.getName()+"'"					
 				IJLoggerError("OMERO", message)
 				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
@@ -282,33 +286,22 @@ def processScreen(user_client, screen_wpr_list){
  */
 def generateCSVReport(transferSummaryList){
 	// define the header
-	String header = IMG_NAME + "," + IMG_ID + "," + WELL_NAME + "," + PLT_NAME + "," + SCR_NAME + "," + KVP + "," + STS
-
+	def headerList = [IMG_NAME, IMG_ID, WELL_NAME, PLT_NAME, SCR_NAME, KVP, STS]
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
-
+	
+	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
+		def statusSummaryList = []
+		//loop over the parameters
+		headerList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
 		
-		// For keys that should always exist
-		statusSummary += imgSummaryMap.get(IMG_NAME)+","
-		statusSummary += imgSummaryMap.get(IMG_ID)+","
-		statusSummary += imgSummaryMap.get(WELL_NAME)+","
-		statusSummary += imgSummaryMap.get(PLT_NAME)+","
-		statusSummary += imgSummaryMap.get(SCR_NAME)+","
-		
-		// in case of error, the results for that key is failed
-		if(imgSummaryMap.containsKey(KVP))
-			statusSummary += imgSummaryMap.get(KVP)+","
-		else
-			statusSummary +=  " - ,"
-
-		// Nothing to add if there is no error
-		if(imgSummaryMap.containsKey(STS))
-			statusSummary += imgSummaryMap.get(STS)+","
-		else
-			statusSummary += "Failed"
-		
-		statusOverallSummary += statusSummary + "\n"
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 	String content = header + "\n"+statusOverallSummary
 					

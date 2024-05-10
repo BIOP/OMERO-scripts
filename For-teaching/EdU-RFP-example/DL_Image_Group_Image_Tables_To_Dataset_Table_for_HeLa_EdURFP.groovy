@@ -37,7 +37,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
- * version : v2.0
+ * version : v2.0.1
  * 10.10.2022
  * 
  * = COPYRIGHT =
@@ -70,8 +70,8 @@
  * - 2023.10.27 : Add choice between OMERO table and CSV file --v1.5
  * - 2023.10.27 : Also delete CSV files --v1.5
  * - 2023.11.14 : Update script with user template --v2.0
+ * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.0.1
  */
-
 
 
 /**
@@ -88,7 +88,7 @@
 IJ.run("Close All", "");
 
 // Connection to server
-host = "omero-poc.epfl.ch"
+host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 
@@ -105,6 +105,8 @@ try{
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 // global keys for the summary report
 READ = "Reading image"
@@ -545,57 +547,24 @@ def buildDatasetResultsTable(rt_image, rt_dataset, img_wpr, isCSV){
  * Create the CSV report from all info cleecting during the processing
  */
 def generateCSVReport(transferSummaryList){
+	
 	// define the header
-	String header = TYPE + "," + NAME + "," + ID + "," + READ + "," + IMG_TAB + "," + DST_TAB_DEL +
-	 "," + DST_CSV_DEL + "," + DST_TAB_NEW + "," + DST_CSV_NEW
-
+	def headerList = [TYPE, NAME, ID, READ, IMG_TAB, DST_TAB_DEL, DST_CSV_DEL, DST_TAB_NEW, DST_CSV_NEW]
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
-
+	
+	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
+		def statusSummaryList = []
+		//loop over the parameters
+		headerList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
 		
-		// Image info
-		statusSummary += imgSummaryMap.get(TYPE)+","
-		statusSummary += imgSummaryMap.get(NAME)+","
-		statusSummary += imgSummaryMap.get(ID)+","
-		
-		// has been read
-		if(imgSummaryMap.containsKey(READ))
-			statusSummary += imgSummaryMap.get(READ)+","
-		else
-			statusSummary += " - ,"
-
-		// new entry in dataset table
-		if(imgSummaryMap.containsKey(IMG_TAB))
-			statusSummary += imgSummaryMap.get(IMG_TAB)+","
-		else
-			statusSummary += " - ,"
-			
-		// delete tables
-		if(imgSummaryMap.containsKey(DST_TAB_DEL))
-			statusSummary += imgSummaryMap.get(DST_TAB_DEL)+","
-		else
-			statusSummary += " - ,"
-			
-		// delete CSV
-		if(imgSummaryMap.containsKey(DST_CSV_DEL))
-			statusSummary += imgSummaryMap.get(DST_CSV_DEL)+","
-		else
-			statusSummary += " - ,"
-		
-		// new tables
-		if(imgSummaryMap.containsKey(DST_TAB_NEW))
-			statusSummary += imgSummaryMap.get(DST_TAB_NEW)+","
-		else
-			statusSummary += " - ,"
-			
-		// new CSV
-		if(imgSummaryMap.containsKey(DST_CSV_NEW))
-			statusSummary += imgSummaryMap.get(DST_CSV_NEW)+","
-		else
-			statusSummary += " - ,"
-		
-		statusOverallSummary += statusSummary + "\n"
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 	String content = header + "\n"+statusOverallSummary
 					

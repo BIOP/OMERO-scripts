@@ -34,13 +34,14 @@
  * 
  * = PROJECT INFORMATION =
  * date : 2024.05.06
- * version : v1.0
+ * version : v1.0.1
  * 
  * = HISTORY =
  * - 2024.05.06 : First release --v1.0 
+ * - 2024.05.10 : fix bug when downloading a single image and update token separator --v1.0.1
  *  
  * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
  */
 
 /**
@@ -67,6 +68,8 @@ hasFailed = false
 hasSilentlyFailed = false
 message = ""
 fileSetList = []
+tokenSeparator = " | "
+csvSeparator = ","
 
 // global keys for the summary report
 IMG_NAME= "OMERO Image name"
@@ -87,7 +90,7 @@ if (user_client.isConnected()){
 		// switch to correct container and starts processing
 		switch (object_type){
 			case "image":	
-				transferSummary = processImage(user_client, user_client.getImage(id), dir)
+				transferSummary.add(downloadImage(user_client, user_client.getImage(id), dir))
 				break	
 			case "dataset":
 				transferSummary = processDataset(user_client, user_client.getDataset(id), dir)
@@ -178,7 +181,7 @@ def downloadImage(user_client, imageWrapper, parentFolder){
 		       
 		       // download images
 		       files = user_client.getGateway().getFacility(TransferFacility.class).downloadImage(user_client.getCtx(), parentFolder.getAbsolutePath(), imageWrapper.getId());
-		        
+
 		        // write summary
 		        if(files != null && !files.isEmpty()){
 		        	if(imgData.isFSImage()){
@@ -187,7 +190,7 @@ def downloadImage(user_client, imageWrapper, parentFolder){
 		        		imageSummaryMap.put(FSET, fileset)
 		        	}
 		        	imageSummaryMap.put(PATH, parentFolder.getAbsolutePath())
-		        	imageSummaryMap.put(LOCAL_NAME, files.stream().map(File::getName).collect(Collectors.toList()).join(" ; "))
+		        	imageSummaryMap.put(LOCAL_NAME, files.stream().map(File::getName).collect(Collectors.toList()).join(tokenSeparator))
 		        	imageSummaryMap.put(STS, "Downloaded")
 		        }else{
 		        	imageSummaryMap.put(STS, "Failed")
@@ -316,21 +319,21 @@ def processScreen(user_client, screen_wpr, parentFolder){
 def generateCSVReport(transferSummaryList){
 	// define the header
 	def headerList = [IMG_NAME, IMG_ID, FSET, STS, PATH, LOCAL_NAME]
-	String header = headerList.join(",")
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
 	
 	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
+		def statusSummaryList = []
 		//loop over the parameters
 		headerList.each{outputParam->
 			if(imgSummaryMap.containsKey(outputParam))
-				statusSummary += imgSummaryMap.get(outputParam)+","
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
 			else
-				statusSummary += "-,"
+				statusSummaryList.add("-")
 		}
 		
-		statusOverallSummary += statusSummary + "\n"
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 	String content = header + "\n"+statusOverallSummary
 					

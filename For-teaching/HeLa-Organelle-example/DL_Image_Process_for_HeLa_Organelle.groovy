@@ -45,7 +45,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by romain guiet and Rémy Dornier, EPFL - SV - PTECH - BIOP 
- * version v2.0
+ * version v2.0.1
  * 12.07.2022
  * 
  * = COPYRIGHT =
@@ -75,6 +75,7 @@
  * - 2023-10-04 : Move from Li to Huang thresholding method --v1.3
  * - 2023-10-04 : Fix bug when deleting tables if there is not table to delete --v1.3
  * - 2023.11.14 : Update with user script template --v2.0
+ * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.0.1
  */
 
 /**
@@ -110,6 +111,8 @@ try{
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 // global keys for the summary report
 ROI_DEL = "Previous ROIs deleted"
@@ -507,50 +510,21 @@ def processScreen(user_client, screen_wpr_list){
  */
 def generateCSVReport(transferSummaryList){
 	// define the header
-	String header = IMG_NAME + "," + IMG_ID + "," + READ + "," + IPAS + "," + ROI_DEL + "," + TAB_DEL + 
-					"," + ROI_NEW + "," + TAB_NEW
-
+	def headerList = [IMG_NAME, IMG_ID, READ, IPAS, ROI_DEL, TAB_DEL, ROI_NEW, TAB_NEW]
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
-
+	
+	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
-		
-		// Image info
-		statusSummary += imgSummaryMap.get(IMG_NAME)+","
-		statusSummary += imgSummaryMap.get(IMG_ID)+","
-		statusSummary += imgSummaryMap.get(READ)+","
-		
-		// has been processed
-		if(imgSummaryMap.containsKey(IPAS))
-			statusSummary += imgSummaryMap.get(IPAS)+","
-		else
-			statusSummary += " - ,"
-
-		// delete rois
-		if(imgSummaryMap.containsKey(ROI_DEL))
-			statusSummary += imgSummaryMap.get(ROI_DEL)+","
-		else
-			statusSummary += " - ,"
-			
-		// delete tables
-		if(imgSummaryMap.containsKey(TAB_DEL))
-			statusSummary += imgSummaryMap.get(TAB_DEL)+","
-		else
-			statusSummary += " - ,"
-			
-		// new rois
-		if(imgSummaryMap.containsKey(ROI_NEW))
-			statusSummary += imgSummaryMap.get(ROI_NEW)+","
-		else
-			statusSummary += " - ,"
-		
-		// new tables
-		if(imgSummaryMap.containsKey(TAB_NEW))
-			statusSummary += imgSummaryMap.get(TAB_NEW)+","
-		else
-			statusSummary += " - ,"
-			
-		statusOverallSummary += statusSummary + "\n"
+		def statusSummaryList = []
+		//loop over the parameters
+		headerList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 	String content = header + "\n"+statusOverallSummary
 					

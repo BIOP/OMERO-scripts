@@ -56,6 +56,8 @@
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 // global keys for the summary report
 KEY1= "a"
@@ -192,31 +194,22 @@ if (user_client.isConnected()){
  * Create the CSV report from all info cleecting during the processing
  */
 def generateCSVReport(transferSummaryList){
-	// define the header
-	String header = KEY1 + "," + KEY2 + "," + KEY3 + "," + KEY4
-
+// define the header
+	def headerList = [KEY1, KEY2, KEY3, KEY4]
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
-
+	
+	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
-		
-		// For keys that should always exist
-		statusSummary += imgSummaryMap.get(KEY1)+","
-		statusSummary += imgSummaryMap.get(KEY2)+","
-		
-		// in case of error, the results for that key is failed
-		if(imgSummaryMap.containsKey(KEY3))
-			statusSummary += imgSummaryMap.get(KEY3)+","
-		else
-			statusSummary += "Failed,"
-
-		// Nothing to add if there is no error
-		if(imgSummaryMap.containsKey(KEY4))
-			statusSummary += imgSummaryMap.get(KEY4)+","
-		else
-			statusSummary += " - ,"
-		
-		statusOverallSummary += statusSummary + "\n"
+		def statusSummaryList = []
+		//loop over the parameters
+		headerList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 	String content = header + "\n"+statusOverallSummary
 					

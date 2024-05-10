@@ -31,7 +31,7 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
  * 20.07.2023
- * version v2.1
+ * version v2.1.1
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2023
@@ -57,6 +57,7 @@
  * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running
  * - 2023.11.07 : Improve popup message, improve CSV report and add IJ logs --v2.0
  * - 2024.05.07 : Trim tag to remove noisy spaces and fix bug when trying to replace a tag by the same one -- v2.1
+ * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.1.1
  */
 
 // Connection to server
@@ -78,6 +79,8 @@ try{
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 // global keys for the summary report
 OLD_TAG= "Old tag"
@@ -119,7 +122,7 @@ if (user_client.isConnected()){
 			tagsToDelete = groupTags.findAll{it.getName().trim().equals(tagToDeleteStr.trim())}
 			
 		if(!tagsToDelete.isEmpty()){
-			IJLoggerInfo("OMERO", "Found following tags to delete : " + tagsToDelete.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList()).join(" ; "))
+			IJLoggerInfo("OMERO", "Found following tags to delete : " + tagsToDelete.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList()).join(tokenSeparator))
 
 			// check if the new tag already exists. Create it otherwise or return null if the tag should exist
 			def newTag = new TagAnnotationWrapper(new TagAnnotationData(newTagStr.trim()))
@@ -276,6 +279,7 @@ def loopOverRepo(user_client, repoWprList, tagToDelete, newTag, experimenterMap)
 				repoSummaryMap.put(STS_NEW_TAG, "Yes")
 			}catch(Exception e){
 				hasSilentlyFailed = true
+				repoSummaryMap.put(STS_NEW_TAG, "No")
 				message = "Cannot link tag '" + newTag.getName() + "' to '" + className + " " + wpr.getName() +"'. The old tag is not removed."				
 				IJLoggerError("OMERO", message)
 				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
@@ -295,6 +299,7 @@ def loopOverRepo(user_client, repoWprList, tagToDelete, newTag, experimenterMap)
 					repoSummaryMap.put(STS_OLD_TAG, "Yes")
 				}catch(Exception e){
 					hasSilentlyFailed = true
+					repoSummaryMap.put(STS_OLD_TAG, "No")
 					message = "Cannot unlink tag '" + tagToDelete.getName() + "' from '" + className + " " + wpr.getName() +"'"				
 					IJLoggerError("OMERO", message)
 					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
@@ -337,39 +342,24 @@ def summarizeRepo(user_client, repo, className, experimenterMap){
  * Create the CSV report from all info cleecting during the processing
  */
 def generateCSVReport(transferSummaryList){
+
 	// define the header
-	String header = RP_TYPE + "," + RP_ID + "," + RP_NAME + "," + RP_OWNER + "," + OLD_TAG + "," + NEW_TAG + "," +
-	  STS_OLD_TAG + "," + STS_NEW_TAG + "," + STS_DEL_OLD_TAG
-
+	def headerList = [RP_TYPE, RP_ID, RP_NAME, RP_OWNER, OLD_TAG, NEW_TAG, STS_OLD_TAG, STS_NEW_TAG, STS_DEL_OLD_TAG]
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
-
+	
+	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
+		def statusSummaryList = []
+		//loop over the parameters
+		headerList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
 		
-		// For keys that should always exist
-		statusSummary += imgSummaryMap.get(RP_TYPE)+","
-		statusSummary += imgSummaryMap.get(RP_ID)+","
-		statusSummary += imgSummaryMap.get(RP_NAME)+","
-		statusSummary += imgSummaryMap.get(RP_OWNER)+","
-		statusSummary += imgSummaryMap.get(OLD_TAG)+","
-		statusSummary += imgSummaryMap.get(NEW_TAG)+","
-		
-		
-		// in case of error, the results for that key is failed
-		if(imgSummaryMap.containsKey(STS_OLD_TAG))
-			statusSummary += imgSummaryMap.get(STS_OLD_TAG)+","
-		else
-			statusSummary += "No,"
-
-		// Nothing to add if there is no error
-		if(imgSummaryMap.containsKey(STS_NEW_TAG))
-			statusSummary += imgSummaryMap.get(STS_NEW_TAG)+","
-		else
-			statusSummary += " No,"
-			
-		statusSummary += imgSummaryMap.get(STS_DEL_OLD_TAG)
-		
-		statusOverallSummary += statusSummary + "\n"
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 	String content = header + "\n"+statusOverallSummary
 					

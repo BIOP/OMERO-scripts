@@ -38,10 +38,10 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
  * 22.08.2022
- * version : v2.0
+ * version : v2.0.1
  * 
  * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -64,6 +64,7 @@
  * - 2023.06.19 : Remove unnecessary imports --v1.1
  * - 2023.10.16 : Add popup message at the end and in the case of error --v1.2
  * - 2023.11.08 : Add standardized popup, update csv file and add IJ logs --v2.0
+ * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.0.1
  */
 
 /**
@@ -89,6 +90,8 @@ try{
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 // global keys for the summary report
 IMG_NAME= "Image name"
@@ -221,10 +224,7 @@ def processImage(user_client, image_wpr){
 				IJLoggerError("OMERO", message)
 				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
 	   			summaryMap.put(KVP, "Failed")
-	   		}
-	   		
-		}else{
-			summaryMap.put(KVP, "-")
+	   		}	
 		}
 	}
 	
@@ -291,55 +291,27 @@ def addKeyValuetoOMERO(user_client, repository_wpr, keyValues){
 /**
  * Create the CSV report from all info cleecting during the processing
  */
-def generateCSVReport(transferSummaryList){
+def generateCSVReport(transferSummaryList){	
+	// define the header
+	def headerList = [IMG_NAME, IMG_ID, DST_NAME, PRJ_NAME, WELL_NAME, PLT_NAME, SCR_NAME, KVP]
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
 	
-	// define the header
-	String header = IMG_NAME + "," + IMG_ID + "," + DST_NAME + "," + PRJ_NAME + 
-					"," + WELL_NAME + "," + PLT_NAME + "," + SCR_NAME + "," + KVP
-	
+	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
-	
-		statusSummary += imgSummaryMap.get(IMG_NAME)+","
-		statusSummary += imgSummaryMap.get(IMG_ID)+","
+		def statusSummaryList = []
+		//loop over the parameters
+		headerList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
 		
-		// dataset
-		if(imgSummaryMap.containsKey(DST_NAME))
-			statusSummary += imgSummaryMap.get(DST_NAME)+","
-		else
-			statusSummary += " - ,"
-
-		// project
-		if(imgSummaryMap.containsKey(PRJ_NAME))
-			statusSummary += imgSummaryMap.get(PRJ_NAME)+","
-		else
-			statusSummary += " - ,"
-			
-		// well
-		if(imgSummaryMap.containsKey(WELL_NAME))
-			statusSummary += imgSummaryMap.get(WELL_NAME)+","
-		else
-			statusSummary += " - ,"
-			
-		// plate
-		if(imgSummaryMap.containsKey(PLT_NAME))
-			statusSummary += imgSummaryMap.get(PLT_NAME)+","
-		else
-			statusSummary += " - ,"
-		
-		// screen
-		if(imgSummaryMap.containsKey(SCR_NAME))
-			statusSummary += imgSummaryMap.get(SCR_NAME)+","
-		else
-			statusSummary += " - ,"
-		
-		statusSummary += imgSummaryMap.get(KVP)
-		
-		statusOverallSummary += statusSummary + "\n"
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
 
-	String content = header + "\n"+statusOverallSummary
+	String content = header + "\n" + statusOverallSummary
 					
 	// save the report
 	def name = getCurrentDateAndHour()+"_Images_in_" + object_type + "_"+id

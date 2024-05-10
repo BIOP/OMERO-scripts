@@ -41,12 +41,13 @@ s. If multiple dataset, separate them with ONLY a semi-colon ;
  *  = AUTHOR INFORMATION =
  * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
  * date : 2023.11.08
- * version : v2.0
+ * version : v2.0.1
  * 
  * = HISTORY =
  * - 2023.11.08 : First release --v1.0
  * - 2024.02.29 : Add support for the fluorescence VSI images from new Slide Scanner (i.e. split serie name with comma) --v1.1
  * - 2024.03.11 : Add support for multiple datasets --v2.0
+ * - 2024.05.10 : Update logger, CSV file generation and token separator --v2.0.1
  */
 
 
@@ -54,6 +55,8 @@ s. If multiple dataset, separate them with ONLY a semi-colon ;
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
 
 IMG_NAME = "Image name"
 IMG_ID = "Image Id"
@@ -127,6 +130,7 @@ if (user_client.isConnected()){
 					imgSummaryMap.put(STS, "Added")
 				}catch(Exception e){
 					hasSilentlyFailed = true
+					imgSummaryMap.put(STS, "Failed")
 	    			message = "Impossible to link tags to this image"
 					IJLoggerError(imgWrapper.getName(), message)
 					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
@@ -256,7 +260,7 @@ def linkTagsToImage(user_client, imgWrapper){
 			}
 		}
 		
-		log += " :  " + filteredTags.join(" ; ")
+		log += " :  " + filteredTags.join(tokenSeparator)
 		saveTagsOnOmero(filteredTags.findAll(), imgWrapper, user_client)
 		log += "...... Done !"
 		IJLoggerInfo(imgWrapper.getName(), log)
@@ -272,33 +276,24 @@ def linkTagsToImage(user_client, imgWrapper){
  */
 def generateCSVReport(transferSummaryList){
 	// define the header
-	String header = DST_NAME + "," + DST_ID + "," + IMG_NAME + "," + IMG_ID + "," + TAG + "," + STS
-
+	def headerList = [DST_NAME, DST_ID, IMG_NAME, IMG_ID, TAG, STS]
+	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
 
+	// get all summaries
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
+		def statusSummaryList = []
+		//loop over the parameters
+		headerList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
 		
-		// Source image
-		statusSummary += imgSummaryMap.get(DST_NAME)+","
-		statusSummary += imgSummaryMap.get(DST_ID)+","
-		statusSummary += imgSummaryMap.get(IMG_NAME)+","
-		statusSummary += imgSummaryMap.get(IMG_ID)+","
-		
-		// tags
-		if(imgSummaryMap.containsKey(TAG))
-			statusSummary += imgSummaryMap.get(TAG)+","
-		else
-			statusSummary += " - ,"
-
-		// Status
-		if(imgSummaryMap.containsKey(STS))
-			statusSummary += imgSummaryMap.get(STS)+","
-		else
-			statusSummary += "Failed"
-		
-		statusOverallSummary += statusSummary + "\n"
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
 	}
+	
 	String content = header + "\n"+statusOverallSummary
 					
 	// save the report

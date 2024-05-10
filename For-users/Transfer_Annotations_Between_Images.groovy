@@ -57,6 +57,7 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
  * 2023.10.23
+ * version v1.0.1
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
@@ -80,6 +81,7 @@
  * 
  * == HISTORY ==
  * - Found a script here https://gist.github.com/will-moore/d8a12aa9124889440ff243c29c201a3e in Python but doesn't include everything
+ * - 2024.05.10 : Update logger, CSV file generation and token separtor --v1.0.1
  */
 
 
@@ -112,6 +114,9 @@ try{
 hasFailed = false
 hasSilentlyFailed = false
 message = ""
+tokenSeparator = " | "
+csvSeparator = ","
+
 CTN = "Container"
 SRC_IMG = "Source"
 TGT_IMG = "Target"
@@ -194,6 +199,7 @@ if (user_client.isConnected()){
 					imgSummaryMap.put(SRC_IMG_ID, String.valueOf(srcImgId))
 				}catch(Exception e){
 					hasSilentlyFailed = true
+					imgSummaryMap.put(SRC_IMG_ID, "Failed")
 					message = "The source image '"+srcImgName+"' cannot be accessed"
 					IJLoggerError(srcImgName, message)
 					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
@@ -210,6 +216,7 @@ if (user_client.isConnected()){
 						imgSummaryMap.put(TGT_IMG_ID, String.valueOf(tgtImgId))
 					}catch(Exception e){
 						hasSilentlyFailed = true
+						imgSummaryMap.put(TGT_IMG_ID, "Failed")
 						message = "The target image '"+tgtImgName+"' cannot be accessed"
 						IJLoggerError(srcImgName, message)
 						IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
@@ -240,6 +247,7 @@ if (user_client.isConnected()){
 				message = "The image '"+names[0]+"' doesn't have any target"
 				hasSilentlyFailed = true
 				IJLoggerError(names[0], message)
+				imgSummaryMap.put(TGT_IMG, "No target")
 				imgSummaryMap.put(SRC_IMG, names[0])
 				transferSummary.add(imgSummaryMap)
 			}
@@ -308,7 +316,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		try{
 			IJLoggerInfo(srcImgName, "Transferring tags ...")
 			def tags = transferTags(user_client, srcImgWpr, tgtImgWpr)
-			imgSummaryMap.put(TAG_ST, tags.join(" ; "))
+			imgSummaryMap.put(TAG_ST, tags.join(tokenSeparator))
 			if(tags.isEmpty()){
 				IJLoggerWarn(srcImgName, "No tags to transfer")
 			}else{
@@ -329,7 +337,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		try{
 			IJLoggerInfo(srcImgName, "Transferring Key Value pairs ...")
 			def KVPs = transferKVPs(user_client, srcImgWpr, tgtImgWpr)
-			imgSummaryMap.put(KVP_ST, KVPs.join(" ; "))
+			imgSummaryMap.put(KVP_ST, KVPs.join(tokenSeparator))
 			if(KVPs.isEmpty()){
 				IJLoggerWarn(srcImgName, "No KVPs to transfer")
 			}else{
@@ -371,7 +379,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		try{
 			IJLoggerInfo(srcImgName, "Transferring attachements ...")
 			def attachments = transferAttachments(user_client, srcImgWpr, tgtImgWpr)
-			imgSummaryMap.put(ATT_ST, attachments.join(" ; "))
+			imgSummaryMap.put(ATT_ST, attachments.join(tokenSeparator))
 			if(attachments.isEmpty()){
 				IJLoggerWarn(srcImgName, "No Attachments to transfer")
 			}else{
@@ -455,7 +463,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		try{
 			IJLoggerInfo(srcImgName, "Transferring channels name ...")
 			def chNames = transferImgChannelName(user_client, srcImgWpr, tgtImgWpr)
-			imgSummaryMap.put(CHN_ST, chNames.join(" ; "))
+			imgSummaryMap.put(CHN_ST, chNames.join(tokenSeparator))
 			if(chNames.isEmpty()){
 				IJLoggerWarn(srcImgName, "Images do not have the same the number of channels. No transfer !")
 			}else{
@@ -479,72 +487,38 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
  */
 def generateCSVReport(transferSummaryList){
 	// define the header
-	String header = CTN + "," + SRC_IMG + "," + SRC_IMG_ID + "," + TGT_IMG + "," + TGT_IMG_ID + "," +
-				TAG_ST + "," + KVP_ST + "," + ROI_ST + "," + ATT_ST + "," + RTG_ST + "," + CMT_ST + "," + 
-				DPT_ST + "," + CHN_ST
+	def commonHeaderList = [CTN, SRC_IMG, SRC_IMG_ID, TGT_IMG, TGT_IMG_ID]
+	String commonHeader = commonHeaderList.join(csvSeparator)
+
+	def statusHeaderList = [TAG_ST, KVP_ST, ROI_ST, ATT_ST, RTG_ST, CMT_ST, DPT_ST, CHN_ST]
+	String statusHeader = statusHeaderList.join(csvSeparator)
 
 	String statusOverallSummary = ""
 	String contentOverallSummary = ""
 
 	transferSummaryList.each{imgSummaryMap -> 
-		String statusSummary = ""
+		def statusSummaryList = []
+		commonHeaderList.each{outputParam->
+			if(imgSummaryMap.containsKey(outputParam))
+				statusSummaryList.add(imgSummaryMap.get(outputParam))
+			else
+				statusSummaryList.add("-")
+		}
 		
-		// Source image
-		statusSummary += imgSummaryMap.get(CTN)+","
-		statusSummary += imgSummaryMap.get(SRC_IMG)+","
+		def contentSummaryList = new ArrayList<>(statusSummaryList)
+		statusHeaderList.each{outputParam->
+			String tmpStatus = ""
+			String tmpContent = ""
+			(tmpStatus, tmpContent) = objectReport(imgSummaryMap, outputParam)
+			statusSummaryList.add(tmpStatus)
+			contentSummaryList.add(tmpContent)
+		}
 		
-		// Source image id
-		if(imgSummaryMap.containsKey(SRC_IMG_ID))
-			statusSummary += imgSummaryMap.get(SRC_IMG_ID)+","
-		else
-			statusSummary += "Failed,"
-
-		// Target image
-		if(imgSummaryMap.containsKey(TGT_IMG))
-			statusSummary += imgSummaryMap.get(TGT_IMG)+","
-		else
-			statusSummary += "No target,"
-
-		// Target image id
-		if(imgSummaryMap.containsKey(TGT_IMG_ID))
-			statusSummary += imgSummaryMap.get(TGT_IMG_ID)+","
-		else
-			statusSummary += "Failed,"
-		
-		String contentSummary = ""+statusSummary
-		String tmpStatus = ""
-		String tmpContent = ""
-		
-		(tmpStatus, tmpContent) = objectReport(imgSummaryMap, TAG_ST)
-		statusSummary += tmpStatus
-		contentSummary += tmpContent
-		(tmpStatus, tmpContent) = objectReport(imgSummaryMap, KVP_ST)
-		statusSummary += tmpStatus
-		contentSummary += tmpContent
-		(tmpStatus, tmpContent) = objectReport(imgSummaryMap, ROI_ST)
-		statusSummary += tmpStatus
-		contentSummary += tmpContent
-		(tmpStatus, tmpContent) = objectReport(imgSummaryMap, ATT_ST)
-		statusSummary += tmpStatus
-		contentSummary += tmpContent
-		(tmpStatus, tmpContent) = objectReport(imgSummaryMap, RTG_ST)
-		statusSummary += tmpStatus
-		contentSummary += tmpContent
-		(tmpStatus, tmpContent) = objectReport(imgSummaryMap, CMT_ST)
-		statusSummary += tmpStatus
-		contentSummary += tmpContent
-		(tmpStatus, tmpContent) = objectReport(imgSummaryMap, DPT_ST)
-		statusSummary += tmpStatus
-		contentSummary += tmpContent
-		(tmpStatus, tmpContent) = objectReport(imgSummaryMap, CHN_ST)
-		statusSummary += tmpStatus
-		contentSummary += tmpContent
-		
-		statusOverallSummary += statusSummary+"\n"
-		contentOverallSummary += contentSummary+"\n"
+		statusOverallSummary += statusSummaryList.join(csvSeparator) + "\n"
+		contentOverallSummary += contentSummaryList.join(csvSeparator) + "\n"
 	}
 	
-	String content = header + "\n"+statusOverallSummary+"\n"+contentOverallSummary
+	String content = commonHeader + csvSeparator + statusHeader + "\n" + statusOverallSummary + "\n" + contentOverallSummary
 					
 	// save the report
 	def name = getCurrentDateAndHour()+"_Transfer_Annotations_from_dataset_"+srcDatasetId+"_to_dataset_"+tgtDatasetId+"_report"
@@ -565,21 +539,21 @@ def objectReport(imgSummaryMap, key){
 	if(imgSummaryMap.containsKey(key)){
 		def value = imgSummaryMap.get(key)
 		if(value == null || value.isEmpty()){
-			statusSummary += " - ,"
-			contentSummary += " - ,"
+			statusSummary += "-"
+			contentSummary += "-"
 		}
 		else{
 			if(value.equals(SKP)){
-				statusSummary += "Skipped,"
-				contentSummary += "Skipped,"
+				statusSummary += "Skipped"
+				contentSummary += "Skipped"
 			}else{
-				statusSummary += "Transferred,"
-				contentSummary += value + ","
+				statusSummary += "Transferred"
+				contentSummary += value
 			}
 		}
 	} else {
-		statusSummary += "Failed,"
-		contentSummary += "Failed,"
+		statusSummary += "Failed"
+		contentSummary += "Failed"
 	}
 	
 	return [statusSummary, contentSummary]
@@ -750,7 +724,6 @@ def transferImgChannelName(user_client, srcImgWpr, tgtImgWpr){
 		return []
 	}
 }
-
 
 
 /**
