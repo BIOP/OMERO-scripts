@@ -625,7 +625,7 @@ public class Dialog extends JFrame {
 	def project_list;
 	boolean enterPressed;
 	boolean validated;
-	File currentDir = new File("C:\\Users\\dornier\\Downloads\\testFV4000Import\\Tiling1");
+	File currentDir = new File("");
 	List<Map<String, String>> selectionList = new ArrayList<>()
 	Map<String, List<String>> projectNewDatasets = new HashMap<>()
 	String FOL_PATH = "path";
@@ -714,7 +714,6 @@ public class Dialog extends JFrame {
         JLabel labRootFolder  = new JLabel("Tiling Folder(s)");
         JTextField tfRootFolder = new JTextField();
         tfRootFolder.setColumns(15);
-        tfRootFolder.setText(currentDir.getAbsolutePath())
 
         // button to choose root folder
         JButton bRootFolder = new JButton("Choose folder");
@@ -994,7 +993,7 @@ public class Dialog extends JFrame {
 	        			modelCmbProject.addElement(prjName);
 					}
 					
-					if(rbNewDataset.isSelected()){
+					if(rbNewDataset.isSelected() && !chkNewFromFolder.isSelected()){
 						def dstName = (String) tfDatasetName.getText()
 						def chosenProject = (String) cmbProject.getSelectedItem()
 						if(rbNewProject.isSelected())
