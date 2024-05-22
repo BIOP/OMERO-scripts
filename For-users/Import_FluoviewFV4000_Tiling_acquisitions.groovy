@@ -625,9 +625,8 @@ public class Dialog extends JFrame {
 	def project_list;
 	boolean enterPressed;
 	boolean validated;
-	File currentDir = new File("");
-	List<Map<String, String>> selectionList = new ArrayList<>()
-	Map<String, List<String>> projectNewDatasets = new HashMap<>()
+	
+	String DEFAULT_PATH_KEY = "scriptDefaultDir"
 	String FOL_PATH = "path";
     String OMR_PRJ = "project";
     String OMR_DST = "dataset";
@@ -641,7 +640,10 @@ public class Dialog extends JFrame {
     String ATT_IMP = "attachmentImport";
     String TAG_TLE = "tagTiles";
     String TAG_FOL = "tagTilingFolder";
-
+    
+	File currentDir = IJ.getProperty(DEFAULT_PATH_KEY) == null ? new File("") : ((File)IJ.getProperty(DEFAULT_PATH_KEY))
+	List<Map<String, String>> selectionList = new ArrayList<>()
+	Map<String, List<String>> projectNewDatasets = new HashMap<>()
 	
 	public Dialog(user_client, project_names, project_list, userId){
 		client = user_client
@@ -714,6 +716,7 @@ public class Dialog extends JFrame {
         JLabel labRootFolder  = new JLabel("Tiling Folder(s)");
         JTextField tfRootFolder = new JTextField();
         tfRootFolder.setColumns(15);
+        tfRootFolder.setText(currentDir.getAbsolutePath())
 
         // button to choose root folder
         JButton bRootFolder = new JButton("Choose folder");
@@ -728,6 +731,7 @@ public class Dialog extends JFrame {
             if (directoryChooser.getSelectedFiles() != null){
                 tfRootFolder.setText(directoryChooser.getSelectedFiles().join(","));
                 currentDir = directoryChooser.getSelectedFile()
+                IJ.setProperty(DEFAULT_PATH_KEY, currentDir)
             }
         });
 		
