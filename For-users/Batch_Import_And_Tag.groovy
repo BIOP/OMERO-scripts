@@ -1,17 +1,6 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
-#@File(label="Folder",style="directory") rawFolder
-#@String(choices={"New dataset", "Existing dataset"}, style="radioButtonHorizontal") choice
-#@String(label="FOR AN EXISTING DATASET : ", visibility=MESSAGE, required=false) msg1
-#@Long(label="Dataset ID", value=119273, required=false) datasetId
-#@String(label="FOR A NEW DATASET : ", visibility=MESSAGE, required=false) msg2
-#@Boolean(label="Use folder name",value=true,required=false) useFolderName
-#@String(label="Dataset name if new dataset", value="name", required=false) newDatasetName
-#@Long(label="Project ID if new dataset", value=119273, required=false) projectId
-#@String(label="TAG CONFIGURATION : ", visibility=MESSAGE, required=false) msg3
-#@Boolean(label="Image tags",value=true) imageTags
-#@Boolean(label="Serie tags",value=false) serieTags
-#@Boolean(label="Folder tags",value=false) folderTags
+
 
 /* == CODE DESCRIPTION ==
  * This script batch imports images on OMERO and automatically add tags to the images.
@@ -80,25 +69,6 @@
  * 
  */
 
-// check the validity of user parameters
-if(choice == "Existing dataset" && (datasetId == null || datasetId < 0)){
-	def message = "The dataset ID is not correct"
-	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
-	return
-}
-
-if(choice == "New dataset" && (projectId == null || projectId < 0)){
-	def message = "The project ID is not correct"
-	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
-	return
-}
-
-if(choice == "New dataset" && !useFolderName && (newDatasetName == null || newDatasetName.isEmpty())){
-	def message = "The dataset name is not correct"
-	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
-	return
-}
-
 
 // global constants
 SCREEN = "screen"
@@ -110,11 +80,17 @@ def compatibleFormatList =  [".tif", ".tiff", ".ome.tif", ".ome.tiff", ".lif", "
 
 hasFailed = false
 hasSilentlyFailed = false
+endedByUser = false
+omeTiffFilesWarning = false
 message = ""
 tokenSeparator = " | "
 csvSeparator = ","
 
-PAR_FOL = "Parent folder"
+RAW_FOL = "Raw folder"
+PRJ_ID = "Project ID"
+DST_ID = "Dataset ID"
+PRJ = "Project name"
+DST = "Dataset name"
 IMG_NAME = "Image name"
 IMG_PATH = "Local Path"
 OMR_ID = "OMERO ID"
@@ -123,8 +99,22 @@ STS = "Status"
 CMP = "OMERO Compatibility"
 TAG = "Tags"
 
+
+String DEFAULT_PATH_KEY = "scriptDefaultDir"
+String FOL_PATH = "path";
+String OMR_PRJ = "project";
+String OMR_DST = "dataset";
+String IS_NEW_DST = "isNewDataset";
+String IS_DST_FLD = "isNewFromFolder";
+String IS_NEW_PRJ = "isNewProject";
+String DST_NAME = "datasetName";
+String PRJ_NAME = "projectName";
+String TAG_IMG = "tagImage";
+String TAG_SER = "tagSerie";
+String TAG_FOL = "tagFolder";
+
 // Connection to server
-host = "omero-server.epfl.ch"
+host = "omero-server-poc.epfl.ch"
 port = 4064
 Client user_client = new Client()
 
@@ -139,224 +129,326 @@ try{
 
 if (user_client.isConnected()){
 	IJLoggerInfo("OMERO","Connected to "+host)
-	List<Map<String, String>> transferSummary = new ArrayList<>()
+	List<Map<String, String>> transferSummary = new ArrayList<>()	
+	Map<String, String> commonSummaryMap = new HashMap<>()
+	def countImg = 0;
 	
 	try{		
-		// get project in OMERO
-		def projectWrapper
-		try{
-    		IJLoggerInfo("OMERO","Getting project "+projectId)
-    		projectWrapper = user_client.getProject(projectId) 
-		}catch(Exception e){
-			hasFailed = true
-			message = "The project '"+projectId+"' cannot be found on OMERO."
-			IJLoggerError("OMERO", message)
-			throw e
+		
+		// get the userID
+		def userId = user_client.getId()
+		
+		// get user's projects
+		def projectWrapperList = user_client.getProjects(user_client.getUser())
+		
+		// get project's name
+		def projectNames = (String[])projectWrapperList.stream().map(ProjectWrapper::getName).collect(Collectors.toList()).sort()
+		
+		// generate the dialog box
+		def dialog = new Dialog(user_client, projectNames, projectWrapperList, userId)
+	
+		while(!dialog.getEnterPressed()){
+	   		// Wait an answer from the user (Ok or Cancel)
 		}
 		
-		// get the dataset or create it
-		def datasetWrapper
-		if(choice == "New dataset"){
-			try{
-				def dstName = useFolderName ? rawFolder.getName() : newDatasetName
-    			IJLoggerInfo("OMERO","Creating a new dataset " + dstName);
-    			datasetWrapper = createOmeroDataset(user_client, projectWrapper, dstName)
-			}catch (Exception e){
-				hasFailed = true
-    			message = "The dataset '"+dstName+"' cannot be created on OMERO."
-				IJLoggerError("OMERO", message)
-				throw e
-			}
-		}
-		else{
-			try{
-    			IJLoggerInfo("OMERO","Getting dataset "+datasetId)
-				datasetWrapper = user_client.getDataset(datasetId) 
-			}catch(Exception e){
-				hasFailed = true
-    			message = "The dataset '"+datasetId+"' cannot be found on OMERO."
-				IJLoggerError("OMERO", message)
-				throw e
-			}
-		}
-		
-		IJLoggerInfo("OMERO","Images will be imported in project '"+projectWrapper.getName()+ "' ; dataset '"+datasetWrapper.getName()+"'.");
-		IJLoggerInfo("","*****************");
-		
-		// get images to process
-		IJLoggerInfo("Reading", "List all images from '" + rawFolder.getName() + "'");
-		def uList;
-		def cMap;
-		def imgMap
-		try{
-			(cMap, imgMap, uList) = listImages(rawFolder, compatibleFormatList)
-		}catch(Exception e){
-		    hasFailed = true
-			message = "An error occurred when listing images from '"+rawFolder.getAbsolutePath()+"'."
-			IJLoggerError("Folder '"+rawFolder.getName()+"'", message)
-			throw e
-		}
-		
-		def option = JOptionPane.OK_OPTION
-
-		// check if there are ome-tiff images. In case, inform the user
-		def values = cMap.values()
-		if(values.contains(OME_TIFF)){
-			def title = "OME_TIFF Files"
-			def content = "There are some .ome.tiff files. Please, check that all and only files from the same fileset are in the same folder. "+
-						"If it is not the case, CANCEL the script, separate them in different folders and restart the script"
-			option = JOptionPane.showConfirmDialog(new JFrame(), content, title, JOptionPane.OK_CANCEL_OPTION);		
-		}
-		
-		// upload images
-		if(option == JOptionPane.OK_OPTION){
-			def countRaw = 0
-			for(File parentFolder : cMap.keySet()){
-				def type = cMap.get(parentFolder)
-				if(type == STANDARD){
-					// upload all images
-					for(File imgFile : imgMap.get(parentFolder)){
-						IJLoggerInfo("", "*****************");
-						Map<String, String> imgSummaryMap = new HashMap<>()
-						imgSummaryMap.put(PAR_FOL, rawFolder.toPath().relativize(parentFolder.toPath()).toString())
-						imgSummaryMap.put(IMG_NAME, imgFile.getName())
-						imgSummaryMap.put(IMG_PATH, imgFile.getAbsolutePath())
-						imgSummaryMap.put(TYPE, type)
-						imgSummaryMap.put(CMP, "Compatible")
+		// If Ok
+		if(dialog.getValidated()){		
+			for(Map<String, String> selectedMap : dialog.getSelectedList()){
 				
-						// upload image
-						def ids = []
-						try{
-							IJLoggerInfo(imgFile.getName(),"Upload on OMERO...")
-							ids = saveImageOnOmero(user_client, imgFile, datasetWrapper)
-							countRaw += ids.size()
-							imgSummaryMap.put(OMR_ID, ids.join(tokenSeparator))
-							imgSummaryMap.put(STS, "Uploaded")
-						}catch(Exception e){
-							hasSilentlyFailed = true
-							imgSummaryMap.put(STS, "Failed")
-			    			message = "Impossible to upload this image on OMERO"						
-							IJLoggerError(imgFile.getName(), message)
-							IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
-							continue
+				// collect the user inputs
+				String inputValues = selectedMap.collect{key, value -> ""+key+":"+value}.join("\n")
+				IJLoggerInfo("LOCAL", "User input\n " + inputValues);
+			
+				String foldersToImport = selectedMap.get(FOL_PATH)
+				boolean isNewDataset = selectedMap.get(IS_NEW_DST).toLowerCase().equals("true") ? true: false
+				boolean isNewFromFolder = selectedMap.get(IS_DST_FLD).toLowerCase().equals("true") ? true: false
+				boolean isNewProject = selectedMap.get(IS_NEW_PRJ).toLowerCase().equals("true") ? true: false
+				String existingProjectName = selectedMap.get(OMR_PRJ)
+				String existingDatasetName = selectedMap.get(OMR_DST)
+				String newProjectName = selectedMap.get(PRJ_NAME)
+				String newDatasetName = selectedMap.get(DST_NAME)
+				boolean imageTags = selectedMap.get(TAG_IMG).toLowerCase().equals("true") ? true: false
+				boolean serieTags = selectedMap.get(TAG_SER).toLowerCase().equals("true") ? true: false
+				boolean folderTags = selectedMap.get(TAG_FOL).toLowerCase().equals("true") ? true: false
+		
+				// getting the project
+				def projectWrapper
+				if(!isNewProject){
+					IJLoggerInfo("OMERO", "Getting the project '" + existingProjectName +"'");
+					projectWrapper = projectWrapperList.find{it.getName() == existingProjectName}
+				}else{
+					try{
+						IJLoggerInfo("OMERO", "Creating a new project '" + newProjectName +"'");
+						projectWrapper = createOmeroProject(user_client, newProjectName)
+						projectWrapperList.add(projectWrapper)
+					}catch (Exception e){
+						hasSilentlyFailed = true
+						message = "The project '"+newProjectName+"' cannot be created on OMERO."
+						IJLoggerError("OMERO", message)
+						IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+						foldersToImport.split(",").each{
+							Map<String, String> imgSummaryMap = new HashMap<>()
+							File folder = new File(it)
+							imgSummaryMap.put(PAR_FOL, folder.getName())
+							imgSummaryMap.putAll(commonSummaryMap)
+							transferSummary.add(imgSummaryMap)
 						}
+						continue
+					}
+				}
+				
+				commonSummaryMap.put(PRJ, projectWrapper.getName())
+				commonSummaryMap.put(PRJ_ID, ""+projectWrapper.getId())
+				
+				Map<String, DatasetWrapper> datasetsList = new HashMap<>()
+				def datasetWrapper
+				
+				for(String folderPath : foldersToImport.split(",")){
+					Map<String, String> datasetSummaryMap = new HashMap<>()
+					File rawFolder = new File(folderPath)
+					
+					commonSummaryMap.put(RAW_FOL, rawFolder.getName())
+					
+					// getting the dataset
+					if(isNewFromFolder){
+						isNewDataset = true
+						datasetWrapper = null
+						newDatasetName = rawFolder.getName()
+					}
+					
+					// getting the dataset
+					if(datasetWrapper == null){
+						if(!isNewDataset){
+							try{
+								IJLoggerInfo("OMERO", "Getting the dataset '" + existingDatasetName +"'");
+								if(datasetsList.containsKey(existingDatasetName))
+									datasetWrapper = datasetsList.get(existingDatasetName)
+								else{
+									datasetWrapper = projectWrapper.getDatasets(existingDatasetName).get(0)
+									datasetsList.put(existingDatasetName, datasetWrapper)
+								}
+							}catch (Exception e){
+								hasSilentlyFailed = true
+								message = "The dataset '"+existingDatasetName+"' cannot be retrieved from OMERO."
+								IJLoggerError("OMERO", message)
+								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								Map<String, String> imgSummaryMap = new HashMap<>()
+								imgSummaryMap.putAll(commonSummaryMap)
+								transferSummary.add(imgSummaryMap)
+								continue
+							}
+						} else {
+							try{				
+								IJLoggerInfo("OMERO", "Creating a new dataset '" + newDatasetName +"'");
+								datasetWrapper = createOmeroDataset(user_client, projectWrapper, newDatasetName)
+								datasetsList.put(newDatasetName, datasetWrapper)
+							}catch (Exception e){
+								hasSilentlyFailed = true
+								message = "The dataset '"+newDatasetName+"' cannot be created on OMERO."
+								IJLoggerError("OMERO", message)
+								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								Map<String, String> imgSummaryMap = new HashMap<>()
+								imgSummaryMap.putAll(commonSummaryMap)
+								transferSummary.add(imgSummaryMap)
+								continue
+							}
+						}
+					}
+					
+					commonSummaryMap.put(DST, datasetWrapper.getName())
+					commonSummaryMap.put(DST_ID, ""+datasetWrapper.getId())
+			
+					IJLoggerInfo("OMERO","Images will be imported in project '"+projectWrapper.getName()+ "' ; dataset '"+datasetWrapper.getName()+"'.");
+					IJLoggerInfo("","*****************");
+					
+					// get images to process
+					IJLoggerInfo("Reading", "List all images from '" + rawFolder.getName() + "'");
+					def uList;
+					def cMap;
+					def imgMap
+					try{
+						(cMap, imgMap, uList) = listImages(rawFolder, compatibleFormatList)
+					}catch(Exception e){
+					    hasSilentlyFailed = true
+						message = "An error occurred when listing images from '"+rawFolder.getAbsolutePath()+"'."
+						IJLoggerError("Folder '"+rawFolder.getName()+"'", message)
+						IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+						Map<String, String> imgSummaryMap = new HashMap<>()
+						imgSummaryMap.putAll(commonSummaryMap)
+						transferSummary.add(imgSummaryMap)
+						continue
+					}
+			
+					// check if there are ome-tiff images. In case, inform the user
+					def values = cMap.values()
+					if(values.contains(OME_TIFF)){
+						def title = "OME_TIFF Files"
+						def content = "There are some .ome.tiff files. Please, check that all and only files from the same fileset are in the same folder. "+
+									"If it is not the case, ONLY IMAGES THAT ARE PART OF THE SAME FILESET ARE UPLOAD ; OTHER IMAGES WITHIN THE SAME FOLDER ARE NOT UPLOADED"
+						IJLoggerWarn(title, content)
+						omeTiffFilesWarning = true
+					}
+
+					def countRaw = 0
+					for(File parentFolder : cMap.keySet()){
+						def type = cMap.get(parentFolder)
+						if(type == STANDARD){
+							// upload all images
+							for(File imgFile : imgMap.get(parentFolder)){
+								IJLoggerInfo("", "*****************");
+								Map<String, String> imgSummaryMap = new HashMap<>()
+								imgSummaryMap.putAll(commonSummaryMap)
+								imgSummaryMap.put(IMG_NAME, imgFile.getName())
+								imgSummaryMap.put(IMG_PATH, imgFile.getAbsolutePath())
+								imgSummaryMap.put(TYPE, type)
+								imgSummaryMap.put(CMP, "Compatible")
 						
-						// link tags
-						try{
-							IJLoggerInfo(imgFile.getName(),"Parse image name and link tags to OMERO...")
-							def tags = linkTagsToImage(user_client, ids, imgFile, rawFolder)
-							imgSummaryMap.put(TAG, tags.join(tokenSeparator))
-						}catch(Exception e){
-							hasSilentlyFailed = true
-			    			message = "Impossible to link tags to this image"
-							IJLoggerError(imgFile.getName(), message)
-							IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
-							continue
+								// upload image
+								def ids = []
+								try{
+									IJLoggerInfo(imgFile.getName(),"Upload on OMERO...")
+									ids = saveImageOnOmero(user_client, imgFile, datasetWrapper)
+									countRaw += ids.size()
+									imgSummaryMap.put(OMR_ID, ids.join(tokenSeparator))
+									imgSummaryMap.put(STS, "Uploaded")
+								}catch(Exception e){
+									hasSilentlyFailed = true
+									imgSummaryMap.put(STS, "Failed")
+					    			message = "Impossible to upload this image on OMERO"						
+									IJLoggerError(imgFile.getName(), message)
+									IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+									continue
+								}
+								
+								// link tags
+								try{
+									IJLoggerInfo(imgFile.getName(),"Parse image name and link tags to OMERO...")
+									def tags = linkTagsToImage(user_client, ids, imgFile, rawFolder, imageTags, serieTags, folderTags)
+									imgSummaryMap.put(TAG, tags.join(tokenSeparator))
+								}catch(Exception e){
+									hasSilentlyFailed = true
+					    			message = "Impossible to link tags to this image"
+									IJLoggerError(imgFile.getName(), message)
+									IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+									continue
+								}
+								transferSummary.add(imgSummaryMap)
+							}
+						}else if(type == OME_TIFF){
+							// upload only the first image as it is part of a fileset and the entire fileset will be uploaded
+							def child = imgMap.get(parentFolder)
+							countRaw += child.length
+							
+							Map<String, String> imgSummaryMap = new HashMap<>()
+							imgSummaryMap.putAll(commonSummaryMap)
+							imgSummaryMap.put(IMG_NAME, child.get(0).getName())
+							imgSummaryMap.put(IMG_PATH, child.get(0).getAbsolutePath())
+							imgSummaryMap.put(TYPE, type)
+							imgSummaryMap.put(CMP, "Compatible")
+		
+							// upload image
+							def ids = []
+							try{
+								IJLoggerInfo(child.get(0).getName(),"Upload on OMERO...")
+								ids = saveImageOnOmero(user_client, child.get(0), datasetWrapper)
+								countRaw += ids.size()
+								imgSummaryMap.put(OMR_ID, ids.join(tokenSeparator))
+								imgSummaryMap.put(STS, "Uploaded")
+							}catch(Exception e){
+								hasSilentlyFailed = true
+				    			message = "Impossible to upload this image on OMERO"
+								IJLoggerError(child.get(0).getName(), message)
+								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								continue
+							}
+							
+							// link tags
+							try{
+								IJLoggerInfo(child.get(0).getName(),"Parse image name and link tags to OMERO...")
+								def tags = linkTagsToImage(user_client, ids, child.get(0), rawFolder, imageTags, serieTags, folderTags)
+								imgSummaryMap.put(TAG, tags.join(tokenSeparator))
+							}catch(Exception e){
+								hasSilentlyFailed = true
+				    			message = "Impossible to link tags to this image"
+								IJLoggerError(child.get(0).getName(), message)
+								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								continue
+							}
+							transferSummary.add(imgSummaryMap)
+						}else{
+							IJLoggerWarn("Supported Format","Screens are not supported : "+parentFolder.getAbsolutePath())
+							Map<String, String> imgSummaryMap = new HashMap<>()
+							imgSummaryMap.putAll(commonSummaryMap)
+							imgSummaryMap.put(TYPE, type)
+							imgSummaryMap.put(IMG_NAME, parentFolder.getName())
+							imgSummaryMap.put(IMG_PATH, parentFolder.getAbsolutePath())
+							imgSummaryMap.put(CMP, "Not Supported")
+							transferSummary.add(imgSummaryMap)
 						}
+						IJLoggerInfo("", "*****************");
+					}
+					
+					IJLoggerInfo("OMERO", countRaw + " files uploaded on OMERO");
+					
+					uList.each{
+						Map<String, String> imgSummaryMap = new HashMap<>()
+						imgSummaryMap.putAll(commonSummaryMap)
+						imgSummaryMap.put(IMG_NAME, it.getName())
+						imgSummaryMap.put(IMG_PATH, it.getAbsolutePath())
+						imgSummaryMap.put(CMP, "Uncompatible")
 						transferSummary.add(imgSummaryMap)
 					}
-				}else if(type == OME_TIFF){
-					// upload only the first image as it is part of a fileset and the entire fileset will be uploaded
-					def child = imgMap.get(parentFolder)
-					countRaw += child.length
-					
-					Map<String, String> imgSummaryMap = new HashMap<>()
-					imgSummaryMap.put(PAR_FOL, rawFolder.toPath().relativize(parentFolder.toPath()).toString())
-					imgSummaryMap.put(IMG_NAME, child.get(0).getName())
-					imgSummaryMap.put(IMG_PATH, child.get(0).getAbsolutePath())
-					imgSummaryMap.put(TYPE, type)
-					imgSummaryMap.put(CMP, "Compatible")
-
-					// upload image
-					def ids = []
-					try{
-						IJLoggerInfo(child.get(0).getName(),"Upload on OMERO...")
-						ids = saveImageOnOmero(user_client, child.get(0), datasetWrapper)
-						countRaw += ids.size()
-						imgSummaryMap.put(OMR_ID, ids.join(tokenSeparator))
-						imgSummaryMap.put(STS, "Uploaded")
-					}catch(Exception e){
-						hasSilentlyFailed = true
-		    			message = "Impossible to upload this image on OMERO"
-						IJLoggerError(child.get(0).getName(), message)
-						IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
-						continue
-					}
-					
-					// link tags
-					try{
-						IJLoggerInfo(child.get(0).getName(),"Parse image name and link tags to OMERO...")
-						def tags = linkTagsToImage(user_client, ids, child.get(0), rawFolder)
-						imgSummaryMap.put(TAG, tags.join(tokenSeparator))
-					}catch(Exception e){
-						hasSilentlyFailed = true
-		    			message = "Impossible to link tags to this image"
-						IJLoggerError(child.get(0).getName(), message)
-						IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
-						continue
-					}
-					transferSummary.add(imgSummaryMap)
-				}else{
-					IJLoggerWarn("Supported Format","Screens are not supported : "+parentFolder.getAbsolutePath())
-					Map<String, String> imgSummaryMap = new HashMap<>()
-					imgSummaryMap.put(TYPE, type)
-					imgSummaryMap.put(PAR_FOL, rawFolder.toPath().relativize(parentFolder.toPath()).toString())
-					imgSummaryMap.put(IMG_NAME, parentFolder.getName())
-					imgSummaryMap.put(IMG_PATH, parentFolder.getAbsolutePath())
-					imgSummaryMap.put(CMP, "Not Supported")
-					transferSummary.add(imgSummaryMap)
-				}
-				IJLoggerInfo("", "*****************");
-			}
-			
-			IJLoggerInfo("OMERO", countRaw + " files uploaded on OMERO");
-			
-			uList.each{
-				Map<String, String> imgSummaryMap = new HashMap<>()
-				imgSummaryMap.put(PAR_FOL, rawFolder.toPath().relativize(it.getParentFile().toPath()).toString())
-				imgSummaryMap.put(IMG_NAME, it.getName())
-				imgSummaryMap.put(IMG_PATH, it.getAbsolutePath())
-				imgSummaryMap.put(CMP, "Uncompatible")
-				transferSummary.add(imgSummaryMap)
+				}	
 			}
 			
 			if(hasSilentlyFailed)
-				message = "The script ended with some errors."
-			else 
-				message = "The upload and tagging have been successfully done."
+				message = "The script ended with some errors. "
+			else  
+				message = "The upload and tagging have been successfully done. "
+
+			if(omeTiffFilesWarning){
+				hasSilentlyFailed = true
+				message += "OME-TIFF files have been detected and uploaded. Please look at the logs "
+			}
 		}else{
-			message = "The script was ended by the user."
+			message = "The script was ended by the user. "
+			endedByUser = true;
 		}
+		
 	}catch(Exception e){
 		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
 		if(!hasFailed){
 			hasFailed = true
-			message = "An error has occurred. Please look at the logs and the report to know where the processing has failed."
+			message = "An error has occurred. Please look at the logs and the report to know where the processing has failed. "
 		}
 	}finally{
 		// generate CSV report
 		try{
-			IJLoggerInfo("CSV report", "Generate the CSV report...")
-			generateCSVReport(transferSummary)
+			if(!endedByUser){
+				IJLoggerInfo("CSV report", "Generate the CSV report...")
+				generateCSVReport(transferSummary)
+			}
 		}catch(Exception e2){
 			IJLoggerError(e2.toString(), "\n"+getErrorStackTraceAsString(e2))
 			hasFailed = true
-			message += " An error has occurred during csv report generation."
+			message += "An error has occurred during csv report generation."
 		}finally{
 			// disconnect
 			user_client.disconnect()
 			IJLoggerInfo("OMERO","Disconnected from "+host)
 			
 			// print final popup
-			if(!hasFailed) {
-				message += " A CSV report has been created in your 'Downloads' folder."
-				if(hasSilentlyFailed){
-					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.WARNING_MESSAGE);
+			if(!endedByUser){
+				if(!hasFailed) {
+					message += " A CSV report has been created in your 'Downloads' folder."
+					if(hasSilentlyFailed){
+						JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.WARNING_MESSAGE);
+					}else{
+						JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
+					}
 				}else{
-					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
+					JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 				}
-			}else{
-				JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 			}
 		}
 	}
@@ -452,18 +544,36 @@ def isCompatibleImage(name, compatibleFormatList){
 
 
 /**
- * return the dataset wrapper corresonding a new dataset or to an existing dataset, depending on the user choice
+ * return the project wrapper corresonding a new project or to an existing project, if it already exists
  */
-def createOmeroDataset(user_client, projectWrapper, datasetName){	
-	//create a new dataset 
+def createOmeroProject(user_client, projectName){
+	// if specified, create a new project on OMERO
+    def project = new ProjectData();
+	project.setName(projectName);
+    
+    // create the dataset on OMERO
+    project = (ProjectData) user_client.getDm().saveAndReturnObject(user_client.getCtx(), project)
+    def newId = project.getId()
+    
+    // create the corresponding wrapper
+    def projectWrapper = user_client.getProject(newId)
+	
+	return projectWrapper
+}
+
+
+/**
+ * return the dataset wrapper corresonding a new dataset or to an existing dataset, if it already exists
+ */
+def createOmeroDataset(user_client, projectWrapper, datasetName){
     def dataset = new DatasetData();
 	dataset.setName(datasetName);
     
-    // send the dataset on OMERO
+    // create the dataset on OMERO
     dataset = user_client.getDm().createDataset(user_client.getCtx(), dataset, projectWrapper.asProjectData())
     def newId = dataset.getId()
     
-    // get the corresponding wrapper
+    // create the corresponding wrapper
     def datasetWrapper = user_client.getDataset(newId)
 	
 	return datasetWrapper
@@ -511,7 +621,7 @@ def saveTagsOnOmero(tags, imgWpr, user_client){
 /**
  * upload images, parse the image name and add tags on OMERO
  */
-def linkTagsToImage(user_client, ids, imgFile, rawFolder){
+def linkTagsToImage(user_client, ids, imgFile, rawFolder, imageTags, serieTags, folderTags){
 	def nameToParse = imgFile.getName().split("\\.")[0]
 	def uploadedTags = []
 	def patternSerieName = /[_, ]/
@@ -585,7 +695,7 @@ def linkTagsToImage(user_client, ids, imgFile, rawFolder){
  */
 def generateCSVReport(transferSummaryList){
 
-	def headerList = [PAR_FOL, IMG_NAME, IMG_PATH, CMP, STS, TYPE, OMR_ID, TAG]
+	def headerList = [RAW_FOL, PRJ, PRJ_ID, DST, DST_ID, IMG_NAME, IMG_PATH, CMP, STS, TYPE, OMR_ID, TAG]
 	String header = headerList.join(csvSeparator)
 	String statusOverallSummary = ""
 	
@@ -605,7 +715,7 @@ def generateCSVReport(transferSummaryList){
 	String content = header + "\n"+statusOverallSummary
 					
 	// save the report
-	def name = getCurrentDateAndHour()+"_Upload_from_"+rawFolder.getName()+"_to_OMERO_report"
+	def name = getCurrentDateAndHour()+"_Batch_import_and_tag_to_OMERO_report"
 	String path = System.getProperty("user.home") + File.separator +"Downloads"
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
@@ -656,6 +766,479 @@ def getCurrentDateAndHour(){
             (localTime.getSecond() < 10 ? "0"+localTime.getSecond():localTime.getSecond());
 }
 
+
+/**
+ * 
+ * Create the Dialog asking for the project and dataset
+ * 
+ * */
+public class Dialog extends JFrame {
+	
+	private JComboBox<String> cmbProject;
+    private JComboBox<String> cmbDataset;
+    private JButton bnOk = new JButton("Finish");
+    private JButton bnCancel = new JButton("Cancel");
+    private JButton bnNext = new JButton("Next");
+    private DefaultComboBoxModel<String> modelCmbProject;
+    private DefaultComboBoxModel<String> modelCmbDataset;
+    	
+	Client client;
+	def userId;
+	def project_list;
+	boolean enterPressed;
+	boolean validated;
+	
+	String DEFAULT_PATH_KEY = "scriptDefaultDir"
+	String FOL_PATH = "path";
+    String OMR_PRJ = "project";
+    String OMR_DST = "dataset";
+    String IS_NEW_DST = "isNewDataset";
+    String IS_DST_FLD = "isNewFromFolder";
+    String IS_NEW_PRJ = "isNewProject";
+    String DST_NAME = "datasetName";
+    String PRJ_NAME = "projectName";
+    String TAG_IMG = "tagImage";
+    String TAG_SER = "tagSerie";
+    String TAG_FOL = "tagFolder";
+    
+	File currentDir = IJ.getProperty(DEFAULT_PATH_KEY) == null ? new File("") : ((File)IJ.getProperty(DEFAULT_PATH_KEY))
+	List<Map<String, String>> selectionList = new ArrayList<>()
+	Map<String, List<String>> projectNewDatasets = new HashMap<>()
+	
+	public Dialog(user_client, project_names, project_list, userId){
+		client = user_client
+		this.userId = userId
+		this.project_list = project_list
+		
+		project_names.each{
+			projectNewDatasets.put(it, new ArrayList<>())
+		}
+		
+    	def project = project_list.find{it.getName() == project_names[0]}
+    	def dataset_list = project.getDatasets()
+		def dataset_names = dataset_list.stream().map(DatasetWrapper::getName).collect(Collectors.toList())
+		projectNewDatasets.put(project_names[0], dataset_names)
+		
+		myDialog(project_names)
+	}
+	
+	// getters
+	public boolean getEnterPressed(){return this.enterPressed}
+	public boolean getValidated(){return this.validated}
+	public List<Map<String, String>> getSelectedList(){return this.selectionList}
+	
+	// generate the dialog box
+	public void myDialog(project_names) {
+		// set general frame
+		this.setTitle("Select your import location on OMERO")
+	    this.setVisible(true);
+	    this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+	   // this.setPreferredSize(new Dimension(400, 250));
+	    
+	    // get the screen size
+	    Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        double width = screenSize.getWidth();
+        double height = screenSize.getHeight();
+        
+        // set location in the middle of the screen
+	    this.setLocation((int)((width - 400)/2), (int)((height - 250)/2));
+		
+		// build project combo model
+		modelCmbProject = new DefaultComboBoxModel<>(project_names);
+        cmbProject = new JComboBox<>(modelCmbProject);
+        
+        // build dataset combo model
+		modelCmbDataset = new DefaultComboBoxModel<>((String[])projectNewDatasets.get(project_names[0]).sort());
+        cmbDataset = new JComboBox<>(modelCmbDataset);
+        cmbDataset.setEnabled(false)
+		
+            
+        // label for tags
+        JLabel tagLabel = new JLabel("TAG CONFIGURATION")
+        tagLabel.setAlignmentX(LEFT_ALIGNMENT)
+        
+        // checkbox to tag with image name
+        JCheckBox chkTagImage = new JCheckBox("Image tags");
+        chkTagImage.setSelected(true);
+		                
+        // checkbox to tag with serie name
+        JCheckBox chkTagSerie = new JCheckBox("Serie tags");
+        chkTagSerie.setSelected(false);
+        
+        // checkbox to tag with folder name
+        JCheckBox chkTagFolder = new JCheckBox("Folder tags");
+        chkTagFolder.setSelected(false);
+        
+        // Root folder for project
+        JLabel labRootFolder  = new JLabel("Folder(s) to upload");
+        JTextField tfRootFolder = new JTextField();
+        tfRootFolder.setColumns(15);
+        tfRootFolder.setText(currentDir.getAbsolutePath())
+
+        // button to choose root folder
+        JButton bRootFolder = new JButton("Choose folder");
+        bRootFolder.addActionListener(e->{
+            JFileChooser directoryChooser = new JFileChooser();
+            directoryChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            directoryChooser.setCurrentDirectory(currentDir);
+            directoryChooser.setMultiSelectionEnabled(true)
+            directoryChooser.setDialogTitle("Choose the project folder");
+            directoryChooser.showDialog(new JDialog(),"Select");
+
+            if (directoryChooser.getSelectedFiles() != null){
+                tfRootFolder.setText(directoryChooser.getSelectedFiles().join(","));
+                currentDir = directoryChooser.getSelectedFile()
+                IJ.setProperty(DEFAULT_PATH_KEY, currentDir)
+            }
+        });
+		
+        // build Combo project
+        JPanel boxComboProject = new JPanel();
+        JLabel projectLabel = new JLabel("Project");
+        boxComboProject.add(projectLabel);
+        boxComboProject.add(cmbProject);
+        boxComboProject.setLayout(new FlowLayout());
+        
+         // Project name
+        JLabel labProjectName = new JLabel("Project name");
+        JTextField tfProjectName = new JTextField("");
+        tfProjectName.setColumns(15);
+        tfProjectName.setEnabled(false)
+        
+        // Radio button to choose existing project
+        ButtonGroup projectChoice = new ButtonGroup();
+        JRadioButton rbExistingProject = new JRadioButton("Existing project");
+        projectChoice.add(rbExistingProject);
+        rbExistingProject.setSelected(true);
+        
+        // Radio button to choose new project
+        JRadioButton rbNewProject = new JRadioButton("New project");
+        projectChoice.add(rbNewProject);
+        rbNewProject.setSelected(false);        
+        
+        // build Combo dataset
+        JPanel boxComboDataset = new JPanel();
+        JLabel datasetLabel = new JLabel("Dataset");
+        boxComboDataset.add(datasetLabel);
+        boxComboDataset.add(cmbDataset);
+        boxComboDataset.setLayout(new FlowLayout());
+                
+        // Dataset name
+        JLabel labDatasetName = new JLabel("Dataset name");
+        JTextField tfDatasetName = new JTextField("");
+        tfDatasetName.setColumns(15);
+        
+        // Radio button to choose existing dataset
+        ButtonGroup datasetChoice = new ButtonGroup();
+        JRadioButton rbExistingDataset = new JRadioButton("Existing dataset");
+        datasetChoice.add(rbExistingDataset);
+        rbExistingDataset.setSelected(false);
+        rbExistingDataset.addActionListener(e -> {
+			cmbDataset.setEnabled(rbExistingDataset.isSelected());
+			tfDatasetName.setEnabled(!rbExistingDataset.isSelected())
+        });
+        
+         // Radio button to choose new dataset
+        JRadioButton rbNewDataset = new JRadioButton("New dataset");
+        datasetChoice.add(rbNewDataset);
+        rbNewDataset.setSelected(true);
+        rbNewDataset.addActionListener(e -> {
+			cmbDataset.setEnabled(!rbNewDataset.isSelected());
+			tfDatasetName.setEnabled(rbNewDataset.isSelected())
+        });
+        
+        
+         // checkbox to tag with parent folder name
+        JCheckBox chkNewFromFolder = new JCheckBox("New from folder");
+        chkNewFromFolder.setSelected(false);
+        chkNewFromFolder.addActionListener(e -> {
+			cmbDataset.setEnabled(!chkNewFromFolder.isSelected() && !rbNewDataset.isSelected());
+			tfDatasetName.setEnabled(!chkNewFromFolder.isSelected() && !rbExistingDataset.isSelected())
+			rbExistingDataset.setEnabled(!chkNewFromFolder.isSelected() && !rbNewProject.isSelected())
+			rbNewDataset.setEnabled(!chkNewFromFolder.isSelected())
+        });
+        
+        // actionListener on new project radio button
+        rbNewProject.addActionListener(e -> {
+			cmbProject.setEnabled(!rbNewProject.isSelected());
+			tfProjectName.setEnabled(rbNewProject.isSelected())
+			rbExistingDataset.setSelected(!rbNewProject.isSelected());
+			rbNewDataset.setSelected(rbNewProject.isSelected());
+			rbExistingDataset.setEnabled(!rbNewProject.isSelected());
+			tfDatasetName.setEnabled(rbNewProject.isSelected() && !chkNewFromFolder.isSelected())
+			cmbDataset.setEnabled(!rbNewProject.isSelected());
+        });
+        
+        // actionListener on existing project radio button
+        rbExistingProject.addActionListener(e -> {
+			cmbProject.setEnabled(rbExistingProject.isSelected());
+			tfProjectName.setEnabled(!rbExistingProject.isSelected())
+			rbExistingDataset.setSelected(!rbExistingProject.isSelected());
+			rbNewDataset.setSelected(rbExistingProject.isSelected());
+			rbExistingDataset.setEnabled(rbExistingProject.isSelected() && !chkNewFromFolder.isSelected());
+        });
+              
+        // build buttons
+        JPanel boxButton = new JPanel();
+        boxButton.add(bnNext);
+        boxButton.add(bnOk);
+        boxButton.add(bnCancel);
+        boxButton.setLayout(new FlowLayout());
+        
+        // radioBox Dataset
+        JPanel windowRadioDataset = new JPanel();
+        windowRadioDataset.setLayout(new BoxLayout(windowRadioDataset, BoxLayout.X_AXIS));
+        windowRadioDataset.add(rbExistingDataset);
+        windowRadioDataset.add(rbNewDataset);
+        windowRadioDataset.add(chkNewFromFolder);
+        
+         // radioBox Project
+        JPanel windowRadioProject = new JPanel();
+        windowRadioProject.setLayout(new BoxLayout(windowRadioProject, BoxLayout.X_AXIS));
+        windowRadioProject.add(rbExistingProject);
+        windowRadioProject.add(rbNewProject);
+        
+        // Dataset Name Box
+        JPanel windowDataset = new JPanel();
+        windowDataset.setLayout(new BoxLayout(windowDataset, BoxLayout.X_AXIS));
+        windowDataset.add(labDatasetName);
+        windowDataset.add(tfDatasetName);
+        
+        // Project Name Box
+        JPanel windowProject = new JPanel();
+        windowProject.setLayout(new BoxLayout(windowProject, BoxLayout.X_AXIS));
+        windowProject.add(labProjectName);
+        windowProject.add(tfProjectName);
+        
+         // Folder box
+        JPanel windowFolder = new JPanel();
+        windowFolder.setLayout(new BoxLayout(windowFolder, BoxLayout.X_AXIS));
+        windowFolder.add(labRootFolder);
+        windowFolder.add(tfRootFolder);
+        windowFolder.add(bRootFolder);
+        
+        // general panel
+        JPanel windowNLGeneral = new JPanel();
+        windowNLGeneral.setLayout(new BoxLayout(windowNLGeneral, BoxLayout.Y_AXIS));
+        windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
+        windowNLGeneral.add(windowFolder);
+        windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
+        windowNLGeneral.add(new JSeparator());
+        windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
+        windowNLGeneral.add(windowRadioProject);
+        windowNLGeneral.add(boxComboProject);
+        windowNLGeneral.add(windowProject);
+        windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
+        windowNLGeneral.add(new JSeparator());
+        windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
+        windowNLGeneral.add(windowRadioDataset);
+        windowNLGeneral.add(boxComboDataset);
+        windowNLGeneral.add(windowDataset);
+        windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
+        windowNLGeneral.add(new JSeparator());
+        windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
+        windowNLGeneral.add(tagLabel);
+		windowNLGeneral.add(chkTagImage);
+        windowNLGeneral.add(chkTagSerie);
+        windowNLGeneral.add(chkTagFolder);
+        windowNLGeneral.add(new JSeparator());
+        windowNLGeneral.add(boxButton);
+        windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
+        
+        JPanel nicerWindow = new JPanel();
+        nicerWindow.setLayout(new BoxLayout(nicerWindow, BoxLayout.X_AXIS));
+        nicerWindow.add(Box.createRigidArea(new Dimension(5,0)));
+        nicerWindow.add(windowNLGeneral);
+        nicerWindow.add(Box.createRigidArea(new Dimension(5,0)));
+        
+        // add listener on project combo box
+        cmbProject.addItemListener(
+			new ItemListener(){
+				    @Override
+			    public void itemStateChanged(ItemEvent e) {
+					// get the datasets corresponding to the selected project
+			        def chosen_project = (String) cmbProject.getSelectedItem()
+			        def dataset_names
+			        if(projectNewDatasets.get(chosen_project).isEmpty()){
+			        	def project = project_list.find{it.getName() == chosen_project}
+						def dataset_list = project.getDatasets()
+						dataset_names = dataset_list.stream().map(DatasetWrapper::getName).collect(Collectors.toList()).sort()
+						projectNewDatasets.put(chosen_project, dataset_names)
+			        }else{
+			        	dataset_names = projectNewDatasets.get(chosen_project)
+			        }
+			        
+			        // update the dataset combo box
+					modelCmbDataset.removeAllElements();
+        			for (String dataset : dataset_names) modelCmbDataset.addElement(dataset);
+        			cmbDataset.setSelectedIndex(0);
+			    }
+			}
+		);
+		
+		// add listener on Ok and Cancel button
+		bnOk.addActionListener(
+			new ActionListener(){
+				@Override
+    			public void actionPerformed(ActionEvent e) {
+    				
+    				def rootFolder = (String)tfRootFolder.getText()
+    				if(rootFolder != null && !rootFolder.isEmpty()){
+						
+						if(!checkInputs(tfRootFolder, rbNewDataset, chkNewFromFolder, tfDatasetName, rbNewProject, tfProjectName))
+							return
+		
+						Map<String, String> selection = new HashMap<>()
+						selection.put(FOL_PATH, rootFolder)
+						selection.put(OMR_PRJ, (String) cmbProject.getSelectedItem())
+						selection.put(OMR_DST, (String) cmbDataset.getSelectedItem())
+						selection.put(IS_NEW_DST, String.valueOf(rbNewDataset.isSelected()))
+						selection.put(IS_DST_FLD, String.valueOf(chkNewFromFolder.isSelected()))
+						selection.put(IS_NEW_PRJ, String.valueOf(rbNewProject.isSelected()))
+						selection.put(DST_NAME, (String) tfDatasetName.getText())
+						selection.put(PRJ_NAME, (String) tfProjectName.getText())
+						selection.put(TAG_IMG, String.valueOf(chkTagImage.isSelected()))
+						selection.put(TAG_SER, String.valueOf(chkTagSerie.isSelected()))
+						selection.put(TAG_FOL, String.valueOf(chkTagFolder.isSelected()))
+						selectionList.add(selection)
+    				}
+
+    				enterPressed = true
+    				validated = true;
+    				
+    				this.dispose()
+    			}
+			}
+		)
+		
+		bnCancel.addActionListener(
+			new ActionListener(){
+				@Override
+    			public void actionPerformed(ActionEvent e) {
+    				enterPressed = true
+    				validated = false;
+    				this.dispose()
+    			}
+			}
+		)
+		
+		bnNext.addActionListener(
+			new ActionListener(){
+				@Override
+    			public void actionPerformed(ActionEvent e) {
+    				if(!checkInputs(tfRootFolder, rbNewDataset, chkNewFromFolder, tfDatasetName, rbNewProject, tfProjectName))
+    					return
+    				
+    				Map<String, String> selection = new HashMap<>()
+    				selection.put(FOL_PATH, (String) tfRootFolder.getText())
+    				selection.put(OMR_PRJ, (String) cmbProject.getSelectedItem())
+    				selection.put(OMR_DST, (String) cmbDataset.getSelectedItem())
+					selection.put(IS_NEW_DST, String.valueOf(rbNewDataset.isSelected()))
+					selection.put(IS_DST_FLD, String.valueOf(chkNewFromFolder.isSelected()))
+					selection.put(IS_NEW_PRJ, String.valueOf(rbNewProject.isSelected()))
+					selection.put(DST_NAME, (String) tfDatasetName.getText())
+					selection.put(PRJ_NAME, (String) tfProjectName.getText())
+					selection.put(TAG_IMG, String.valueOf(chkTagImage.isSelected()))
+					selection.put(TAG_SER, String.valueOf(chkTagSerie.isSelected()))
+					selection.put(TAG_FOL, String.valueOf(chkTagFolder.isSelected()))
+					selectionList.add(selection)
+										
+					if(rbNewProject.isSelected()){
+						def prjName = (String) tfProjectName.getText()
+						projectNewDatasets.put(prjName, new ArrayList<>())
+	        			modelCmbProject.addElement(prjName);
+					}
+					
+					if(rbNewDataset.isSelected() && !chkNewFromFolder.isSelected()){
+						def dstName = (String) tfDatasetName.getText()
+						def chosenProject = (String) cmbProject.getSelectedItem()
+						if(rbNewProject.isSelected())
+							chosenProject = (String) tfProjectName.getText()
+							
+						def tmpDatasetList = projectNewDatasets.get(chosenProject)
+						tmpDatasetList.add(dstName)
+						projectNewDatasets.put(chosenProject, tmpDatasetList)
+						
+						// update the dataset combo box
+						modelCmbDataset.removeAllElements();
+	        			for (String dataset : tmpDatasetList) modelCmbDataset.addElement(dataset);
+	        			cmbDataset.setSelectedIndex(0);
+					}
+					
+					tfDatasetName.setText("");
+					tfProjectName.setText("");
+					tfRootFolder.setText("");
+    			}
+			}
+		)
+		
+		 // set main interface parameters
+		this.addWindowListener(new WindowListener() {
+            @Override
+            public void windowOpened(WindowEvent e) {
+
+            }
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+
+            }
+
+            @Override
+            public void windowClosed(WindowEvent e) {
+				enterPressed = true
+    			validated = false;
+            }
+
+            @Override
+            public void windowIconified(WindowEvent e) {
+
+            }
+
+            @Override
+            public void windowDeiconified(WindowEvent e) {
+
+            }
+
+            @Override
+            public void windowActivated(WindowEvent e) {
+
+            }
+
+            @Override
+            public void windowDeactivated(WindowEvent e) {
+
+            }
+        });
+
+        this.setContentPane(nicerWindow);
+        this.pack();
+    }
+    
+    private boolean checkInputs(tfRootFolder, rbNewDataset, chkNewFromFolder, tfDatasetName, rbNewProject, tfProjectName){
+    	if(tfRootFolder.getText() == null || tfRootFolder.getText().isEmpty()){
+    		def message = "You must enter a folder to process"
+			JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
+			return false
+    	}
+    	
+    	if(rbNewDataset.isSelected() && !chkNewFromFolder.isSelected() && (tfDatasetName.getText() == null || tfDatasetName.getText().isEmpty())){
+			def message = "You must enter a name for the new dataset"
+			JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
+			return false
+		}
+		
+		if(rbNewProject.isSelected() && (tfProjectName.getText() == null || tfProjectName.getText().isEmpty())){
+			def message = "You must enter a name for the new project"
+			JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
+			return false
+		}
+		
+		return true			
+    }
+} 
+
+
 /*
  * imports
  */
@@ -675,3 +1258,18 @@ import ij.IJ;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+
+
+import java.awt.AWTEvent;
+import java.util.stream.Collectors
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import javax.swing.*;
+import java.awt.FlowLayout;
+import javax.swing.BoxLayout
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.Dimension;
+import java.awt.Toolkit;

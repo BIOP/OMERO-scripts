@@ -121,7 +121,6 @@ if (user_client.isConnected()){
 		
 		// If Ok
 		if(dialog.getValidated()){		
-			println dialog.getSelectedList()
 			for(Map<String, String> selectedMap : dialog.getSelectedList()){
 				
 				// collect the user inputs
@@ -172,6 +171,7 @@ if (user_client.isConnected()){
 				commonSummaryMap.put(PRJ_ID, ""+projectWrapper.getId())
 				
 				Map<String, DatasetWrapper> datasetsList = new HashMap<>()
+				def datasetWrapper
 				
 				for(String folderPath : foldersToImport.split(",")){
 					Map<String, String> datasetSummaryMap = new HashMap<>()
@@ -180,46 +180,49 @@ if (user_client.isConnected()){
 					commonSummaryMap.put(PAR_FOL, folder.getName())
 					
 					// getting the dataset
-					def datasetWrapper
+					
 					if(isNewFromFolder){
 						isNewDataset = true
+						datasetWrapper = null;
 						newDatasetName = folder.getName()
 					}
 					
 					// getting the dataset
-					if(!isNewDataset){
-						try{
-							IJLoggerInfo("OMERO", "Getting the dataset '" + existingDatasetName +"'");
-							if(datasetsList.containsKey(existingDatasetName))
-								datasetWrapper = datasetsList.get(existingDatasetName)
-							else{
-								datasetWrapper = projectWrapper.getDatasets(existingDatasetName).get(0)
-								datasetsList.put(existingDatasetName, datasetWrapper)
+					if(datasetWrapper == null){
+						if(!isNewDataset){
+							try{
+								IJLoggerInfo("OMERO", "Getting the dataset '" + existingDatasetName +"'");
+								if(datasetsList.containsKey(existingDatasetName))
+									datasetWrapper = datasetsList.get(existingDatasetName)
+								else{
+									datasetWrapper = projectWrapper.getDatasets(existingDatasetName).get(0)
+									datasetsList.put(existingDatasetName, datasetWrapper)
+								}
+							}catch (Exception e){
+								hasSilentlyFailed = true
+								message = "The dataset '"+existingDatasetName+"' cannot be retrieved from OMERO."
+								IJLoggerError("OMERO", message)
+								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								Map<String, String> imgSummaryMap = new HashMap<>()
+								imgSummaryMap.putAll(commonSummaryMap)
+								transferSummary.add(imgSummaryMap)
+								continue
 							}
-						}catch (Exception e){
-							hasSilentlyFailed = true
-							message = "The dataset '"+existingDatasetName+"' cannot be retrieved from OMERO."
-							IJLoggerError("OMERO", message)
-							IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
-							Map<String, String> imgSummaryMap = new HashMap<>()
-							imgSummaryMap.putAll(commonSummaryMap)
-							transferSummary.add(imgSummaryMap)
-							continue
-						}
-					} else {
-						try{				
-							IJLoggerInfo("OMERO", "Creating a new dataset '" + newDatasetName +"'");
-							datasetWrapper = createOmeroDataset(user_client, projectWrapper, newDatasetName)
-							datasetsList.put(newDatasetName, datasetWrapper)
-						}catch (Exception e){
-							hasSilentlyFailed = true
-							message = "The dataset '"+newDatasetName+"' cannot be created on OMERO."
-							IJLoggerError("OMERO", message)
-							IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
-							Map<String, String> imgSummaryMap = new HashMap<>()
-							imgSummaryMap.putAll(commonSummaryMap)
-							transferSummary.add(imgSummaryMap)
-							continue
+						} else {
+							try{				
+								IJLoggerInfo("OMERO", "Creating a new dataset '" + newDatasetName +"'");
+								datasetWrapper = createOmeroDataset(user_client, projectWrapper, newDatasetName)
+								datasetsList.put(newDatasetName, datasetWrapper)
+							}catch (Exception e){
+								hasSilentlyFailed = true
+								message = "The dataset '"+newDatasetName+"' cannot be created on OMERO."
+								IJLoggerError("OMERO", message)
+								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								Map<String, String> imgSummaryMap = new HashMap<>()
+								imgSummaryMap.putAll(commonSummaryMap)
+								transferSummary.add(imgSummaryMap)
+								continue
+							}
 						}
 					}
 					
