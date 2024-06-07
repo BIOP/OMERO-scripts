@@ -46,6 +46,7 @@
 
 hasFailed = false
 hasSilentlyFailed = false
+endedByUser = false
 message = ""
 tokenSeparator = " | "
 csvSeparator = ","
@@ -377,14 +378,18 @@ if (user_client.isConnected()){
 					}
 				}
 			}
+
+			IJLoggerInfo("OMERO", countImg + " images uploaded on OMERO");
+			
+			if(hasSilentlyFailed)
+				message = "The script ended with some errors."
+			else 
+				message = "The upload and tagging have been successfully done."
+		}else{
+			message = "The script was ended by the user."
+			endedByUser = true
 		}
 
-		IJLoggerInfo("OMERO", countImg + " images uploaded on OMERO");
-		
-		if(hasSilentlyFailed)
-			message = "The script ended with some errors."
-		else 
-			message = "The upload and tagging have been successfully done."
 	}catch(Exception e){
 		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
 		if(!hasFailed){
@@ -394,8 +399,10 @@ if (user_client.isConnected()){
 	}finally{
 		// generate CSV report
 		try{
-			IJLoggerInfo("CSV report", "Generate the CSV report...")
-			generateCSVReport(transferSummary)
+			if(!endedByUser){
+				IJLoggerInfo("CSV report", "Generate the CSV report...")
+				generateCSVReport(transferSummary)
+			}
 		}catch(Exception e2){
 			IJLoggerError(e2.toString(), "\n"+getErrorStackTraceAsString(e2))
 			hasFailed = true
@@ -406,15 +413,17 @@ if (user_client.isConnected()){
 			IJLoggerInfo("OMERO","Disconnected from "+host)
 			
 			// print final popup
-			if(!hasFailed) {
-				message += " A CSV report has been created in your 'Downloads' folder."
-				if(hasSilentlyFailed){
-					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.WARNING_MESSAGE);
+			if(!endedByUser){
+				if(!hasFailed) {
+					message += " A CSV report has been created in your 'Downloads' folder."
+					if(hasSilentlyFailed){
+						JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.WARNING_MESSAGE);
+					}else{
+						JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
+					}
 				}else{
-					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
+					JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 				}
-			}else{
-				JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 			}
 		}
 	}
@@ -703,7 +712,11 @@ public class Dialog extends JFrame {
         // checkbox to import attachment
         JCheckBox chkAttm = new JCheckBox("Info files as attachment");
         chkAttm.setSelected(true);
-                
+            
+        // label for tags
+        JLabel tagLabel = new JLabel("Choose the tags you want to link to images")
+        tagLabel.setAlignmentX(LEFT_ALIGNMENT)
+        
         // checkbox to tag with tile/stitch
         JCheckBox chkTagTile = new JCheckBox("Tile/stitch");
         chkTagTile.setSelected(true);
@@ -883,6 +896,7 @@ public class Dialog extends JFrame {
         windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
         windowNLGeneral.add(new JSeparator());
         windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
+        windowNLGeneral.add(tagLabel);
 		windowNLGeneral.add(chkTagTile);
         windowNLGeneral.add(chkTagParent);
         windowNLGeneral.add(new JSeparator());
