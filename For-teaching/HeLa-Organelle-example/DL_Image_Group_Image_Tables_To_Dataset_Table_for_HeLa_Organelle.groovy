@@ -287,7 +287,7 @@ if (user_client.isConnected()){
 	IJLoggerError("OMERO", message)
 	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 }
-
+return
 
 def sendDatasetCSVTable(user_client, dataset_wpr, dataset_table_wpr, dstSummaryMap){
 	try{
@@ -571,11 +571,20 @@ def writeCSVFile(path, name, fileContent){
 def getErrorStackTraceAsString(Exception e){
     return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
+def IJLoggerError(String message){
+	IJ.log(getCurrentDateAndHour() + "   [ERROR]        "+message); 
+}
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
 }
+def IJLoggerWarn(String message){
+	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 
+}
 def IJLoggerWarn(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    ["+title+"] -- "+message); 
+}
+def IJLoggerInfo(String message){
+	IJ.log(getCurrentDateAndHour() + "   [INFO]             "+message); 
 }
 def IJLoggerInfo(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [INFO]             ["+title+"] -- "+message); 

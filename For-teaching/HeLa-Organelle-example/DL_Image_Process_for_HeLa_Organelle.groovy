@@ -94,7 +94,7 @@ rm.reset()
 rt_image.reset()
 
 // Connection to server
-host = "omero-server.epfl.ch"
+host = "omero-server-poc.epfl.ch"
 port = 4064
 Client user_client = new Client()
 
@@ -131,7 +131,7 @@ if (user_client.isConnected()){
 	try{
 		switch (object_type){
 			case "image":	
-				transferSummary = processImage(user_client, user_client.getImage(id))
+				transferSummary.add(processImage(user_client, user_client.getImage(id)))
 				break	
 			case "dataset":
 				transferSummary = processDataset(user_client, user_client.getDataset(id))
@@ -194,7 +194,7 @@ if (user_client.isConnected()){
 	IJLoggerError("OMERO", message)
 	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 }
-
+return
 
 // add the Image Processing & Analysis part here 
 def ipas(imp){
@@ -220,20 +220,27 @@ def ipas(imp){
 	def rois = rm.getRoisAsArray()	
 	
 	// delete Roi manager
+	rm.runCommand("Associate", "true");
 	rm.reset()
 	
 	def filtered_Rois = rois.findAll{ it.getStatistics().area > 50 }
-
-	filtered_Rois.each{rm.addRoi(it)}
 	int chN = imp.getNChannels()
 	
-	int nROI = rm.getCount();
-	rm.runCommand("Associate", "true");
-	
-	for (int j=0; j<nROI; j++) {
-	    rm.select(j);
-	    IJ.run("Make Band...", "band=5");
-	    rm.runCommand("Update");
+	if(showImages){
+		filtered_Rois.each{rm.addRoi(it)}
+		for (int i = 0; i<filtered_Rois.size(); i++) {
+	    	rm.select(i);
+	    	IJ.run("Make Band...", "band=5");
+	    	rm.runCommand("Update");
+		}
+	}else{
+		for (Roi blob : filtered_Rois) {
+		    dapiCh_imp.resetRoi();
+		    dapiCh_imp.setRoi(blob);
+		    IJ.run(dapiCh_imp, "Make Band...", "band=5");
+		    Roi annulusRoi = dapiCh_imp.getRoi(); // here, we take advantage that the last roi is automatic selected
+	        rm.addRoi(annulusRoi);
+		}
 	}
 	
 	rm.deselect();
@@ -558,11 +565,20 @@ def writeCSVFile(path, name, fileContent){
 def getErrorStackTraceAsString(Exception e){
     return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
+def IJLoggerError(String message){
+	IJ.log(getCurrentDateAndHour() + "   [ERROR]        "+message); 
+}
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
 }
+def IJLoggerWarn(String message){
+	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 
+}
 def IJLoggerWarn(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    ["+title+"] -- "+message); 
+}
+def IJLoggerInfo(String message){
+	IJ.log(getCurrentDateAndHour() + "   [INFO]             "+message); 
 }
 def IJLoggerInfo(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [INFO]             ["+title+"] -- "+message); 
@@ -589,6 +605,7 @@ import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
 import ij.*
+import ij.gui.Roi;
 import ij.plugin.*
 import ij.measure.ResultsTable
 import java.nio.charset.StandardCharsets;
