@@ -114,7 +114,7 @@ String TAG_SER = "tagSerie";
 String TAG_FOL = "tagFolder";
 
 // Connection to server
-host = "omero-server-poc.epfl.ch"
+host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 
