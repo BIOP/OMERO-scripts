@@ -246,7 +246,7 @@ if (user_client.isConnected()){
 					}
 					
 					for(String imgType : filesToUploadMap.keySet()){
-						IJLoggerInfo("","Working on "+imgType+" images")
+						IJLoggerInfo("Working on "+imgType+" images")
 						
 						List<String> tagsToLink = new ArrayList<>()
 						
@@ -268,7 +268,7 @@ if (user_client.isConnected()){
 						}
 						
 						for(File imageToUpload : filesToUpload){
-							IJLoggerInfo("", "Working on image '"+imageToUpload.getName()+"'...")
+							IJLoggerInfo("Working on image '"+imageToUpload.getName()+"'...")
 							Map<String, String> imgSummaryMap = new HashMap<>()
 							imgSummaryMap.put(IMG_NAME, imageToUpload.getName())
 							imgSummaryMap.put(IMG_PATH, imageToUpload.getAbsolutePath())
@@ -1115,11 +1115,20 @@ public class Dialog extends JFrame {
 def getErrorStackTraceAsString(Exception e){
     return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
+def IJLoggerError(String message){
+	IJ.log(getCurrentDateAndHour() + "   [ERROR]        "+message); 
+}
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
 }
+def IJLoggerWarn(String message){
+	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 
+}
 def IJLoggerWarn(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    ["+title+"] -- "+message); 
+}
+def IJLoggerInfo(String message){
+	IJ.log(getCurrentDateAndHour() + "   [INFO]             "+message); 
 }
 def IJLoggerInfo(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [INFO]             ["+title+"] -- "+message); 

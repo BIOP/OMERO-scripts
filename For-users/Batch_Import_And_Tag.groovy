@@ -259,7 +259,7 @@ if (user_client.isConnected()){
 					commonSummaryMap.put(DST_ID, ""+datasetWrapper.getId())
 			
 					IJLoggerInfo("OMERO","Images will be imported in project '"+projectWrapper.getName()+ "' ; dataset '"+datasetWrapper.getName()+"'.");
-					IJLoggerInfo("","*****************");
+					IJLoggerInfo("*****************");
 					
 					// get images to process
 					IJLoggerInfo("Reading", "List all images from '" + rawFolder.getName() + "'");
@@ -295,7 +295,7 @@ if (user_client.isConnected()){
 						if(type == STANDARD){
 							// upload all images
 							for(File imgFile : imgMap.get(parentFolder)){
-								IJLoggerInfo("", "*****************");
+								IJLoggerInfo("*****************");
 								Map<String, String> imgSummaryMap = new HashMap<>()
 								imgSummaryMap.putAll(commonSummaryMap)
 								imgSummaryMap.put(IMG_NAME, imgFile.getName())
@@ -385,7 +385,7 @@ if (user_client.isConnected()){
 							imgSummaryMap.put(CMP, "Not Supported")
 							transferSummary.add(imgSummaryMap)
 						}
-						IJLoggerInfo("", "*****************");
+						IJLoggerInfo("*****************");
 					}
 					
 					IJLoggerInfo("OMERO", countRaw + " files uploaded on OMERO");
@@ -745,11 +745,20 @@ def writeCSVFile(path, name, fileContent){
 def getErrorStackTraceAsString(Exception e){
     return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
+def IJLoggerError(String message){
+	IJ.log(getCurrentDateAndHour() + "   [ERROR]        "+message); 
+}
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
 }
+def IJLoggerWarn(String message){
+	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 
+}
 def IJLoggerWarn(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    ["+title+"] -- "+message); 
+}
+def IJLoggerInfo(String message){
+	IJ.log(getCurrentDateAndHour() + "   [INFO]             "+message); 
 }
 def IJLoggerInfo(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [INFO]             ["+title+"] -- "+message); 

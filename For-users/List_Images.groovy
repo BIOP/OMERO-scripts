@@ -435,11 +435,20 @@ def processScreen(user_client, screen_wpr_list){
 def getErrorStackTraceAsString(Exception e){
     return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
+def IJLoggerError(String message){
+	IJ.log(getCurrentDateAndHour() + "   [ERROR]        "+message); 
+}
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
 }
+def IJLoggerWarn(String message){
+	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 
+}
 def IJLoggerWarn(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    ["+title+"] -- "+message); 
+}
+def IJLoggerInfo(String message){
+	IJ.log(getCurrentDateAndHour() + "   [INFO]             "+message); 
 }
 def IJLoggerInfo(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [INFO]             ["+title+"] -- "+message); 

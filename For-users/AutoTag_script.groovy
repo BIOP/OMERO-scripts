@@ -100,7 +100,7 @@ if (user_client.isConnected()){
 				continue
 			}
 		
-			IJLoggerInfo("","*****************");
+			IJLoggerInfo("*****************");
 			
 			// get images to process
 			IJLoggerInfo("OMERO", "Read images from dataset '" + datasetWrapper.getName() + "' : " + datasetWrapper.getId())
@@ -138,7 +138,7 @@ if (user_client.isConnected()){
 				}
 				transferSummary.add(imgSummaryMap)
 					
-				IJLoggerInfo("", "*****************");
+				IJLoggerInfo("*****************");
 			}
 		}
 		if(hasSilentlyFailed)
@@ -327,11 +327,20 @@ def writeCSVFile(path, name, fileContent){
 def getErrorStackTraceAsString(Exception e){
     return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
+def IJLoggerError(String message){
+	IJ.log(getCurrentDateAndHour() + "   [ERROR]        "+message); 
+}
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
 }
+def IJLoggerWarn(String message){
+	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 
+}
 def IJLoggerWarn(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    ["+title+"] -- "+message); 
+}
+def IJLoggerInfo(String message){
+	IJ.log(getCurrentDateAndHour() + "   [INFO]             "+message); 
 }
 def IJLoggerInfo(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [INFO]             ["+title+"] -- "+message); 
