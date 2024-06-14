@@ -1,6 +1,6 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
-#@Boolean(label="Delete orphaned files", value=false, persist=false) toDelete
+#@Boolean(label="Delete unlinked files", value=false, persist=false) toDelete
 #@String(choices={"Only my files", "All files within my group"}, style="radioButtonHorizontal", persist=false) choice
 
 
@@ -82,7 +82,7 @@ OWN = "Owner"
 GRP = "Group"
 STS = "Deleted"
 PRT = "Parent_Name_Id"
-ORPH = "Orphaned file"
+ORPH = "Unlinked file"
 
 if (user_client.isConnected()){
 	IJLoggerInfo("OMERO","Connected to "+host)
@@ -250,7 +250,7 @@ if (user_client.isConnected()){
  * retrieve all attachments within the default group
  */
 def getGroupAttachments(user_client){
-	return user_client.findByQuery("select an from FileAnnotation as an join fetch an.file")
+	return user_client.findByQuery("select an from FileAnnotation as an join fetch an.file where an.ns is not Null")
 								.stream()
 								.map(FileAnnotationData::new)
 								.map(FileAnnotationWrapper::new)
@@ -264,7 +264,7 @@ def getGroupAttachments(user_client){
 def getExperimenterAttachments(user_client){
 	return user_client.findByQuery("select an from FileAnnotation as an left outer join fetch an.file" +
 														" left outer join fetch an.details.owner as o " +
-												         "where o.id = "+ user_client.getUser().getId())
+												         "where o.id = "+ user_client.getUser().getId() + " and an.ns is not Null")
 								.stream()
 								.map(FileAnnotationData::new)
 								.map(FileAnnotationWrapper::new)
