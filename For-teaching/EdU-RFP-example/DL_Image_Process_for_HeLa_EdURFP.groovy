@@ -196,6 +196,7 @@ if (user_client.isConnected()){
 	IJLoggerError("OMERO", message)
 	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 }
+return
 
 
 // add the Image Processing & Analysis part here 
@@ -206,12 +207,12 @@ def ipas(imp){
 	IJ.run(dapiCh_imp, "Median...", "radius=3");
 
 	// thresholding
-	IJ.setAutoThreshold(dapiCh_imp, "Huang dark");
+	IJ.setAutoThreshold(dapiCh_imp, "Otsu dark");
 	Prefs.blackBackground = true;
 	IJ.run(dapiCh_imp, "Convert to Mask", "");
 	
 	// morphological improvements
-	IJ.run(dapiCh_imp, "Open", "");
+	IJ.run(dapiCh_imp, "Close-", "");
 	IJ.run(dapiCh_imp, "Fill Holes", "");
 
 	// analyze connected components

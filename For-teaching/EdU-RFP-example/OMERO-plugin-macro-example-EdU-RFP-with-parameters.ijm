@@ -11,12 +11,12 @@ duplicateImageName = getTitle();
 // "cleaning" using filtering
 run("Median...", "radius="+radius);
 // Threshold
-setAutoThreshold("Huang dark");
+setAutoThreshold("Otsu dark");
 //Convert to mask
 setOption("BlackBackground", true);
 run("Convert to Mask");
 //morphological operations
-run("Open");
+run("Close-");
 run("Fill Holes");
 // analyze particules on the first slice only
 run("Set Measurements...", "area mean min centroid center perimeter display redirect=None decimal=3");
