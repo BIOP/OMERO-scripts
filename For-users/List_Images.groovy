@@ -221,8 +221,7 @@ def processImage(user_client, image_wpr){
 	   		}catch(Exception e){
 	   			hasSilentlyFailed = true
 				message = "Key values cannot be attached to image '"+image_wpr.getName() +"':"+image_wpr.getId()						
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 	   			summaryMap.put(KVP, "Failed")
 	   		}	
 		}
@@ -260,8 +259,7 @@ def processImage(user_client, image_wpr){
 	   		}catch(Exception e){
 	   			hasSilentlyFailed = true
 				message = "Key values cannot be attached to image '"+image_wpr.getName() +"':"+image_wpr.getId()						
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 	   			summaryMap.put(KVP, "Failed")
 	   		}
 		}
@@ -440,6 +438,14 @@ def IJLoggerError(String message){
 }
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
+}
+def IJLoggerError(String title, String message, Exception e){
+    IJLoggerError(title, message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+}
+def IJLoggerError(String message, Exception e){
+    IJLoggerError(message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 

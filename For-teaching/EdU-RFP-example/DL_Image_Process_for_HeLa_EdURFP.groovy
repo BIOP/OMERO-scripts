@@ -267,8 +267,7 @@ def processImage(user_client, img_wpr){
 	}catch(Exception e){
 		hasSilentlyFailed = true
 		message = "The image cannot be read on Fiji"						
-		IJLoggerError("OMERO / FIJI", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("OMERO / FIJI", message, e)
 		imgSummaryMap.put(READ, "Failed")
 		return imgSummaryMap
 	}
@@ -293,8 +292,7 @@ def processImage(user_client, img_wpr){
 	}catch(Exception e){
 		hasSilentlyFailed = true
 		message = "The processing of image '"+img_wpr.getName() +"' has failed"						
-		IJLoggerError("FIJI", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("FIJI", message, e)
 		imgSummaryMap.put(IPAS, "Failed")
 		return imgSummaryMap
 	}
@@ -333,8 +331,7 @@ def deleteROIs(user_client, img_wpr, imgSummaryMap){
 	}catch(Exception e){
 		hasSilentlyFailed = true
 		message = "An issue occurred when trying to delete ROIs"						
-		IJLoggerError("OMERO", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("OMERO", message, e)
 		imgSummaryMap.put(ROI_DEL, "Failed")
 	}
 }
@@ -358,8 +355,7 @@ def deleteTables(user_client, img_wpr, imgSummaryMap){
 	}catch(Exception e){
 		hasSilentlyFailed = true
 		message = "An issue occurred when trying to delete tables"						
-		IJLoggerError("OMERO", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("OMERO", message, e)
 		imgSummaryMap.put(TAB_DEL, "Failed")
 	}
 }
@@ -377,8 +373,7 @@ def sendROIs(user_client, img_wpr, fijiRoisToSend, imgSummaryMap){
 	}catch(Exception e){
 		hasSilentlyFailed = true
 		message = "An issue occurred when trying to send ROIs"						
-		IJLoggerError("OMERO", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("OMERO", message, e)
 		imgSummaryMap.put(ROI_NEW, "Failed")
 	}
 }
@@ -397,8 +392,7 @@ def sendTables(user_client, img_wpr, rtToSend, fijiRois, imgSummaryMap){
 	}catch(Exception e){
 		hasSilentlyFailed = true
 		message = "An issue occurred when trying to send tables"						
-		IJLoggerError("OMERO", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("OMERO", message, e)
 		imgSummaryMap.put(TAB_NEW, "Failed")
 	}
 }
@@ -554,6 +548,14 @@ def IJLoggerError(String message){
 }
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
+}
+def IJLoggerError(String title, String message, Exception e){
+    IJLoggerError(title, message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+}
+def IJLoggerError(String message, Exception e){
+    IJLoggerError(message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 

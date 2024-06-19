@@ -196,8 +196,7 @@ if (user_client.isConnected()){
 					}catch(Exception e){
 						hasSilentlyFailed = true
 						message = "Cannot delete tag '"+tagToDeleteName+"'. You don't have the permission to delete this tag"						
-						IJLoggerError("OMERO", message)
-						IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+						IJLoggerError("OMERO", message, e)
 					}
 				}
 
@@ -281,8 +280,7 @@ def loopOverRepo(user_client, repoWprList, tagToDelete, newTag, experimenterMap)
 				hasSilentlyFailed = true
 				repoSummaryMap.put(STS_NEW_TAG, "No")
 				message = "Cannot link tag '" + newTag.getName() + "' to '" + className + " " + wpr.getName() +"'. The old tag is not removed."				
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 				continue
 			}
 			
@@ -301,8 +299,7 @@ def loopOverRepo(user_client, repoWprList, tagToDelete, newTag, experimenterMap)
 					hasSilentlyFailed = true
 					repoSummaryMap.put(STS_OLD_TAG, "No")
 					message = "Cannot unlink tag '" + tagToDelete.getName() + "' from '" + className + " " + wpr.getName() +"'"				
-					IJLoggerError("OMERO", message)
-					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+					IJLoggerError("OMERO", message, e)
 				}
 			}
 			repoSummary.add(repoSummaryMap)
@@ -399,6 +396,14 @@ def IJLoggerError(String message){
 }
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
+}
+def IJLoggerError(String title, String message, Exception e){
+    IJLoggerError(title, message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+}
+def IJLoggerError(String message, Exception e){
+    IJLoggerError(message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 

@@ -154,8 +154,7 @@ if (user_client.isConnected()){
 					}catch (Exception e){
 						hasSilentlyFailed = true
 						message = "The project '"+newProjectName+"' cannot be created on OMERO."
-						IJLoggerError("OMERO", message)
-						IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+						IJLoggerError("OMERO", message, e)
 						foldersToImport.split(",").each{
 							Map<String, String> imgSummaryMap = new HashMap<>()
 							File folder = new File(it)
@@ -201,8 +200,7 @@ if (user_client.isConnected()){
 							}catch (Exception e){
 								hasSilentlyFailed = true
 								message = "The dataset '"+existingDatasetName+"' cannot be retrieved from OMERO."
-								IJLoggerError("OMERO", message)
-								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								IJLoggerError("OMERO", message, e)
 								Map<String, String> imgSummaryMap = new HashMap<>()
 								imgSummaryMap.putAll(commonSummaryMap)
 								transferSummary.add(imgSummaryMap)
@@ -216,8 +214,7 @@ if (user_client.isConnected()){
 							}catch (Exception e){
 								hasSilentlyFailed = true
 								message = "The dataset '"+newDatasetName+"' cannot be created on OMERO."
-								IJLoggerError("OMERO", message)
-								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								IJLoggerError("OMERO", message, e)
 								Map<String, String> imgSummaryMap = new HashMap<>()
 								imgSummaryMap.putAll(commonSummaryMap)
 								transferSummary.add(imgSummaryMap)
@@ -288,8 +285,7 @@ if (user_client.isConnected()){
 							}catch(Exception e){
 								hasSilentlyFailed = true
 				    			message = "Impossible to upload on OMERO"						
-								IJLoggerError("OMERO", message)
-								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								IJLoggerError("OMERO", message, e)
 								imgSummaryMap.put(STS, "Failed")
 								transferSummary.add(imgSummaryMap)
 								continue
@@ -306,8 +302,7 @@ if (user_client.isConnected()){
 								}catch(Exception e){
 									hasSilentlyFailed = true
 					    			message = "Impossible to read the image '"+id+"'. Cannot link tags neither attachmenets"
-									IJLoggerError("OMERO", message)
-									IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+									IJLoggerError("OMERO", message, e)
 								}
 							
 								if(imageWpr != null){
@@ -320,8 +315,7 @@ if (user_client.isConnected()){
 										}catch(Exception e){
 											hasSilentlyFailed = true
 							    			message = "Impossible to link tags to image '"+imageWpr.getName()+"'"
-											IJLoggerError("OMERO", message)
-											IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+											IJLoggerError("OMERO", message, e)
 										}
 									}
 									
@@ -337,8 +331,7 @@ if (user_client.isConnected()){
 										}catch(Exception e){
 											hasSilentlyFailed = true
 							    			message = "Impossible to rename the stitch image"
-											IJLoggerError("OMERO", message)
-											IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+											IJLoggerError("OMERO", message, e)
 										}
 									}
 								}
@@ -368,8 +361,7 @@ if (user_client.isConnected()){
 							}catch(Exception e){
 								hasSilentlyFailed = true
 				    			message = "Impossible to attach files to dataset '"+datasetWrapper.getName()+"'"
-								IJLoggerError("OMERO", message)
-								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								IJLoggerError("OMERO", message, e)
 								linkedAttachments.add("Failed")
 							}
 						}
@@ -527,7 +519,7 @@ def saveAttachmentOnOmero(user_client, datasetWrapper, attachment, tilingName){
         // Import attachment on OMERO
         datasetWrapper.addFile(user_client, renamedCopiedFile)
     } catch (Exception e) {
-        IJLoggerError("OMERO", "Cannot upload attachment '"+renamedCopiedFile.getName()+"' on OMERO");
+        IJLoggerError("OMERO", "Cannot upload attachment '"+renamedCopiedFile.getName()+"' on OMERO", e);
     }
 
     // delete the file after upload
@@ -1120,6 +1112,14 @@ def IJLoggerError(String message){
 }
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
+}
+def IJLoggerError(String title, String message, Exception e){
+    IJLoggerError(title, message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+}
+def IJLoggerError(String message, Exception e){
+    IJLoggerError(message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 

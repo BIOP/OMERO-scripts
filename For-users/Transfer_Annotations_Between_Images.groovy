@@ -201,8 +201,7 @@ if (user_client.isConnected()){
 					hasSilentlyFailed = true
 					imgSummaryMap.put(SRC_IMG_ID, "Failed")
 					message = "The source image '"+srcImgName+"' cannot be accessed"
-					IJLoggerError(srcImgName, message)
-					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+					IJLoggerError(srcImgName, message, e)
 					continue
 				}
 				
@@ -218,8 +217,7 @@ if (user_client.isConnected()){
 						hasSilentlyFailed = true
 						imgSummaryMap.put(TGT_IMG_ID, "Failed")
 						message = "The target image '"+tgtImgName+"' cannot be accessed"
-						IJLoggerError(srcImgName, message)
-						IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+						IJLoggerError(srcImgName, message, e)
 						continue
 					}
 					
@@ -325,8 +323,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		}catch(Exception e){
 			hasSilentlyFailed = true
 			message = "An error occurred during tag transfer"
-			IJLoggerError(srcImgName, message)
-			IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+			IJLoggerError(srcImgName, message, e)
 		}
 	}else{
 		imgSummaryMap.put(TAG_ST, SKP)
@@ -346,8 +343,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		}catch(Exception e){
 			hasSilentlyFailed = true
 			message = "An error occurred during key-values transfer"
-			IJLoggerError(srcImgName, message)
-			IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+			IJLoggerError(srcImgName, message, e)
 		}
 	}else{
 		imgSummaryMap.put(KVP_ST, SKP)
@@ -367,8 +363,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		}catch(Exception e){
 			hasSilentlyFailed = true
 			message = "An error occurred during ROIs transfer"
-			IJLoggerError(srcImgName, message)
-			IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+			IJLoggerError(srcImgName, message, e)
 		}
 	}else{
 		imgSummaryMap.put(ROI_ST, SKP)
@@ -388,8 +383,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		}catch(Exception e){
 			hasSilentlyFailed = true
 			message = "An error occurred during attachments transfer"
-			IJLoggerError(srcImgName, message)
-			IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+			IJLoggerError(srcImgName, message, e)
 		}
 	}else{
 		imgSummaryMap.put(ATT_ST, SKP)
@@ -409,8 +403,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		}catch(Exception e){
 			hasSilentlyFailed = true
 			message = "An error occurred during comment transfer"
-			IJLoggerError(srcImgName, message)
-			IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+			IJLoggerError(srcImgName, message, e)
 		}
 	}else{
 		imgSummaryMap.put(CMT_ST, SKP)
@@ -430,8 +423,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		}catch(Exception e){
 			hasSilentlyFailed = true
 			message = "An error occurred during rating transfer"
-			IJLoggerError(srcImgName, message)
-			IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+			IJLoggerError(srcImgName, message, e)
 		}
 	}else{
 		imgSummaryMap.put(RTG_ST, SKP)
@@ -451,8 +443,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		}catch(Exception e){
 			hasSilentlyFailed = true
 			message = "An error occurred during description transfer"
-			IJLoggerError(srcImgName, message)
-			IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+			IJLoggerError(srcImgName, message, e)
 		}
 	}else{
 		imgSummaryMap.put(DPT_ST, SKP)
@@ -472,8 +463,7 @@ def doTransfer(user_client, srcImgWpr, tgtImgWpr, srcImgName, container){
 		}catch(Exception e){
 			hasSilentlyFailed = true
 			message = "An error occurred during channels name transfer"
-			IJLoggerError(srcImgName, message)
-			IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+			IJLoggerError(srcImgName, message, e)
 		}
 	}else{
 		imgSummaryMap.put(CHN_ST, SKP)
@@ -737,6 +727,14 @@ def IJLoggerError(String message){
 }
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
+}
+def IJLoggerError(String title, String message, Exception e){
+    IJLoggerError(title, message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+}
+def IJLoggerError(String message, Exception e){
+    IJLoggerError(message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 

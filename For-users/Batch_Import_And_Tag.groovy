@@ -184,8 +184,7 @@ if (user_client.isConnected()){
 					}catch (Exception e){
 						hasSilentlyFailed = true
 						message = "The project '"+newProjectName+"' cannot be created on OMERO."
-						IJLoggerError("OMERO", message)
-						IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+						IJLoggerError("OMERO", message, e)
 						foldersToImport.split(",").each{
 							Map<String, String> imgSummaryMap = new HashMap<>()
 							File folder = new File(it)
@@ -230,8 +229,7 @@ if (user_client.isConnected()){
 							}catch (Exception e){
 								hasSilentlyFailed = true
 								message = "The dataset '"+existingDatasetName+"' cannot be retrieved from OMERO."
-								IJLoggerError("OMERO", message)
-								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								IJLoggerError("OMERO", message, e)
 								Map<String, String> imgSummaryMap = new HashMap<>()
 								imgSummaryMap.putAll(commonSummaryMap)
 								transferSummary.add(imgSummaryMap)
@@ -245,8 +243,7 @@ if (user_client.isConnected()){
 							}catch (Exception e){
 								hasSilentlyFailed = true
 								message = "The dataset '"+newDatasetName+"' cannot be created on OMERO."
-								IJLoggerError("OMERO", message)
-								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								IJLoggerError("OMERO", message, e)
 								Map<String, String> imgSummaryMap = new HashMap<>()
 								imgSummaryMap.putAll(commonSummaryMap)
 								transferSummary.add(imgSummaryMap)
@@ -271,8 +268,7 @@ if (user_client.isConnected()){
 					}catch(Exception e){
 					    hasSilentlyFailed = true
 						message = "An error occurred when listing images from '"+rawFolder.getAbsolutePath()+"'."
-						IJLoggerError("Folder '"+rawFolder.getName()+"'", message)
-						IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+						IJLoggerError("Folder '"+rawFolder.getName()+"'", message, e)
 						Map<String, String> imgSummaryMap = new HashMap<>()
 						imgSummaryMap.putAll(commonSummaryMap)
 						transferSummary.add(imgSummaryMap)
@@ -315,8 +311,7 @@ if (user_client.isConnected()){
 									hasSilentlyFailed = true
 									imgSummaryMap.put(STS, "Failed")
 					    			message = "Impossible to upload this image on OMERO"						
-									IJLoggerError(imgFile.getName(), message)
-									IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+									IJLoggerError(imgFile.getName(), message, e)
 									continue
 								}
 								
@@ -328,8 +323,7 @@ if (user_client.isConnected()){
 								}catch(Exception e){
 									hasSilentlyFailed = true
 					    			message = "Impossible to link tags to this image"
-									IJLoggerError(imgFile.getName(), message)
-									IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+									IJLoggerError(imgFile.getName(), message, e)
 									continue
 								}
 								transferSummary.add(imgSummaryMap)
@@ -357,8 +351,7 @@ if (user_client.isConnected()){
 							}catch(Exception e){
 								hasSilentlyFailed = true
 				    			message = "Impossible to upload this image on OMERO"
-								IJLoggerError(child.get(0).getName(), message)
-								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								IJLoggerError(child.get(0).getName(), message, e)
 								continue
 							}
 							
@@ -370,8 +363,7 @@ if (user_client.isConnected()){
 							}catch(Exception e){
 								hasSilentlyFailed = true
 				    			message = "Impossible to link tags to this image"
-								IJLoggerError(child.get(0).getName(), message)
-								IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+								IJLoggerError(child.get(0).getName(), message, e)
 								continue
 							}
 							transferSummary.add(imgSummaryMap)
@@ -750,6 +742,14 @@ def IJLoggerError(String message){
 }
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
+}
+def IJLoggerError(String title, String message, Exception e){
+    IJLoggerError(title, message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+}
+def IJLoggerError(String message, Exception e){
+    IJLoggerError(message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 

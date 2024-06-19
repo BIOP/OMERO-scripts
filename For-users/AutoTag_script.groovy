@@ -95,8 +95,7 @@ if (user_client.isConnected()){
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "The dataset '"+datasetId+"' cannot be found on OMERO."
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 				continue
 			}
 		
@@ -110,8 +109,7 @@ if (user_client.isConnected()){
 			}catch(Exception e){
 			    hasSilentlyFailed = true
 				message = "An error occurred when reading images from '" + datasetWrapper.getName() + "' : " + datasetWrapper.getId()
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 				continue
 			}
 			
@@ -132,8 +130,7 @@ if (user_client.isConnected()){
 					hasSilentlyFailed = true
 					imgSummaryMap.put(STS, "Failed")
 	    			message = "Impossible to link tags to this image"
-					IJLoggerError(imgWrapper.getName(), message)
-					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+					IJLoggerError(imgWrapper.getName(), message, e)
 					continue
 				}
 				transferSummary.add(imgSummaryMap)
@@ -332,6 +329,14 @@ def IJLoggerError(String message){
 }
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
+}
+def IJLoggerError(String title, String message, Exception e){
+    IJLoggerError(title, message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+}
+def IJLoggerError(String message, Exception e){
+    IJLoggerError(message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 

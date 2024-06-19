@@ -170,8 +170,7 @@ if (user_client.isConnected()){
 				}catch(Exception e){
 					hasSilentlyFailed = true
 					message = "Failing to read / convert OMERO.table"						
-					IJLoggerError("OMERO", message)
-					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+					IJLoggerError("OMERO", message, e)
 					imgSummaryMap.put(READ, "Failed")
 					transferSummary.add(imgSummaryMap)
 					continue
@@ -187,8 +186,7 @@ if (user_client.isConnected()){
 				}catch(Exception e){
 					hasSilentlyFailed = true
 					message = "Failing to read / convert CSV file from OMERO"						
-					IJLoggerError("OMERO", message)
-					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+					IJLoggerError("OMERO", message, e)
 					imgSummaryMap.put(READ, "Failed")
 					transferSummary.add(imgSummaryMap)
 					continue
@@ -210,8 +208,7 @@ if (user_client.isConnected()){
 				}catch(Exception e){
 					hasSilentlyFailed = true
 					message = "Failing to add a new line to the dataset table"						
-					IJLoggerError("FIJI", message)
-					IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+					IJLoggerError("FIJI", message, e)
 					imgSummaryMap.put(IMG_TAB, "Failed")
 				}
 			}
@@ -298,8 +295,7 @@ def sendDatasetCSVTable(user_client, dataset_wpr, dataset_table_wpr, dstSummaryM
 	}catch(Exception e){
 		hasSilentlyFailed = true
 		message = "An issue occurred when trying to send dataset CSV table"						
-		IJLoggerError("OMERO", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("OMERO", message, e)
 		dstSummaryMap.put(DTS_CSV_NEW, "Failed")
 	}
 }
@@ -314,8 +310,7 @@ def sendDatasetTable(user_client, dataset_wpr, dataset_table_wpr, dstSummaryMap)
 	}catch(Exception e){
 		hasSilentlyFailed = true
 		message = "An issue occurred when trying to send dataset table"						
-		IJLoggerError("OMERO", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("OMERO", message, e)
 		dstSummaryMap.put(DST_TAB_NEW, "Failed")
 	}
 }
@@ -337,8 +332,7 @@ def deletePreviousRuns(user_client, dataset_wpr, tableName, dstSummaryMap){
 	}catch(Exception e){
 		hasSilentlyFailed = true
 		message = "An issue occurred when trying to delete tables"						
-		IJLoggerError("OMERO", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("OMERO", message, e)
 		dstSummaryMap.put(DST_TAB_DEL, "Failed")
 	}
 	
@@ -357,8 +351,7 @@ def deletePreviousRuns(user_client, dataset_wpr, tableName, dstSummaryMap){
 	}catch(Exception e){
 		hasSilentlyFailed = true
 		message = "An issue occurred when trying to delete CSV files"						
-		IJLoggerError("OMERO", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("OMERO", message, e)
 		dstSummaryMap.put(DST_CSV_DEL, "Failed")
 	}
 }
@@ -604,6 +597,14 @@ def IJLoggerError(String message){
 }
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
+}
+def IJLoggerError(String title, String message, Exception e){
+    IJLoggerError(title, message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+}
+def IJLoggerError(String message, Exception e){
+    IJLoggerError(message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 

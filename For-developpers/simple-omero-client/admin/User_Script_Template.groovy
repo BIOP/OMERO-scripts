@@ -125,8 +125,7 @@ if (user_client.isConnected()){
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Error message saying what's wrong"						
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 				
 				imgSummaryMap.put(KEY4, "Only if there is an issue")
 				
@@ -188,7 +187,7 @@ if (user_client.isConnected()){
 	IJLoggerError("OMERO", message)
 	JOptionPane.showMessageDialog(null, message, "ERROR", JOptionPane.ERROR_MESSAGE);
 }
-
+return
 
 /**
  * Create the CSV report from all info cleecting during the processing
@@ -249,6 +248,14 @@ def IJLoggerError(String message){
 }
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
+}
+def IJLoggerError(String title, String message, Exception e){
+    IJLoggerError(title, message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+}
+def IJLoggerError(String message, Exception e){
+    IJLoggerError(message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 

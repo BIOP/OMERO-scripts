@@ -119,8 +119,7 @@ if (user_client.isConnected()){
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Cannot retrieve orphaned files from your group"
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 			}
 		}
 		if(tagsToDelete){
@@ -130,8 +129,7 @@ if (user_client.isConnected()){
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Cannot retrieve orphaned tags from your group"
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 			}
 		}
 		if(kvpsToDelete){
@@ -141,8 +139,7 @@ if (user_client.isConnected()){
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Cannot retrieve orphaned key-values from your group"
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 			}
 		}
 		if(commentsToDelete){
@@ -152,8 +149,7 @@ if (user_client.isConnected()){
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Cannot retrieve orphaned comments from your group"
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 			}
 		}
 		if(ratingsToDelete){
@@ -163,8 +159,7 @@ if (user_client.isConnected()){
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Cannot retrieve orphaned ratings from your group"
-				IJLoggerError("OMERO", message)
-				IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+				IJLoggerError("OMERO", message, e)
 			}
 		}
 					
@@ -258,8 +253,7 @@ def deleteAnnotations(user_client, annList, transferSummary){
 	    hasSilentlyFailed = true
 	    status = "Failed"
 		message = "Cannot delete orphaned annotations"
-		IJLoggerError("OMERO", message)
-		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
+		IJLoggerError("OMERO", message, e)
 	}
 	
 	return status
@@ -503,6 +497,14 @@ def IJLoggerError(String message){
 }
 def IJLoggerError(String title, String message){
 	IJ.log(getCurrentDateAndHour() + "   [ERROR]        ["+title+"] -- "+message); 
+}
+def IJLoggerError(String title, String message, Exception e){
+    IJLoggerError(title, message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+}
+def IJLoggerError(String message, Exception e){
+    IJLoggerError(message);
+    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 
