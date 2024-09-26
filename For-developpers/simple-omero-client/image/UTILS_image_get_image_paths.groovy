@@ -16,13 +16,16 @@
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.15.0 https://github.com/GReD-Clermont/simple-omero-client
+ *  - simple-omero-client-5.19.0 https://github.com/GReD-Clermont/simple-omero-client
  *  
  *  
  *  = AUTHOR INFORMATION =
  * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
  * date : 2023.11.08
- * version : v1.0
+ * version : v2.0
+ *
+ * = HISTORY = 
+ * 2024.09.26 : update method to get original path directly from simple-omero-client --v2.0
  * 
  */
 
@@ -37,15 +40,13 @@ user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 if (user_client.isConnected()){
 	println "Connected to "+host
 	try{		
-
-		println "Getting image "+imageId
-		def imgWrapper = user_client.getImage(imageId) 
+		def imgWrapper = user_client.getImage(imageId)
 		
-		def paths = user_client.getMetadata().getOriginalPaths(user_client.getCtx(), imgWrapper.asDataObject())
-		if(!paths.isEmpty())
-			println "Main original import path for image "+imageId +" : "+paths.get(0)
-		else
-			println "No path for the current image "+imageId
+		println "Getting oringinal import paths for image "+imageId
+		imgWrapper.getOriginalPaths(user_client).each{println it}
+		
+		println "Getting server paths for image "+imageId
+		imgWrapper.getManagedRepositoriesPaths(user_client).each{println it}
 
 	} finally{
 		user_client.disconnect()
@@ -56,6 +57,7 @@ if (user_client.isConnected()){
 	println "Not able to connect to "+host
 }
 
+return
 
 /*
  * imports
