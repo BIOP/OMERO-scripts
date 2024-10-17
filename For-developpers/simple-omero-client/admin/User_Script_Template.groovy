@@ -251,11 +251,11 @@ def IJLoggerError(String title, String message){
 }
 def IJLoggerError(String title, String message, Exception e){
     IJLoggerError(title, message);
-    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+    IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e));
 }
 def IJLoggerError(String message, Exception e){
     IJLoggerError(message);
-    IJLoggerError(e.toString(), "\n"+Tools.getErrorStackTraceAsString(e));
+    IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e));
 }
 def IJLoggerWarn(String message){
 	IJ.log(getCurrentDateAndHour() + "   [WARNING]    "+message); 
