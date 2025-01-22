@@ -55,6 +55,8 @@ if __name__ == "__main__":
 """
 Other query examples
 
+- f"select roi.id from Roi as roi where roi.image = {object_id}"
+
 # Complex query with sub queries
 - "select a from Annotation a where a.id in (select link.child from AnnotationAnnotationLink link " \
   "where link.parent in (select ann.id from Annotation ann where ann.ns='openmicroscopy.org/omero/insight/tagset' " \
