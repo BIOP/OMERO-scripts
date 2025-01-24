@@ -318,6 +318,7 @@ def run_script():
         """
     Exports in a txt file, with OMERO IDs, formatting in a way that CellProfiler 
     is able to read the images from OMERO and apply a pipeline on them.
+    \t
         """,  # Tabs are needed to add line breaks in the HTML
 
         scripts.String(
