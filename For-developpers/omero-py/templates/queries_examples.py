@@ -4,7 +4,7 @@ from omero.rtypes import wrap
 
 
 def run_script():
-    conn = BlitzGateway("jd", "0987654321", host="omero-server-poc.epfl.ch", port=4064, secure=True)
+    conn = BlitzGateway("username", "password", host="localhost", port=4064, secure=True)
     conn.connect()
 
     if conn.isConnected():
