@@ -4,20 +4,29 @@ from omero.rtypes import wrap
 
 
 def run_script():
-    conn = BlitzGateway("username", "password", host="localhost", port=4064, secure=True)
+    conn = BlitzGateway("jd", "0987654321", host="omero-server-poc.epfl.ch", port=4064, secure=True)
     conn.connect()
 
     if conn.isConnected():
         try:
-            # hard-coded everything
+            '''
+            Scenario 1
+            -- hard-coded everything
+            -- working in the default group only
+            '''
             params = omero.sys.ParametersI()
             qs = conn.getQueryService()
-            q = "select distinct map.value from Annotation ann join ann.mapValue map where map.name = 'ArgoSlide_name'"
+            q = "select shape.id from Shape shape where shape.textValue = 'test'"
 
             results = qs.projection(q, params, conn.SERVICE_OPTS)
             [print(result[0].val) for result in results]
 
-            # with where_clause & params
+
+            '''
+            Scenario 2
+            -- with where_clause & params
+            -- working in the default group only
+            '''
             where_clause = []
 
             params.add('filter', wrap([f"'Figure_{201}%'"]))
@@ -38,6 +47,27 @@ def run_script():
             [print(result[0].val) for result in results]
             [print(result[1].val) for result in results]
 
+
+            '''
+            Scenario 3
+            -- to work on multiple groups
+            '''
+            # Retrieve the services we are going to use
+            admin_service = conn.getAdminService()
+
+            ec = admin_service.getEventContext()
+            groups = [admin_service.getGroup(v) for v in ec.memberOfGroups]
+            for group in groups:
+                print('Searching in group: %s' % group.name.val)
+                conn.SERVICE_OPTS.setOmeroGroup(group.id.val)
+
+                params = omero.sys.ParametersI()
+                qs = conn.getQueryService()
+                q = "select shape from Shape shape where shape.textValue = 'test2'"
+
+                results = qs.findAllByQuery(q, params, conn.SERVICE_OPTS)
+                [print(result) for result in results]
+
         finally:
             conn.close()
 
@@ -56,6 +86,7 @@ if __name__ == "__main__":
 Other query examples
 
 - f"select roi.id from Roi as roi where roi.image = {object_id}"
+- "select distinct map.value from Annotation ann join ann.mapValue map where map.name = 'ArgoSlide_name'"
 
 # Complex query with sub queries
 - "select a from Annotation a where a.id in (select link.child from AnnotationAnnotationLink link " \
