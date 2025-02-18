@@ -1,6 +1,6 @@
 """
- Share_images_across_groups.py
- Duplicate and transfer images from one group to another
+ Duplicate_images.py
+ Duplicate selected images and move them to the specified dataset
 -----------------------------------------------------------------------------
   Copyright (C) 2023
   This program is free software; you can redistribute it and/or modify
@@ -37,8 +37,8 @@ P_DUP_NUM = "Number of duplicate to create"
 P_PROJECT = "Target project"
 P_DATASET = "Dataset"
 
-OMERO_SERVER = "omero-server-poc.epfl.ch"
-OMERO_WEBSERVER = "omero-poc.epfl.ch"
+OMERO_SERVER = "omero-server.epfl.ch"
+OMERO_WEBSERVER = "omero.epfl.ch"
 PORT = "4064"
 
 
@@ -100,7 +100,7 @@ def create_dataset(conn, dataset_name, description=None):
     be changed using ``conn.SERVICE_OPTS.setOmeroGroup``.
     Examples
     --------
-    >>> dataset_id = create_project(conn, "My New Dataset")
+    >>> dataset_id = create_dataset(conn, "My New Dataset")
     >>> print(dataset_id)
     238
     """
@@ -207,7 +207,7 @@ def run_script():
     This script duplicates n times the selected images and move them in the specified dataset.
         """,
         scripts.String(
-            P_DATA_TYPE, optional=False,grouping="1",
+            P_DATA_TYPE, optional=False, grouping="1",
             description="Choose source of images (only Images supported)",
             values=data_types, default="Image"),
 
@@ -220,7 +220,7 @@ def run_script():
 
         scripts.String(
             P_DATASET, optional=True, grouping="4",
-            description="New dataset to create. Leave blank to copy images in orphaned folder.",
+            description="ONLY FOR IMAGES. New dataset to create. Leave blank to copy images in orphaned folder.",
             default=""),
 
         authors=["Rémy Dornier"],

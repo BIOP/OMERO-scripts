@@ -39,7 +39,9 @@ P_PROJECT = "Target project"
 P_DATASET = "Dataset"
 
 OMERO_SERVER = "omero-server-poc.epfl.ch"
+OMERO_WEBSERVER = "omero-poc.epfl.ch"
 PORT = "4064"
+
 
 def add_annotation_key_value(conn, target_obj, annotations):
     """Add a key-value "map" annotation to an OMERO object.
@@ -99,7 +101,7 @@ def create_dataset(conn, dataset_name, description=None):
     be changed using ``conn.SERVICE_OPTS.setOmeroGroup``.
     Examples
     --------
-    >>> dataset_id = create_project(conn, "My New Dataset")
+    >>> dataset_id = create_dataset(conn, "My New Dataset")
     >>> print(dataset_id)
     238
     """
@@ -180,8 +182,8 @@ def duplicate_and_move_to_group(conn: BlitzGateway, script_params):
     dataset_id = create_dataset(conn, dataset)
     dataset = conn.getObject("Dataset", dataset_id)
     dataset_kvps = [
-        ["Duplicated images",
-         f"https://{OMERO_SERVER}/webclient/?show={'|'.join([f'image-{im_id}' for im_id in str_ids])}"]
+        ["Source images",
+         f"https://{OMERO_WEBSERVER}/webclient/?show={'|'.join([f'image-{im_id}' for im_id in str_ids])}"]
     ]
     add_annotation_key_value(conn, dataset, dataset_kvps)
 
