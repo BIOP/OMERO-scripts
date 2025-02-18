@@ -338,7 +338,7 @@ def run_script():
 
         authors=["Christian Evenhuis", "MIF", "Tom Boissonnet", "Rémy Dornier"],
         institutions=["University of Technology Sydney", "CAi HHU", "EPFL"],
-        contact="https://forum.image.sc/tag/omero",
+        contact="omero@groupes.epfl.ch",
         version="1.0.0",
     )
     try:

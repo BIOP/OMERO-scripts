@@ -264,7 +264,8 @@ def run_script():
 
         authors=["Rémy Dornier"],
         institutions=["EPFL - BIOP"],
-        contact="omero@groupes.epfl.ch"
+        contact="omero@groupes.epfl.ch",
+        version="1.0.0"
     )
 
     try:
