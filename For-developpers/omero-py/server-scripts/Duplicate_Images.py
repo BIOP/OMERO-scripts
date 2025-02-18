@@ -140,6 +140,9 @@ def duplicate_images(conn: BlitzGateway, script_params):
     # Image ids
     image_ids = script_params[P_IDS]
 
+    # Type of object to duplicate
+    data_type = script_params[P_DATA_TYPE]
+
     # target dataset
     dataset_base_name = script_params[P_DATASET]
     dataset = None
@@ -150,7 +153,7 @@ def duplicate_images(conn: BlitzGateway, script_params):
     # Build the duplicate command
     str_ids = [str(img_id) for img_id in image_ids]
     import_args = ["duplicate",
-                   f"Image:{','.join(str_ids)}"
+                   f"{data_type}:{','.join(str_ids)}", "--report"
                    ]
 
     for copy_id in range(n_iter):
@@ -181,7 +184,8 @@ def duplicate_images(conn: BlitzGateway, script_params):
         add_annotation_key_value(conn, dataset, dataset_kvps)
     
         # get the duplicated images from the orphaned folder
-        duplicated_images = conn.getObjects("Image", opts={'orphaned': True})
+        my_exp_id = conn.getUser().getId()
+        duplicated_images = conn.getObjects("Image", opts={'orphaned': True, 'owner': my_exp_id})
     
         img_kvps = [
             ["Duplicated by", conn.getUser().getFullName()],
