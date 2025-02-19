@@ -30,16 +30,32 @@ from omero.plugins.duplicate import DuplicateControl
 from omero.cli import CLI
 from omero.rtypes import rlong, rstring, robject
 from datetime import datetime
+from io import StringIO
+import sys
 
 P_DATA_TYPE = "Data_Type"
 P_IDS = "IDs"
 P_DUP_NUM = "Number of duplicate to create"
-P_PROJECT = "Target project"
-P_DATASET = "Dataset"
 
 OMERO_SERVER = "omero-server.epfl.ch"
 OMERO_WEBSERVER = "omero.epfl.ch"
 PORT = "4064"
+
+
+class Capturing(list):
+    """
+    Class to read the stdout of the command line
+    Here, to read the --report output by the omero.cmd.duplicate
+    """
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = StringIO()
+        return self
+
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio    # free up some memory
+        sys.stdout = self._stdout
 
 
 def add_annotation_key_value(conn, target_obj, annotations):
@@ -138,20 +154,17 @@ def duplicate_images(conn: BlitzGateway, script_params):
     """
 
     # Image ids
-    image_ids = script_params[P_IDS]
+    raw_input_ids = script_params[P_IDS]
 
     # Type of object to duplicate
     data_type = script_params[P_DATA_TYPE]
-
-    # target dataset
-    dataset_base_name = script_params[P_DATASET]
-    dataset = None
+    parent_objs = [None]
 
     # Number of image copy
     n_iter = script_params[P_DUP_NUM]
 
     # Build the duplicate command
-    str_ids = [str(img_id) for img_id in image_ids]
+    str_ids = [str(img_id) for img_id in raw_input_ids]
     import_args = ["duplicate",
                    f"{data_type}:{','.join(str_ids)}", "--report"
                    ]
@@ -163,7 +176,8 @@ def duplicate_images(conn: BlitzGateway, script_params):
             cli.register('sessions', SessionsControl, '_')
             # launch duplication
             try:
-                cli.invoke(import_args, strict=True)
+                with Capturing() as output:
+                    cli.invoke(import_args, strict=True)
                 print("SUCCESS", f"Duplicated images {str_ids}")
             except PermissionError as err:
                 message = f"Error during duplication of images {str_ids}: {err}"
@@ -172,65 +186,110 @@ def duplicate_images(conn: BlitzGateway, script_params):
                 return message, None, err
     
             cli.get_client().closeSession()
-    
-        # create the target dataset
-        dataset_name = f"{dataset_base_name}_{copy_id}"
-        dataset_id = create_dataset(conn, dataset_name)
-        dataset = conn.getObject("Dataset", dataset_id)
-        dataset_kvps = [
-            ["Source images",
-             f"https://{OMERO_WEBSERVER}/webclient/?show={'|'.join([f'image-{im_id}' for im_id in str_ids])}"]
-        ]
-        add_annotation_key_value(conn, dataset, dataset_kvps)
-    
-        # get the duplicated images from the orphaned folder
-        my_exp_id = conn.getUser().getId()
-        duplicated_images = conn.getObjects("Image", opts={'orphaned': True, 'owner': my_exp_id})
-    
-        img_kvps = [
-            ["Duplicated by", conn.getUser().getFullName()],
-            ["Duplication date", datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")]]
-    
-        # add kvps & move orphaned images to the right dataset
-        for dup_img in duplicated_images:
-            add_annotation_key_value(conn, dup_img, img_kvps)
-            link = omero.model.DatasetImageLinkI()
-            link.setChild(omero.model.ImageI(dup_img.id, False))
-            link.setParent(omero.model.DatasetI(dataset_id, False))
-            conn.getUpdateService().saveObject(link)
 
-    return f"Successful transfer of images {str_ids} to dataset(s) '{dataset_base_name}'", dataset, None
+        # extract ids of duplicated images
+        print(output)
+        duplicated_images_ids = extract_duplicate_image_ids(output, "Image")
+        print(f"Duplicated images : {duplicated_images_ids}")
+
+        # create a target dataset for orphaned images or get the duplicated parent containers
+        dataset_id = -1
+        if data_type == "Image":
+            dataset_name = f"Duplicated_images_{copy_id + 1}"
+            dataset_id = create_dataset(conn, dataset_name)
+            parent_objs = [conn.getObject("Dataset", dataset_id)]
+        else:
+            duplicated_parent_ids = extract_duplicate_image_ids(output, data_type)
+            if len(duplicated_parent_ids) > 0:
+                parent_objs = [p_obj for p_obj in conn.getObjects(data_type, duplicated_parent_ids)]
+            else:
+                parent_objs = []
+
+        if len(parent_objs) > 0 and parent_objs[0] is not None:
+            # create and add the KVP on parent container
+            parent_kvps = [
+                [f"Source {data_type.lower()}",
+                 f"https://{OMERO_WEBSERVER}/webclient/?show={'|'.join([f'{data_type.lower()}-{im_id}' for im_id in str_ids])}"]
+            ]
+
+            for parent_obj in parent_objs:
+                add_annotation_key_value(conn, parent_obj, parent_kvps)
+
+            # get the duplicated images
+            if len(duplicated_images_ids) > 0:
+                duplicated_images = conn.getObjects("Image", duplicated_images_ids)
+                img_kvps = [
+                    ["Duplicated by", conn.getUser().getFullName()],
+                    ["Duplication date", datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S")]]
+
+                # add kvps to duplicated & move orphaned images to the right dataset
+                for dup_img in duplicated_images:
+                    add_annotation_key_value(conn, dup_img, img_kvps)
+                    if data_type == "Image" and dataset_id > 0:
+                        link = omero.model.DatasetImageLinkI()
+                        link.setChild(omero.model.ImageI(dup_img.id, False))
+                        link.setParent(omero.model.DatasetI(dataset_id, False))
+                        conn.getUpdateService().saveObject(link)
+
+    return f"Successful duplication of {data_type} : {str_ids} ", parent_objs[0], None
+
+
+def extract_duplicate_image_ids(report_list, d_type):
+    """
+    Parse the report generated by omero.cmd.duplicate and extract OMERO IDs
+    of the specified type
+
+    Parameters
+    ----------
+    report_list: List of str
+        report generated by omero.cmd.duplicate
+    d_type: str
+        container type
+
+    Returns
+    -------
+
+
+    """
+    to_search = f"{d_type}:"
+    for line in report_list:
+        if line.strip().startswith(to_search):
+            ids = line.strip().replace(to_search, "")
+            omero_ids = []
+            for group_ids in ids.split(","):
+                start_end_ids = group_ids.split("-")
+                for i in range(int(start_end_ids[0]), int(start_end_ids[-1]) + 1):
+                    omero_ids.append(i)
+            return omero_ids
+    return []
 
 
 def run_script():
-    data_types = [rstring('Image')]
+    data_types = [rstring("Project"), rstring("Dataset"), rstring("Image"),
+                  rstring("Screen"), rstring("Plate"), rstring("Well")]
 
     client = scripts.client(
         'Duplicate images',
         """
-    This script duplicates n times the selected images and move them in the specified dataset.
+    This script duplicates n times all images under the selected container(s). If a container if selected, 
+    the container itself, as well as its children, are also duplicated.
         """,
         scripts.String(
             P_DATA_TYPE, optional=False, grouping="1",
-            description="Choose source of images (only Images supported)",
+            description="Choose images or containers to duplicate",
             values=data_types, default="Image"),
 
         scripts.List(
             P_IDS,  optional=False, grouping="2",
-            description="List of Images IDs to duplicate").ofType(rlong(0)),
+            description="List of IDs to duplicate").ofType(rlong(0)),
         scripts.Int(
             P_DUP_NUM, optional=False, grouping="3",
-            description="How many copies of the selected images do you want to create ?", default=1, min=1),
-
-        scripts.String(
-            P_DATASET, optional=True, grouping="4",
-            description="ONLY FOR IMAGES. New dataset to create. Leave blank to copy images in orphaned folder.",
-            default=""),
+            description="How many copies of the selected images/containers do you want to create ?", default=1, min=1),
 
         authors=["Rémy Dornier"],
         institutions=["EPFL - BIOP"],
         contact="omero@groupes.epfl.ch",
-        version="1.0.0"
+        version="2.0.0"
     )
 
     try:
