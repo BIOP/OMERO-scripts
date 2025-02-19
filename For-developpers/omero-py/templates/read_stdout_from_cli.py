@@ -2,6 +2,16 @@ from io import StringIO
 import sys
 
 
+"""
+Script copies and adapted from
+https://stackoverflow.com/questions/16571150/how-to-capture-stdout-output-from-a-python-function-call
+
+It answers the question asked here
+https://forum.image.sc/t/get-report-of-omero-cli-duplicate-in-a-python-script/108819/4
+
+"""
+
+
 class Capturing(list):
     def __enter__(self):
         self._stdout = sys.stdout
@@ -25,25 +35,6 @@ def run_script():
 
     print('done')
     print('output:', output)
-
-    report_list = []
-    report_list.append('omero.cmd.Duplicate Image:42638,42639 ok')
-    report_list.append('Steps: 14')
-    report_list.append('  ImageAnnotationLink:58214,58215')
-    report_list.append('  Image:42646,42647')
-
-    extract_duplicate_image_ids(report_list)
-
-
-def extract_duplicate_image_ids(report_list):
-    to_search = "Image:"
-    ids = []
-    for line in report_list:
-        if line.strip().startswith(to_search):
-            ids = line.strip().replace(to_search, "")
-            return ids.split(",")
-
-    return ids
 
 
 if __name__ == "__main__":
