@@ -3,15 +3,18 @@ from io import BytesIO
 import omero
 from omero.gateway import BlitzGateway
 from PIL import Image
+import traceback
 
 
 def run_script():
     # Initial code for the api training
     # connect to OMERO server
-    conn = BlitzGateway("username", "password", host="localhost", port=4064, secure=True)
+    host = "localhost"
+    conn = BlitzGateway("username", "password", host=host, port=4064, secure=True)
     conn.connect()
 
     if conn.isConnected():
+        print(f"Connected to {host}")
         try:
             # set the fetch in all the available group for the connected user
             conn.SERVICE_OPTS.setOmeroGroup(-1)  # has to be modified to fetch the correct group
@@ -106,8 +109,12 @@ def run_script():
             # link the new annotation to the image
             image_wrapper.linkAnnotation(map)
 
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
         finally:
             conn.close()
+            print(f"Disconnect from {host}")
     else:
         print("Not able to connect to OMERO server. Please check your credentials and hostname")
 

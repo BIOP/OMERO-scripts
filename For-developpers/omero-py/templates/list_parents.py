@@ -1,22 +1,30 @@
 from omero.gateway import BlitzGateway
+import traceback
 
 
 def run_script():
     object_type = "Image"
     object_id = 303
+    host = "localhost"
 
-    conn = BlitzGateway("username", "password", host="localhost", port=4064, secure=True)
+    conn = BlitzGateway("username", "password", host=host, port=4064, secure=True)
     conn.connect()
 
     if conn.isConnected():
+        print(f"Connected to {host}")
         try:
             # search in all the user's group
             conn.SERVICE_OPTS.setOmeroGroup('-1')
 
             omero_object = conn.getObject(object_type, object_id)
             print_parent(omero_object, object_type)
+
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
         finally:
             conn.close()
+            print(f"Disconnect from {host}")
 
 
 def print_parent(omero_object, object_type):

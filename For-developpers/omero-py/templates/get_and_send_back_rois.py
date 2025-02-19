@@ -6,7 +6,7 @@ To create new ROIs, you can have a look here : https://docs.openmicroscopy.org/o
 
 from omero.gateway import BlitzGateway
 from omero.rtypes import rstring
-
+import traceback
 
 comment_to_remove = ""  # leave empty to remove any comment anyway
 new_comment = "test2"
@@ -14,16 +14,19 @@ imageId = 3
 
 
 def run_script():
-    conn = BlitzGateway("username", "password", host="localhost", port=4064, secure=True)
+    host = "localhost"
+    conn = BlitzGateway("username", "password", host=host, port=4064, secure=True)
     conn.connect()
 
     if conn.isConnected():
+        print(f"Connected to {host}")
         try:
+            conn.SERVICE_OPTS.setOmeroGroup(-1)
             roi_service = conn.getRoiService()
             update_service = conn.getUpdateService()
 
             # getting ROIs attached to an image
-            result = roi_service.findByImage(imageId, None)
+            result = roi_service.findByImage(imageId, None,  conn.SERVICE_OPTS)
             # loop on the ROIs
             for roi in result.rois:
                 # loop on all shapes within the ROI
@@ -33,8 +36,13 @@ def run_script():
                         print(f"Update comment from '{s.getTextValue().getValue()}' to '{new_comment}'")
                         s.setTextValue(rstring(new_comment))
                         roi = update_service.saveAndReturnObject(roi)
+
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
         finally:
             conn.close()
+            print(f"Disconnect from {host}")
 
 
 if __name__ == "__main__":

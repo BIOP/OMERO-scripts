@@ -14,6 +14,7 @@ import os
 import tempfile
 import yaml
 from omero.cli import CLI
+import traceback
 
 
 def upload_on_omero(conn, dataset_id, image_file, omero_logfile="", _fetch_zip_only=False):
@@ -182,10 +183,12 @@ def main():
     dataset_id = 1
     paths = ["path/to/image1", "path/to/image2"]
 
-    conn = BlitzGateway("username", "password", host="localhost", port=4064, secure=True)
+    host = "localhost"
+    conn = BlitzGateway("username", "password", host=host, port=4064, secure=True)
     conn.connect()
 
     if conn.isConnected():
+        print(f"Connected to {host}")
         try:
             dataset = conn.getObject('Dataset', dataset_id)
             if not dataset:
@@ -195,8 +198,14 @@ def main():
                 for fs_path in paths:
                     print('Importing: %s' % fs_path)
                     upload_on_omero(conn, dataset_id, fs_path)
+
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+
         finally:
             conn.close()
+            print(f"Disconnect from {host}")
 
 
 if __name__ == '__main__':

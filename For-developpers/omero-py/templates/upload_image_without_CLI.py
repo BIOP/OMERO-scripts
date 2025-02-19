@@ -13,6 +13,7 @@ import locale
 import os
 import platform
 import sys
+import traceback
 
 import omero.clients
 from omero.model import ChecksumAlgorithmI
@@ -146,10 +147,12 @@ def main():
     dataset = 1  # ID of the target dataset
     paths = ["path/to/image1", "path/to/image2"]  # List of files to upload
 
-    conn = BlitzGateway("username", "password", host="localhost", port=4064, secure=True)
+    host = "localhost"
+    conn = BlitzGateway("username", "password", host=host, port=4064, secure=True)
     conn.connect()
 
     if conn.isConnected():
+        print(f"Connected to {host}")
         try:
             if not conn.getObject('Dataset', dataset):
                 print('Dataset id not found: %s' % dataset)
@@ -170,8 +173,13 @@ def main():
                             link.child = omero.model.ImageI(p.image.id.val, False)
                             links.append(link)
                     conn.getUpdateService().saveArray(links, conn.SERVICE_OPTS)
+
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
         finally:
             conn.close()
+            print(f"Disconnect from {host}")
 
 
 if __name__ == '__main__':
