@@ -1,5 +1,6 @@
 """
-Script performing a maximum intensity projection along Z axis and annotate the projection image
+Script performing an intensity projection along Z axis and annotate the projection image.
+Multiple projection types are available : Maximum and minimum
 
 It is based on this script https://gist.github.com/will-moore/4eb2fe61cd35cabd4682083b1a45e0e9
 written by Will Moore, OME team.
@@ -17,9 +18,13 @@ import omero
 P_DATA_TYPE = "Data_Type"
 P_IDS = "IDs"
 P_FULL_STACK = "Full stack projection"
+P_PROJ_TYPE = "Projection type"
 P_START_Z = "Starting Z position"
 P_END_Z = "Ending Z position"
 P_TRANSFER_ANN = "Transfer annotations to projection image (ROIs excluded)"
+
+MAX_PROJ = "max"
+MIN_PROJ = "min"
 
 
 def do_max_intensity_projection(conn, script_params):
@@ -43,6 +48,7 @@ def do_max_intensity_projection(conn, script_params):
     """
     conn.SERVICE_OPTS.setOmeroGroup(-1)
     object_id_list = script_params[P_IDS]
+    proj_type = script_params[P_PROJ_TYPE]
     is_full_stack = bool(script_params[P_FULL_STACK])
     if not is_full_stack:
         start_z = int(script_params[P_START_Z])
@@ -80,7 +86,7 @@ def do_max_intensity_projection(conn, script_params):
             start_z = 1
             end_z = sizeZ
 
-        tag = "max_projection"
+        tag = f"{proj_type}_projection"
         tag_ann = omero.gateway.TagAnnotationWrapper()
         tag_ann.setValue(tag)
 
@@ -89,7 +95,7 @@ def do_max_intensity_projection(conn, script_params):
             tag_ann = current_tag
             break
 
-        def plane_gen(start, end):
+        def plane_gen(start, end, proj_type):
             for c in clist:
                 for t in range(sizeT):
                     # get Z-stack...
@@ -102,14 +108,18 @@ def do_max_intensity_projection(conn, script_params):
                         data.append(p)
                     z_stack = np.stack(data, axis=0)
                     # return the Max-Intensity projection for C and T
-                    yield np.amax(z_stack, axis=0)
+                    if proj_type == MIN_PROJ:
+                        yield np.amin(z_stack, axis=0)
+                    else:
+                        yield np.amax(z_stack, axis=0)
 
         # Use sourceImageId to copy channels metadata etc.
         extension_name = image.name.split(".")[-1]
-        short_image_name = image.name.replace(extension_name, "")
+        short_image_name = image.name.replace(f".{extension_name}", "")
         new_image = conn.createImageFromNumpySeq(
-            plane_gen(start_z, end_z), f'{short_image_name}_proj.{extension_name}', sizeZ=1, sizeC=sizeC, sizeT=sizeT,
-            sourceImageId=image_id, channelList=clist, dataset=dataset)
+            plane_gen(start_z, end_z, proj_type), f'{short_image_name}_{proj_type}_proj.{extension_name}',
+            sizeZ=1, sizeC=sizeC, sizeT=sizeT, sourceImageId=image_id, channelList=clist, dataset=dataset
+        )
 
         print("Projected Image", new_image.getId(), new_image.getName())
 
@@ -120,7 +130,7 @@ def do_max_intensity_projection(conn, script_params):
         # adding key-value pairs
         kvps = [["Source image ID", f"{image_id}"],
                   ["Source image", f"{image.name}"],
-                  ["Projection type", "Maximum intensity"],
+                  ["Projection type", f"{proj_type} intensity"],
                   ["Z-slices", f"{start_z}-{end_z}"]]
         print("Adding KVPs: ", kvps)
         adding_kvp(kvps, "z_projection", new_image)
@@ -168,11 +178,12 @@ def adding_kvp(kvps, ns, image_wrapper):
 def run_script():
 
     data_types = [rstring('Image')]
+    proj_types = [rstring(MAX_PROJ), rstring(MIN_PROJ)]
     
     client = scripts.client(
-        'Maximum intensity projection',
+        'Intensity projection',
         """
-    Script performing a maximum intensity projection along Z axis. 
+    Script performing an intensity projection (max or min projection) along Z axis. 
         """,
         
         scripts.String(
@@ -198,16 +209,21 @@ def run_script():
             P_END_Z, grouping="2.2",
             description="Last projected slice", default=1, min=1),
 
+        scripts.String(
+            P_PROJ_TYPE, optional=False, grouping="3",
+            description="Choose the type of projection to perform",
+            values=proj_types, default=MAX_PROJ),
+
         scripts.Bool(
-            P_TRANSFER_ANN, grouping="3",
+            P_TRANSFER_ANN, grouping="4",
             description="Copy annotation from source image to projection image. "
-                        "\nROIs and image description are not transferred.",
+                        "\nROIs and image description are NOT transferred.",
             default=False),
 
         authors=["William Moore, Rémy Dornier"],
         institutions=["University of Dundee, EPFL - BIOP"],
         contact="omero@groupes.epfl.ch",
-        version="1.0.0"
+        version="1.1.0"
     )
 
     try:
