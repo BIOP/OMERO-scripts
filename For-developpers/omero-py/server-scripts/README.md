@@ -1,4 +1,5 @@
 # Add owner as key value
+> Note : Work in progress... This script has to be revised
 
 # Dataset to plate
 ## Description
@@ -114,3 +115,34 @@ Upload the script on the server to make it accessible from omero-web.
 - A new image(s) on OMERO corresponding to the z-projection of the selected stack(s)
 - Linked to each projection image, a `min_projection` or `max_projection` tag
 - Linked to each projection image, a key-value pair with the source image, projection type and projected slices, under the `z-projection` namespace
+
+
+# Share images across groups
+## Description
+
+This script duplicates selected images in the specified dataset and transfer 
+the dataset from the current group to the specified target group.
+
+
+ ## How to install it
+ ### Modify the script
+ You have to modify the variables `OMERO_SERVER` `PORT`, and `OMERO_WEBSERVER` with your own server addresses & port.
+ 
+ ### Server side
+- You need to install https://github.com/ome/omero-cli-duplicate on the server to make the script work.
+- Upload the script on the server to make it accessible from omero-web.
+
+## How to use it
+- Select on omero-web the images(s) you would like to share.
+- Open the script:
+  - `Data Type`: should be filled automatically 
+  - `IDs` : should be filled automatically.
+  - `Target group` : Exact name of the group to transfer the images to (NOT case-sensitive)
+  - `Dataset`: Name of the dataset which will contain the duplicated images. Leave blank to put in orphaned folder.
+- Run the script
+ 
+## Expected output
+- Duplicated images in the target group
+- On each image, a key-value pair with the duplication time & author and 
+the base & target group (under the `omero-duplicate` namespace)
+- On the dataset (if there is one), a key-value pair with the URL of the duplicated source images(s) (under the `omero-duplicate` namespace)

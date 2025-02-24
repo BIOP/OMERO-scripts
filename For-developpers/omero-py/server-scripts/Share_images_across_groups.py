@@ -241,8 +241,7 @@ def run_script():
     client = scripts.client(
         'Share images across groups',
         """
-    This script duplicates selected images in the specified dataset and transfer the dataset from the current group
-    to the specified target group.
+    This script duplicates selected images in the specified dataset and transfer the dataset from the current group to the specified target group.
         """,
         scripts.String(
             P_DATA_TYPE, optional=False,grouping="1",
