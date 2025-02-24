@@ -347,7 +347,12 @@ def run_script():
     data_types = [rstring('Dataset')]
     first_axis = [rstring('column'), rstring('row')]
     row_col_naming = [rstring('letter'), rstring('number')]
-    patterns = [rstring(EVOS_TEMPLATE), rstring(DEFAULT_PATTERN)]
+
+    patterns = []
+    for k in position_template_map.keys():
+        patterns.append(rstring(k))
+
+    patterns.append(rstring(DEFAULT_PATTERN))
 
     client = scripts.client(
         'Dataset_To_Plate.py',
