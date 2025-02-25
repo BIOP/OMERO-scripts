@@ -1,9 +1,8 @@
 """
- MIF/Add_owner_as_key_value.py
- Adds data owner as a key-value pair to images and/or containers
- (i.e. project, dataset, well, plate and screen).
+ Add_owner_as_key_value.py
+ Adds data owner as a key-value pair to images
 -----------------------------------------------------------------------------
-  Copyright (C) 2022
+  Copyright (C) 2025
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
@@ -28,6 +27,10 @@ import copy
 from collections import OrderedDict
 
 
+P_DATA_TYPE = "Data_Type"
+P_IDS = "IDs"
+
+
 def get_existing_map_annotations(obj, namespace):
     """Get all Map Annotations linked to the object"""
 
@@ -50,7 +53,7 @@ def annotate_object(conn, obj, key, val):
     """
 
     obj_updated = False
-    namespace = "Previous Owners"
+    namespace = "data.ownership"
     existing_kv = get_existing_map_annotations(obj, namespace)
     updated_kv = copy.deepcopy(existing_kv)
 
@@ -121,7 +124,7 @@ def process_dataset(conn, dataset, key, owner):
     for image in dataset.listChildren():
         n_image += process_image(conn, image, key, owner)
 
-    return n_image, (1 if annotate_object(conn, dataset, key, owner) is True else 0)
+    return n_image
 
 
 def process_project(conn, project, key, owner):
@@ -130,14 +133,11 @@ def process_project(conn, project, key, owner):
     return the number of processed images & datasets
     """
 
-    n_dataset = 0
     n_image = 0
     for dataset in project.listChildren():
-        n_image_tmp, n_dataset_tmp = process_dataset(conn, dataset, key, owner)
-        n_dataset += n_dataset_tmp
-        n_image += n_image_tmp
+        n_image += process_dataset(conn, dataset, key, owner)
 
-    return n_image, n_dataset, (1 if annotate_object(conn, project, key, owner) is True else 0)
+    return n_image
 
 
 def process_well(conn, well, key, owner):
@@ -150,7 +150,7 @@ def process_well(conn, well, key, owner):
     for wellSample in well.listChildren():
         n_image += process_image(conn, wellSample.getImage(), key, owner)
 
-    return n_image, (1 if annotate_object(conn, well, key, owner) is True else 0)
+    return n_image
 
 
 def process_plate(conn, plate, key, owner):
@@ -160,13 +160,10 @@ def process_plate(conn, plate, key, owner):
     """
 
     n_image = 0
-    n_well = 0
     for well in plate.listChildren():
-        n_image_tmp, n_well_tmp = process_well(conn, well, key, owner)
-        n_well += n_well_tmp
-        n_image += n_image_tmp
+        n_image += process_well(conn, well, key, owner)
 
-    return n_image, n_well, (1 if annotate_object(conn, plate, key, owner) is True else 0)
+    return n_image
 
 
 def process_screen(conn, screen, key, owner):
@@ -176,15 +173,10 @@ def process_screen(conn, screen, key, owner):
     """
 
     n_image = 0
-    n_well = 0
-    n_plate = 0
     for plate in screen.listChildren():
-        n_image_tmp, n_well_tmp, n_plate_tmp = process_plate(conn, plate, key, owner)
-        n_image += n_image_tmp
-        n_well += n_well_tmp
-        n_plate += n_plate_tmp
+        n_image += process_plate(conn, plate, key, owner)
 
-    return n_image, n_well, n_plate, (1 if annotate_object(conn, screen, key, owner) is True else 0)
+    return n_image
 
 
 def add_owner_as_keyval(conn, script_params):
@@ -194,19 +186,15 @@ def add_owner_as_keyval(conn, script_params):
     """
 
     # select the object type (image, dataset, project, well, plate, screen, user)
-    object_type = script_params["Data_Type"]
+    object_type = script_params[P_DATA_TYPE]
+
     # enter its corresponding ID (except for 'user' : enter the username)
-    object_id_list = script_params["IDs"]
+    object_id_list = script_params[P_IDS]
 
     today = date.today().strftime("%Y%m%d")
-    key = "Owner_" + today
+    key = "owner_" + today
 
     n_image = 0
-    n_dataset = 0
-    n_project = 0
-    n_well = 0
-    n_plate = 0
-    n_screen = 0
     owner = ""
 
     for object_id in object_id_list:
@@ -247,36 +235,24 @@ def add_owner_as_keyval(conn, script_params):
                     # list all user's projects
                     projects = user_conn.getObjects("Project", opts={'owner': user_id})
                     for project in projects:
-                        n_image_tmp, n_dataset_tmp, n_project_tmp = process_project(user_conn, project, key, owner)
-                        n_image += n_image_tmp
-                        n_dataset += n_dataset_tmp
-                        n_project += n_project_tmp
+                        n_image += process_project(user_conn, project, key, owner)
 
                     # lists all user's screens
                     screens = user_conn.getObjects("screen", opts={'owner': user_id})
                     for screen in screens:
-                        n_image_tmp, n_well_tmp, n_plate_tmp, n_screen_tmp = process_screen(user_conn, screen, key, owner)
-                        n_image += n_image_tmp
-                        n_well += n_well_tmp
-                        n_plate += n_plate_tmp
-                        n_screen += n_screen_tmp
+                        n_image += process_screen(user_conn, screen, key, owner)
 
-                    # lists all user's orpahned dataset
+                    # lists all user's orphaned dataset
                     orphaned_datasets = user_conn.getObjects("dataset", opts={'owner': user_id, 'orphaned': True})
                     for orphaned_dataset in orphaned_datasets:
-                        n_image_tmp, n_dataset_tmp = process_dataset(user_conn, orphaned_dataset, key, owner)
-                        n_dataset += n_dataset_tmp
-                        n_image += n_image_tmp
+                        n_image += process_dataset(user_conn, orphaned_dataset, key, owner)
 
-                    # lists all user's orpahned plates
+                    # lists all user's orphaned plates
                     orphaned_plates = user_conn.getObjects("plate", opts={'owner': user_id, 'orphaned': True})
                     for orphaned_plate in orphaned_plates:
-                        n_image_tmp, n_well_tmp, n_plate_tmp = process_plate(user_conn, orphaned_plate, key, owner)
-                        n_image += n_image_tmp
-                        n_well += n_well_tmp
-                        n_plate += n_plate_tmp
+                        n_image += process_plate(user_conn, orphaned_plate, key, owner)
 
-                    # lists all user's orpahned images
+                    # lists all user's orphaned images
                     orphaned_images = user_conn.getObjects("image", opts={'owner': user_id, 'orphaned': True})
                     for orphaned_image in orphaned_images:
                         n_image += process_image(user_conn, orphaned_image, key, owner)
@@ -322,29 +298,15 @@ def add_owner_as_keyval(conn, script_params):
                 if object_type == 'Image':
                     n_image += process_image(user_conn, omero_object, key, owner)
                 if object_type == 'Dataset':
-                    n_image_tmp, n_dataset_tmp = process_dataset(user_conn, omero_object, key, owner)
-                    n_dataset += n_dataset_tmp
-                    n_image += n_image_tmp
+                    n_image += process_dataset(user_conn, omero_object, key, owner)
                 if object_type == 'Project':
-                    n_image_tmp, n_dataset_tmp, n_project_tmp = process_project(user_conn, omero_object, key, owner)
-                    n_image += n_image_tmp
-                    n_dataset += n_dataset_tmp
-                    n_project += n_project_tmp
+                    n_image += process_project(user_conn, omero_object, key, owner)
                 if object_type == 'Well':
-                    n_image_tmp, n_well_tmp = process_well(user_conn, omero_object, key, owner)
-                    n_well += n_well_tmp
-                    n_image += n_image_tmp
+                    n_image += process_well(user_conn, omero_object, key, owner)
                 if object_type == 'Plate':
-                    n_image_tmp, n_well_tmp, n_plate_tmp = process_plate(user_conn, omero_object, key, owner)
-                    n_image += n_image_tmp
-                    n_well += n_well_tmp
-                    n_plate += n_plate_tmp
+                    n_image += process_plate(user_conn, omero_object, key, owner)
                 if object_type == 'Screen':
-                    n_image_tmp, n_well_tmp, n_plate_tmp, n_screen_tmp = process_screen(user_conn, omero_object, key, owner)
-                    n_image += n_image_tmp
-                    n_well += n_well_tmp
-                    n_plate += n_plate_tmp
-                    n_screen += n_screen_tmp
+                    n_image += process_screen(user_conn, omero_object, key, owner)
 
                 # close the user connection
                 if conn.getUser().isAdmin():
@@ -357,8 +319,7 @@ def add_owner_as_keyval(conn, script_params):
     if owner == "":
         message = "Owner cannot be added"
     else:
-        message = f"Added {owner} as owner to {n_image} image(s), {n_dataset} dataset(s), {n_project} " \
-                  "project(s), {n_well} well(s), {n_plate} plate(s), {n_screen} screen(s) "
+        message = f"Added '{owner}' as owner to {n_image} image(s)"
     print(message)
 
     return message
@@ -370,21 +331,21 @@ def run_script():
     client = scripts.client(
         'Add_Owner_as_KeyVal',
         """
-    This script adds the owner of data as a key-value pair to the selected source(s) and its children.
+    This script adds the owner name as a key-value pair to all images in the selected container(s).
         """,
         scripts.String(
-            "Data_Type", optional=False, grouping="1",
+            P_DATA_TYPE, optional=False, grouping="1",
             description="Choose source of images",
             values=data_types, default="Dataset"),
 
         scripts.List(
-            "IDs", optional=False, grouping="2",
+            P_IDS, optional=False, grouping="2",
             description="Object ID(s) or username(s).").ofType(rstring('')),
 
         authors=["Rémy Dornier"],
         institutions=["EPFL - BIOP"],
         contact="omero@groupes.epfl.ch",
-        version="1.0.0"
+        version="2.0.0"
     )
 
     try:
