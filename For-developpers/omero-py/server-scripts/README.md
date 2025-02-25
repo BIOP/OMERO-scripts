@@ -6,6 +6,14 @@ Follow these [instructions](https://omero.readthedocs.io/en/stable/developers/sc
 to install/update the scripts.
 
 # Script description
+- [Add owner as key value](#add-owner-as-key-value)
+- [Dataset to plate](#dataset-to-plate)
+- [Duplicate images](#duplicate-images)
+- [Export Cellprofiler IDs](#export-cellprofiler-ids)
+- [Intensity Projection](#intensity-projection)
+- [Share images across groups](#share-images-across-groups)
+- [Import from csv](#import-from-csv)
+
 ## Add owner as key value
 ### Description
 
@@ -83,11 +91,13 @@ For the rest of the fields, have a look to the official documentation.
  
  ### How to install it
  #### Modify the script
- You have to modify the variables `OMERO_SERVER` `PORT`, and `OMERO_WEBSERVER` with your own server addresses & port.
+-  You have to modify the variables `OMERO_SERVER` `PORT`, and `OMERO_WEBSERVER` with your own server addresses & port.
  
  #### Server side
 - You need to install https://github.com/ome/omero-cli-duplicate on the server to make the script work.
-- Upload the script on the server to make it accessible from omero-web.
+
+#### Upload
+- Have a look to [Upload](#uploading-on-server) section.
 
 ### How to use it
 - Select the container(s) you would like to duplicate on omero-web
@@ -108,7 +118,8 @@ This script exports in a txt file, with OMERO IDs, formatting in a way that Cell
 is able to read the images from OMERO and apply a pipeline on them.
 
 ### How to install it
-Upload the script on the server to make it accessible from omero-web.
+#### Upload
+- Have a look to [Upload](#uploading-on-server) section.
 
 ### How to use it
 - Select the container(s) you would like to process on omero-web
@@ -121,13 +132,27 @@ Upload the script on the server to make it accessible from omero-web.
 ### Expected output
 - .txt file attached to the selected container, with OMERO IDs readable by cellProfiler. 
 
+
+## Import from csv
+This script is a duplicate of the [official script](https://github.com/ome/omero-scripts/blob/develop/omero/annotation_scripts/Import_from_csv.py), where a new option has been added.
+
+The documentation of the script is available on the [official website](https://guide-kvpairs-scripts.readthedocs.io/en/latest/walkthrough.html#importing-key-value-pairs)
+ as well the [parameter description](https://guide-kvpairs-scripts.readthedocs.io/en/latest/parameter_description.html).
+
+### New option description
+A checkbox `Group keys by unicity of values` is added to the GUI, in the `Other parameters` group.
+If you check this box, key-values will be analysed and grouped according to unicity of values
+- For each key, if the value for all images are identical, those keys will be grouped under the same KVP group
+- For each key, if the value for images are different, then each key will be added in a separate KVP group.
+
 ## Intensity Projection
 
 ### Description
 Script performing an intensity projection (max or min projection) along Z axis for all selected stacks. 
 
 ### How to install it
-Upload the script on the server to make it accessible from omero-web.
+#### Upload
+- Have a look to [Upload](#uploading-on-server) section.
 
 ### How to use it
 - Select on omero-web the stack(s) you want to make z-projection on.
@@ -157,11 +182,12 @@ the dataset from the current group to the specified target group.
 
  ### How to install it
  #### Modify the script
- You have to modify the variables `OMERO_SERVER` `PORT`, and `OMERO_WEBSERVER` with your own server addresses & port.
+ - You have to modify the variables `OMERO_SERVER` `PORT`, and `OMERO_WEBSERVER` with your own server addresses & port.
  
  #### Server side
 - You need to install https://github.com/ome/omero-cli-duplicate on the server to make the script work.
-- Upload the script on the server to make it accessible from omero-web.
+#### Upload
+- Have a look to [Upload](#uploading-on-server) section.
 
 ### How to use it
 - Select on omero-web the images(s) you would like to share.
