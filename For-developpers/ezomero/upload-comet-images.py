@@ -1,3 +1,29 @@
+"""
+upload_comet_images.py
+Code to import any image on OMERO and attach one or more files to it.
+-----------------------------------------------------------------------------
+  Copyright (C) 2023
+  This program is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation; either version 2 of the License, or
+  (at your option) any later version.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  You should have received a copy of the GNU General Public License along
+  with this program; if not, write to the Free Software Foundation, Inc.,
+  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+------------------------------------------------------------------------------
+Created by Rémy Dornier - EPFL - BIOP
+Date: 2025.03.12
+Version: 1.0.0
+
+Dependencies
+    - PyQt6
+    - ezomero
+"""
+
 import ezomero
 import traceback
 from PyQt6.QtWidgets import QLineEdit, QLabel, QFileDialog, QPushButton, QMainWindow, QVBoxLayout, \
@@ -380,6 +406,7 @@ def run_script(conn, host, project_name, project_dict, dataset_name, dataset_dic
         print(f"Connected to {host}")
         try:
             if project_name is not None and project_name != "":
+                # get or create the project
                 if project_dict[project_name] < 0:
                     real_name = project_name.replace(NEW_PREFIX, "")
                     print(f"Creating project '{real_name}'")
@@ -388,6 +415,7 @@ def run_script(conn, host, project_name, project_dict, dataset_name, dataset_dic
                     project_id = project_dict[project_name]
 
                 if dataset_name is not None and dataset_name != "":
+                    # get or create the dataset
                     if dataset_dict[dataset_name] < 0:
                         real_name = dataset_name.replace(NEW_PREFIX, "")
                         print(f"Creating dataset '{real_name}'")
@@ -395,9 +423,11 @@ def run_script(conn, host, project_name, project_dict, dataset_name, dataset_dic
                     else:
                         dataset_id = dataset_dict[dataset_name]
 
+                    # importing the image in the right dataset
                     image_ids = ezomero.ezimport(conn, image_path, dataset=dataset_id)
 
-                    if len(image_ids) > 0:
+                    # attaching the file(s) to the image
+                    if len(image_ids) > 0 and attachments is not None and attachments != "":
                         image = conn.getObject("Image", image_ids[0])
 
                         attachments_list = attachments.split(SEPARATOR)
