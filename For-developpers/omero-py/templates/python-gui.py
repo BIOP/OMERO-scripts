@@ -112,6 +112,11 @@ class MainWindow(QMainWindow):
         response = QFileDialog.getExistingDirectory(parent=self, caption="select a folder", directory=os.getcwd())
         self.folder.setText(str(response))
 
+    def open_multiple_file_chooser(self):
+        rsp_path_list, rsp_filter = QFileDialog.getOpenFileNames(parent=self, caption="select one or more files")
+        path_list = ",".join(rsp_path_list)
+        self.folder.setText(str(path_list))
+
 
 def run_script(username, password, saving_folder, images_url):
     host = "localhost"
