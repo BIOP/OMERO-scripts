@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QLineEdit, QLabel, QFileDialog, QPushButton, QMainWi
 FONT_SIZE = 'font-size: 14px'
 SEPARATOR = ","
 NEW_PREFIX = "$new$"
-HOST = "omero-server-poc.epfl.ch"
+HOST = "omero-server.epfl.ch"
 
 
 class MainWindow(QMainWindow):
@@ -20,7 +20,6 @@ class MainWindow(QMainWindow):
         self.project_dict = {}
         self.dataset_dict = {}
         self.group_dict = {}
-        self.grp_changed = False
 
         # main window settings
         self.setWindowTitle("Main window title")
@@ -213,6 +212,8 @@ class MainWindow(QMainWindow):
 
 
     def close_app(self):
+        if self.conn is not None and self.conn.isConnected:
+            self.conn.close()
         self.close()
 
 
@@ -237,12 +238,12 @@ class MainWindow(QMainWindow):
 
 
     def open_file_chooser(self):
-        rsp_path_list, rsp_filter = QFileDialog.getOpenFileName(parent=self, caption="select an image")
+        rsp_path_list, rsp_filter = QFileDialog.getOpenFileName(parent=self, caption="Select an image")
         self.folder.setText(str(rsp_path_list))
 
 
     def open_multiple_file_chooser(self):
-        rsp_path_list, rsp_filter = QFileDialog.getOpenFileNames(parent=self, caption="select one or more files")
+        rsp_path_list, rsp_filter = QFileDialog.getOpenFileNames(parent=self, caption="Select one or more files")
         path_list = SEPARATOR.join(rsp_path_list)
         self.att.setText(str(path_list))
 
@@ -255,7 +256,7 @@ class MainWindow(QMainWindow):
 
         self.conn = ezomero.connect(username, password, group=f"{group}", host=self.host, port=4064, secure=True)
 
-        if self.conn.isConnected():
+        if self.conn is not None and self.conn.isConnected():
             self.is_connected = True
             self.att.setEnabled(True)
             self.folder.setEnabled(True)
@@ -274,13 +275,20 @@ class MainWindow(QMainWindow):
             self.radio_project_existing.setEnabled(True)
             self.new_project_selected()
 
+            project_names = sorted(self.list_projects(self.conn))
+            for project_name in project_names:
+                self.project_combo.addItem(project_name)
+            if len(project_names) > 0:
+                self.dataset_combo.setCurrentText(project_names[0])
+                self.project_text_changed(project_names[0])
+
 
     def load_groups(self):
         username = self.username.text()
         password = self.password.text()
         self.conn = ezomero.connect(username, password, group="", host=self.host, port=4064, secure=True)
 
-        if self.conn.isConnected():
+        if self.conn is not None and self.conn.isConnected():
             group_names = sorted(self.list_groups(self.conn))
             for group_name in group_names:
                 self.group_combo.addItem(group_name)
@@ -357,28 +365,13 @@ class MainWindow(QMainWindow):
         self.dataset_combo.setEnabled(self.radio_dataset_existing.isChecked())
 
 
-    def group_text_changed(self, s):
-        self.grp_changed = True
-        group_id = self.group_dict[s]
-        self.conn.SERVICE_OPTS.setOmeroGroup(group_id)
-        project_names = sorted(self.list_projects(self.conn))
-        self.project_combo.clear()
-        for project_name in project_names:
-            self.project_combo.addItem(project_name)
-        if len(project_names) > 0:
-            self.project_combo.setCurrentText(project_names[0])
-            self.grp_changed = False
-            self.project_text_changed(project_names[0])
-
-
     def project_text_changed(self, s):
-        if not self.grp_changed:
-            dataset_names = sorted(self.list_datasets(self.conn, self.project_dict[s]))
-            self.dataset_combo.clear()
-            for dataset_name in dataset_names:
-                self.dataset_combo.addItem(dataset_name)
-            if len(dataset_names) > 0:
-                self.dataset_combo.setCurrentText(dataset_names[0])
+        dataset_names = sorted(self.list_datasets(self.conn, self.project_dict[s]))
+        self.dataset_combo.clear()
+        for dataset_name in dataset_names:
+            self.dataset_combo.addItem(dataset_name)
+        if len(dataset_names) > 0:
+            self.dataset_combo.setCurrentText(dataset_names[0])
 
 
 def run_script(conn, host, project_name, project_dict, dataset_name, dataset_dict, image_path, attachments):
