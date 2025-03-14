@@ -55,7 +55,7 @@
  *  = AUTHOR INFORMATION =
  * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
  * date : 2023-08-10
- * version : v2.1.1
+ * version : v2.2.0
  * 
  * = HISTORY =
  * - 2023.08.10 : First release --v1.0
@@ -66,6 +66,7 @@
  * - 2023.11.07 : Generate a CSV report in the download folder --v2.0
  * - 2024.02.29 : Add support for the fluorescence VSI images from new Slide Scanner (i.e. split serie name with comma) --v2.1
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.1.1
+ * - 2025.03.14 : Handle standalone ome.tiff files --v2.2.0
  * 
  */
 
@@ -102,6 +103,8 @@ TAG = "Tags"
 
 String DEFAULT_PATH_KEY = "scriptDefaultDir"
 String FOL_PATH = "path";
+String IS_OME_TIFF = "isOmeTiff"
+String OME_TIFF_STD = "isOmeTiffStandalone"
 String OMR_PRJ = "project";
 String OMR_DST = "dataset";
 String IS_NEW_DST = "isNewDataset";
@@ -160,6 +163,8 @@ if (user_client.isConnected()){
 				IJLoggerInfo("LOCAL", "User input\n " + inputValues);
 			
 				String foldersToImport = selectedMap.get(FOL_PATH)
+				boolean isOmeTiff = selectedMap.get(IS_OME_TIFF).toLowerCase().equals("true") ? true: false
+				boolean isOmeTiffStandalone = selectedMap.get(OME_TIFF_STD).toLowerCase().equals("true") ? true: false
 				boolean isNewDataset = selectedMap.get(IS_NEW_DST).toLowerCase().equals("true") ? true: false
 				boolean isNewFromFolder = selectedMap.get(IS_DST_FLD).toLowerCase().equals("true") ? true: false
 				boolean isNewProject = selectedMap.get(IS_NEW_PRJ).toLowerCase().equals("true") ? true: false
@@ -277,9 +282,9 @@ if (user_client.isConnected()){
 			
 					// check if there are ome-tiff images. In case, inform the user
 					def values = cMap.values()
-					if(values.contains(OME_TIFF)){
+					if(values.contains(OME_TIFF) && isOmeTiff && !isOmeTiffStandalone){
 						def title = "OME_TIFF Files"
-						def content = "There are some .ome.tiff files. Please, check that all and only files from the same fileset are in the same folder. "+
+						def content = "Filesets .ome.tiff files have been detected. Please, check that all and only files from the same fileset are in the same folder. "+
 									"If it is not the case, ONLY IMAGES THAT ARE PART OF THE SAME FILESET ARE UPLOAD ; OTHER IMAGES WITHIN THE SAME FOLDER ARE NOT UPLOADED"
 						IJLoggerWarn(title, content)
 						omeTiffFilesWarning = true
@@ -288,7 +293,7 @@ if (user_client.isConnected()){
 					def countRaw = 0
 					for(File parentFolder : cMap.keySet()){
 						def type = cMap.get(parentFolder)
-						if(type == STANDARD){
+						if(type == STANDARD || (type == OME_TIFF && isOmeTiff && isOmeTiffStandalone)){
 							// upload all images
 							for(File imgFile : imgMap.get(parentFolder)){
 								IJLoggerInfo("*****************");
@@ -483,7 +488,6 @@ def listImages(parentFolder, compatibleFormatList){
 						}else{
 							// special treatement for ome-tiff files
 							if(imgName.endsWith(".ome.tif") || imgName.endsWith(".ome.tiff")){
-								IJLoggerWarn("Supported Format", "There are some ome.tiff files. Only one file per folder will be uploaded on OMERO.")
 								parentFolderMap.put(parent, OME_TIFF)
 							}else{
 								parentFolderMap.put(parent, STANDARD)
@@ -801,6 +805,8 @@ public class Dialog extends JFrame {
 	String FOL_PATH = "path";
     String OMR_PRJ = "project";
     String OMR_DST = "dataset";
+    String IS_OME_TIFF = "isOmeTiff"
+    String OME_TIFF_STD = "isOmeTiffStandalone"
     String IS_NEW_DST = "isNewDataset";
     String IS_DST_FLD = "isNewFromFolder";
     String IS_NEW_PRJ = "isNewProject";
@@ -900,6 +906,35 @@ public class Dialog extends JFrame {
                 IJ.setProperty(DEFAULT_PATH_KEY, currentDir)
             }
         });
+        
+        
+                
+        // Radio button to choose existing project
+        JLabel extensionLabel = new JLabel("Choose image extension");
+        ButtonGroup formatChoice = new ButtonGroup();
+        JRadioButton rbOmetiffFormat = new JRadioButton("OME-TIFF");
+        formatChoice.add(rbOmetiffFormat);
+        rbOmetiffFormat.setSelected(false);
+        
+        // Radio button to choose new project
+        JRadioButton rbOtherFormat = new JRadioButton("Other formats");
+        formatChoice.add(rbOtherFormat);
+        rbOtherFormat.setSelected(true);    
+        
+        
+        // Radio button to choose new project
+        ButtonGroup ometiffChoice = new ButtonGroup();
+        JRadioButton rbStdOmetiff = new JRadioButton("Standalone OME-TIFF");
+        ometiffChoice.add(rbStdOmetiff);
+        rbStdOmetiff.setSelected(true);
+        rbStdOmetiff.setEnabled(false);
+        
+        
+        JRadioButton rbFsOmetiff = new JRadioButton("Fileset OME-TIFF");
+        ometiffChoice.add(rbFsOmetiff);
+        rbFsOmetiff.setSelected(false); 
+		rbFsOmetiff.setEnabled(false)
+        
 		
         // build Combo project
         JPanel boxComboProject = new JPanel();
@@ -986,6 +1021,18 @@ public class Dialog extends JFrame {
 			rbNewDataset.setSelected(rbExistingProject.isSelected());
 			rbExistingDataset.setEnabled(rbExistingProject.isSelected() && !chkNewFromFolder.isSelected());
         });
+        
+         // actionListener on ome tiff extension radio button
+        rbOmetiffFormat.addActionListener(e -> {
+			rbStdOmetiff.setEnabled(rbOmetiffFormat.isSelected());
+			rbFsOmetiff.setEnabled(rbOmetiffFormat.isSelected())
+        });
+        
+        // actionListener on otehr extension radio button
+        rbOtherFormat.addActionListener(e -> {
+			rbStdOmetiff.setEnabled(!rbOtherFormat.isSelected());
+			rbFsOmetiff.setEnabled(!rbOtherFormat.isSelected())
+        });
               
         // build buttons
         JPanel boxButton = new JPanel();
@@ -1026,11 +1073,24 @@ public class Dialog extends JFrame {
         windowFolder.add(tfRootFolder);
         windowFolder.add(bRootFolder);
         
+        JPanel windowExtension = new JPanel();
+        windowExtension.setLayout(new BoxLayout(windowExtension, BoxLayout.X_AXIS));
+        windowExtension.add(extensionLabel);
+        windowExtension.add(rbOmetiffFormat);
+        windowExtension.add(rbOtherFormat);
+        
+        JPanel windowOmeTiff = new JPanel();
+        windowOmeTiff.setLayout(new BoxLayout(windowOmeTiff, BoxLayout.X_AXIS));
+        windowOmeTiff.add(rbStdOmetiff);
+        windowOmeTiff.add(rbFsOmetiff);
+        
         // general panel
         JPanel windowNLGeneral = new JPanel();
         windowNLGeneral.setLayout(new BoxLayout(windowNLGeneral, BoxLayout.Y_AXIS));
         windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
         windowNLGeneral.add(windowFolder);
+        windowNLGeneral.add(windowExtension);
+        windowNLGeneral.add(windowOmeTiff);
         windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
         windowNLGeneral.add(new JSeparator());
         windowNLGeneral.add(Box.createRigidArea(new Dimension(0,5)));
@@ -1099,6 +1159,8 @@ public class Dialog extends JFrame {
 		
 						Map<String, String> selection = new HashMap<>()
 						selection.put(FOL_PATH, rootFolder)
+						selection.put(IS_OME_TIFF, String.valueOf(rbOmetiffFormat.isSelected()))
+						selection.put(OME_TIFF_STD, String.valueOf(rbStdOmetiff.isSelected()))
 						selection.put(OMR_PRJ, (String) cmbProject.getSelectedItem())
 						selection.put(OMR_DST, (String) cmbDataset.getSelectedItem())
 						selection.put(IS_NEW_DST, String.valueOf(rbNewDataset.isSelected()))
@@ -1140,6 +1202,8 @@ public class Dialog extends JFrame {
     				
     				Map<String, String> selection = new HashMap<>()
     				selection.put(FOL_PATH, (String) tfRootFolder.getText())
+					selection.put(IS_OME_TIFF, String.valueOf(rbOmetiffFormat.isSelected()))
+					selection.put(OME_TIFF_STD, String.valueOf(rbStdOmetiff.isSelected()))
     				selection.put(OMR_PRJ, (String) cmbProject.getSelectedItem())
     				selection.put(OMR_DST, (String) cmbDataset.getSelectedItem())
 					selection.put(IS_NEW_DST, String.valueOf(rbNewDataset.isSelected()))
