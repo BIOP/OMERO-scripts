@@ -258,8 +258,11 @@ class MainWindow(QMainWindow):
 
         image_path = self.folder.text()
         attachments = self.att.text()
+        username = self.username.text()
+        password = self.password.text()
+        group = self.group_combo.currentText()
         self.close()
-        run_script(self.conn, self.host, project, self.project_dict, dataset,
+        run_script(self.conn, self.host, username, password, group, project, self.project_dict, dataset,
                    self.dataset_dict, image_path, attachments)
 
 
@@ -291,7 +294,6 @@ class MainWindow(QMainWindow):
             self.project.setEnabled(False)
             self.dataset.setEnabled(True)
             self.password.setEnabled(False)
-            self.password.setText("")
             self.username.setEnabled(False)
             self.connect_button.setEnabled(False)
             self.group_combo.setEnabled(False)
@@ -400,7 +402,8 @@ class MainWindow(QMainWindow):
             self.dataset_combo.setCurrentText(dataset_names[0])
 
 
-def run_script(conn, host, project_name, project_dict, dataset_name, dataset_dict, image_path, attachments):
+def run_script(conn, host, username, password, group, project_name, project_dict,
+               dataset_name, dataset_dict, image_path, attachments):
 
     if conn is not None and conn.isConnected():
         print(f"Connected to {host}")
@@ -424,7 +427,12 @@ def run_script(conn, host, project_name, project_dict, dataset_name, dataset_dic
                         dataset_id = dataset_dict[dataset_name]
 
                     # importing the image in the right dataset
+
                     image_ids = ezomero.ezimport(conn, image_path, dataset=dataset_id)
+
+                    # because the upload can be long, we need to re-connect again to omero
+                    if conn is None or not conn.isConnected():
+                        conn = ezomero.connect(username, password, group=group, host=host, port=4064, secure=True)
 
                     # attaching the file(s) to the image
                     if len(image_ids) > 0 and attachments is not None and attachments != "":
