@@ -33,7 +33,8 @@ from PyQt6.QtWidgets import QLineEdit, QLabel, QFileDialog, QPushButton, QMainWi
 FONT_SIZE = 'font-size: 14px'
 SEPARATOR = ","
 NEW_PREFIX = "$new$"
-HOST = "omero-server.epfl.ch"
+FIXED_WIDTH = 300
+HOST = "omero-server-poc.epfl.ch"
 
 
 class MainWindow(QMainWindow):
@@ -49,7 +50,7 @@ class MainWindow(QMainWindow):
 
         # main window settings
         self.setWindowTitle("Main window title")
-        self.setMinimumSize(500, 100)
+        self.setMinimumSize(600, 200)
         widgets = []
         main_layout = QVBoxLayout()
 
@@ -127,6 +128,7 @@ class MainWindow(QMainWindow):
         self.project = QLineEdit()
         self.project.setEnabled(False)
         self.project.setStyleSheet(FONT_SIZE)
+        self.project.setFixedWidth(FIXED_WIDTH)
         self.project_combo = QComboBox()
         self.project_combo.setEnabled(False)
         self.project_combo.setStyleSheet(FONT_SIZE)
@@ -161,6 +163,7 @@ class MainWindow(QMainWindow):
         self.dataset = QLineEdit()
         self.dataset.setEnabled(False)
         self.dataset.setStyleSheet(FONT_SIZE)
+        self.dataset.setFixedWidth(FIXED_WIDTH)
         self.dataset_combo = QComboBox()
         self.dataset_combo.setEnabled(False)
         self.dataset_combo.setStyleSheet(FONT_SIZE)
