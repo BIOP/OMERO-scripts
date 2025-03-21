@@ -36,6 +36,12 @@ NEW_PREFIX = "$new$"
 FIXED_WIDTH = 300
 HOST = "omero-server-poc.epfl.ch"
 
+GROUP = "group"
+DST_NAME = "datasetName"
+PRJ_NAME= "projectName"
+FOL_PATH = "path"
+ATT_PATH = "attachment"
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -47,6 +53,7 @@ class MainWindow(QMainWindow):
         self.project_dict = {}
         self.dataset_dict = {}
         self.group_dict = {}
+        self.upload_list = []
 
         # main window settings
         self.setWindowTitle("Main window title")
@@ -214,11 +221,15 @@ class MainWindow(QMainWindow):
         ok_button = QPushButton(text="OK")
         ok_button.setStyleSheet(FONT_SIZE)
         ok_button.clicked.connect(self.run_app)
+        next_button = QPushButton(text="Next")
+        next_button.setStyleSheet(FONT_SIZE)
+        next_button.clicked.connect(self.next_upload)
         cancel_button = QPushButton(text="Cancel")
         cancel_button.setStyleSheet(FONT_SIZE)
         cancel_button.clicked.connect(self.close_app)
         button_widget = QWidget()
         button_layout.addWidget(ok_button)
+        button_layout.addWidget(next_button)
         button_layout.addWidget(cancel_button)
         button_widget.setLayout(button_layout)
         widgets.append(button_widget)
@@ -240,6 +251,36 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(widget)
 
 
+    def next_upload(self):
+        # get the user input for the current upload
+        selection = {}
+        selection[GROUP] = self.group_combo.currentText()
+        selection[ATT_PATH] = self.att.text()
+        selection[FOL_PATH] = self.folder.text()
+        if self.radio_project_new.isChecked():
+            selection[PRJ_NAME] = NEW_PREFIX + self.project.text()
+            self.project_dict[selection[PRJ_NAME]] = -1
+        else:
+            selection[PRJ_NAME] = self.project_combo.currentText()
+
+        if self.radio_dataset_new.isChecked():
+            selection[DST_NAME] = NEW_PREFIX + self.dataset.text()
+            self.dataset_dict[selection[DST_NAME]] = -1
+        else:
+            selection[DST_NAME] = self.dataset_combo.currentText()
+
+        selection[ATT_PATH] = self.att.text()
+        self.upload_list.append(selection)
+
+        # reset the gui
+        self.folder.setText("")
+        self.att.setText("")
+        self.project.setText("")
+        self.dataset.setText("")
+        self.new_project_selected()
+        self.new_dataset_selected()
+
+
     def close_app(self):
         if self.conn is not None and self.conn.isConnected:
             self.conn.close()
@@ -247,26 +288,16 @@ class MainWindow(QMainWindow):
 
 
     def run_app(self):
-        if self.radio_project_new.isChecked():
-            project = NEW_PREFIX + self.project.text()
-            self.project_dict[project] = -1
-        else:
-            project = self.project_combo.currentText()
 
-        if self.radio_dataset_new.isChecked():
-            dataset = NEW_PREFIX + self.dataset.text()
-            self.dataset_dict[dataset] = -1
-        else:
-            dataset = self.dataset_combo.currentText()
+        if self.folder.text() is not None and self.folder.text() != "":
+            self.next_upload()
 
-        image_path = self.folder.text()
-        attachments = self.att.text()
         username = self.username.text()
         password = self.password.text()
-        group = self.group_combo.currentText()
+
         self.close()
-        run_script(self.conn, self.host, username, password, group, project, self.project_dict, dataset,
-                   self.dataset_dict, image_path, attachments)
+
+        run_script(self.conn, self.host, username, password, self.upload_list, self.project_dict, self.dataset_dict)
 
 
     def open_file_chooser(self):
@@ -405,58 +436,66 @@ class MainWindow(QMainWindow):
             self.dataset_combo.setCurrentText(dataset_names[0])
 
 
-def run_script(conn, host, username, password, group, project_name, project_dict,
-               dataset_name, dataset_dict, image_path, attachments):
+def run_script(conn, host, username, password, upload_task_list, project_dict, dataset_dict):
 
     if conn is not None and conn.isConnected():
         print(f"Connected to {host}")
         try:
-            if project_name is not None and project_name != "":
-                # get or create the project
-                if project_dict[project_name] < 0:
-                    real_name = project_name.replace(NEW_PREFIX, "")
-                    print(f"Creating project '{real_name}'")
-                    project_id = ezomero.post_project(conn, real_name)
-                else:
-                    project_id = project_dict[project_name]
+            for upload_task in upload_task_list:
+                project_name = upload_task[PRJ_NAME]
+                dataset_name = upload_task[DST_NAME]
+                group = upload_task[GROUP]
+                attachments = upload_task[ATT_PATH]
+                image_path = upload_task[FOL_PATH]
 
-                if dataset_name is not None and dataset_name != "":
-                    # get or create the dataset
-                    if dataset_dict[dataset_name] < 0:
-                        real_name = dataset_name.replace(NEW_PREFIX, "")
-                        print(f"Creating dataset '{real_name}'")
-                        dataset_id = ezomero.post_dataset(conn, real_name, project_id=project_id)
+                if project_name is not None and project_name != "":
+                    # get or create the project
+                    if project_dict[project_name] < 0:
+                        real_name = project_name.replace(NEW_PREFIX, "")
+                        print(f"Creating project '{real_name}'")
+                        project_id = ezomero.post_project(conn, real_name)
                     else:
-                        dataset_id = dataset_dict[dataset_name]
+                        project_id = project_dict[project_name]
 
-                    # importing the image in the right dataset
+                    if dataset_name is not None and dataset_name != "":
+                        # get or create the dataset
+                        if dataset_dict[dataset_name] < 0:
+                            real_name = dataset_name.replace(NEW_PREFIX, "")
+                            print(f"Creating dataset '{real_name}'")
+                            dataset_id = ezomero.post_dataset(conn, real_name, project_id=project_id)
+                        else:
+                            dataset_id = dataset_dict[dataset_name]
 
-                    image_ids = ezomero.ezimport(conn, image_path, dataset=dataset_id)
+                        # importing the image in the right dataset
 
-                    # because the upload can be long, we need to re-connect again to omero
-                    if conn is None or not conn.isConnected():
-                        conn = ezomero.connect(username, password, group=group, host=host, port=4064, secure=True)
+                        image_ids = ezomero.ezimport(conn, image_path, dataset=dataset_id)
 
-                    # attaching the file(s) to the image
-                    if len(image_ids) > 0 and attachments is not None and attachments != "":
-                        image = conn.getObject("Image", image_ids[0])
+                        # because the upload can be long, we need to re-connect again to omero
+                        if conn is None or not conn.isConnected():
+                            print(f"Reconnection to {host}...")
+                            conn = ezomero.connect(username, password, group=group, host=host, port=4064, secure=True)
+                            print(f"Reconnected...")
 
-                        attachments_list = attachments.split(SEPARATOR)
-                        for att in attachments_list:
-                            mimetype = None
-                            if att.endswith(".pdf"):
-                                mimetype = "application/pdf"
+                        # attaching the file(s) to the image
+                        if len(image_ids) > 0 and attachments is not None and attachments != "":
+                            image = conn.getObject("Image", image_ids[0])
 
-                            file_ann = conn.createFileAnnfromLocalFile(att, mimetype=mimetype)
-                            print(f"Attaching FileAnnotation to Image: ", image.getId(), "File ID:", file_ann.getId(),
-                                  ",", file_ann.getFile().getName(), "Size:", file_ann.getFile().getSize())
-                            image.linkAnnotation(file_ann)  # link it to image.
+                            attachments_list = attachments.split(SEPARATOR)
+                            for att in attachments_list:
+                                mimetype = None
+                                if att.endswith(".pdf"):
+                                    mimetype = "application/pdf"
+
+                                file_ann = conn.createFileAnnfromLocalFile(att, mimetype=mimetype)
+                                print(f"Attaching FileAnnotation to Image: ", image.getId(), "File ID:", file_ann.getId(),
+                                      ",", file_ann.getFile().getName(), "Size:", file_ann.getFile().getSize())
+                                image.linkAnnotation(file_ann)  # link it to image.
+                        else:
+                            print("ERROR: images cannot be uploaded on OMERO : an error occurred during the import")
                     else:
-                        print("ERROR: images cannot be uploaded on OMERO : an error occurred during the import")
+                        print("Give a valid name to the dataset !")
                 else:
-                    print("Give a valid name to the dataset !")
-            else:
-                print("Give a valid name to the project !")
+                    print("Give a valid name to the project !")
 
         except Exception as e:
             print(e)
