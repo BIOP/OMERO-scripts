@@ -59,6 +59,7 @@ class MainWindow(QMainWindow):
         self.dataset_dict = {}
         self.group_dict = {}
         self.upload_list = []
+        self.listen_projects = True
 
         # main window settings
         self.setWindowTitle("Main window title")
@@ -91,11 +92,11 @@ class MainWindow(QMainWindow):
         password_widget.setLayout(password_layout)
         widgets.append(password_widget)
 
-        # load groups
-        self.load_group_button = QPushButton(text="Load OMERO groups")
-        self.load_group_button.setStyleSheet(FONT_SIZE)
-        self.load_group_button.clicked.connect(self.load_groups)
-        widgets.append(self.load_group_button)
+        # connection button
+        self.connect_button = QPushButton(text="Connect")
+        self.connect_button.setStyleSheet(FONT_SIZE)
+        self.connect_button.clicked.connect(self.connect_to_omero)
+        widgets.append(self.connect_button)
 
         # group fields
         group_layout = QHBoxLayout()
@@ -103,18 +104,12 @@ class MainWindow(QMainWindow):
         group_label.setStyleSheet(FONT_SIZE)
         self.group_combo = QComboBox()
         self.group_combo.setStyleSheet(FONT_SIZE)
+        self.group_combo.setEnabled(False)
         group_widget = QWidget()
         group_layout.addWidget(group_label)
         group_layout.addWidget(self.group_combo)
         group_widget.setLayout(group_layout)
         widgets.append(group_widget)
-
-        # connection button
-        self.connect_button = QPushButton(text="Connect")
-        self.connect_button.setStyleSheet(FONT_SIZE)
-        self.connect_button.clicked.connect(self.connect_to_omero)
-        self.connect_button.setEnabled(False)
-        widgets.append(self.connect_button)
 
         # project fields
         project_group_layout = QHBoxLayout()
@@ -301,8 +296,8 @@ class MainWindow(QMainWindow):
         password = self.password.text()
 
         self.close()
-
-        run_script(self.conn, HOST, PORT, username, password, self.upload_list, self.project_dict, self.dataset_dict)
+        self.conn.close()
+        run_script(HOST, PORT, username, password, self.upload_list, self.project_dict, self.dataset_dict)
 
 
     def open_file_chooser(self):
@@ -319,10 +314,8 @@ class MainWindow(QMainWindow):
     def connect_to_omero(self):
         username = self.username.text()
         password = self.password.text()
-        group = self.group_combo.currentText()
-        self.conn.close()
 
-        self.conn = ezomero.connect(username, password, group=f"{group}", host=HOST, port=PORT, secure=True)
+        self.conn = ezomero.connect(username, password, group="", host=HOST, port=PORT, secure=True)
 
         if self.conn is not None and self.conn.isConnected():
             self.is_connected = True
@@ -330,17 +323,20 @@ class MainWindow(QMainWindow):
             self.folder.setEnabled(True)
             self.folder_button.setEnabled(True)
             self.att_button.setEnabled(True)
-            self.project.setEnabled(False)
+            self.project.setEnabled(True)
             self.dataset.setEnabled(True)
             self.password.setEnabled(False)
             self.username.setEnabled(False)
             self.connect_button.setEnabled(False)
-            self.group_combo.setEnabled(False)
+            self.group_combo.setEnabled(True)
             self.radio_project_new.setEnabled(True)
             self.radio_dataset_existing.setEnabled(True)
             self.radio_dataset_new.setEnabled(True)
             self.radio_project_existing.setEnabled(True)
             self.new_project_selected()
+
+            self.load_groups()
+            self.group_combo.currentTextChanged.connect(self.group_text_changed)
 
             project_names = sorted(self.list_projects(self.conn))
             for project_name in project_names:
@@ -351,9 +347,6 @@ class MainWindow(QMainWindow):
 
 
     def load_groups(self):
-        username = self.username.text()
-        password = self.password.text()
-        self.conn = ezomero.connect(username, password, group="", host=HOST, port=PORT, secure=True)
 
         if self.conn is not None and self.conn.isConnected():
             group_names = sorted(self.list_groups(self.conn))
@@ -363,7 +356,6 @@ class MainWindow(QMainWindow):
             if len(group_names) > 0:
                 group_name = self.conn.getEventContext().groupName
                 self.group_combo.setCurrentText(group_name)
-                self.load_group_button.setEnabled(False)
                 self.connect_button.setEnabled(True)
 
 
@@ -432,14 +424,29 @@ class MainWindow(QMainWindow):
         self.dataset_combo.setEnabled(self.radio_dataset_existing.isChecked())
 
 
-    def project_text_changed(self, s):
-        dataset_names = sorted(self.list_datasets(self.conn, self.project_dict[s]))
-        self.dataset_combo.clear()
-        for dataset_name in dataset_names:
-            self.dataset_combo.addItem(dataset_name)
-        if len(dataset_names) > 0:
-            self.dataset_combo.setCurrentText(dataset_names[0])
+    def group_text_changed(self):
+        group_name = self.group_combo.currentText()
+        self.conn.SERVICE_OPTS.setOmeroGroup(self.group_dict[group_name])
 
+        project_names = sorted(self.list_projects(self.conn))
+        self.listen_projects = False
+        self.project_combo.clear()
+        for project_name in project_names:
+            self.project_combo.addItem(project_name)
+        if len(project_names) > 0:
+            self.project_combo.setCurrentText(project_names[0])
+            self.listen_projects = True
+            self.project_text_changed(project_names[0])
+
+
+    def project_text_changed(self, project_name):
+        if self.listen_projects:
+            dataset_names = sorted(self.list_datasets(self.conn, self.project_dict[project_name]))
+            self.dataset_combo.clear()
+            for dataset_name in dataset_names:
+                self.dataset_combo.addItem(dataset_name)
+            if len(dataset_names) > 0:
+                self.dataset_combo.setCurrentText(dataset_names[0])
 
 
 
@@ -583,23 +590,25 @@ def extract_image_id(fname):
 
 
 
-def run_script(conn, host, port, username, password, upload_task_list, project_dict, dataset_dict):
+def run_script(host, port, username, password, upload_task_list, project_dict, dataset_dict):
 
-    if conn is not None and conn.isConnected():
-        print(f"Connected to {host}")
+    cli = CLI()
+    cli.register('import', ImportControl, '_')
+    cli.register('sessions', SessionsControl, '_')
 
-        cli = CLI()
-        cli.register('import', ImportControl, '_')
-        cli.register('sessions', SessionsControl, '_')
+    for upload_task in upload_task_list:
+        project_name = upload_task[PRJ_NAME]
+        dataset_name = upload_task[DST_NAME]
+        group = upload_task[GROUP]
+        attachments = upload_task[ATT_PATH]
+        image_path = upload_task[FOL_PATH]
 
-        try:
-            for upload_task in upload_task_list:
-                project_name = upload_task[PRJ_NAME]
-                dataset_name = upload_task[DST_NAME]
-                group = upload_task[GROUP]
-                attachments = upload_task[ATT_PATH]
-                image_path = upload_task[FOL_PATH]
+        conn = ezomero.connect(username, password, group=group, host=host, port=port, secure=True)
 
+        if conn is not None and conn.isConnected():
+            print(f"Connected to {host}")
+
+            try:
                 if project_name is not None and project_name != "":
                     # get or create the project
                     if project_dict[project_name] < 0:
@@ -619,7 +628,7 @@ def run_script(conn, host, port, username, password, upload_task_list, project_d
                             dataset_id = dataset_dict[dataset_name]
 
                         # importing the image in the right dataset
-                        image_ids = upload_on_omero(cli, conn._getSessionId(), host, port, dataset_id, image_path)
+                        image_ids = upload_on_omero(cli, conn.c.getSessionId(), host, port, dataset_id, image_path)
 
                         # because the upload can be long, we need to re-connect again to omero
                         if conn is None or not conn.isConnected():
@@ -651,12 +660,12 @@ def run_script(conn, host, port, username, password, upload_task_list, project_d
                 else:
                     print("Give a valid name to the project !")
 
-        except Exception as e:
-            print(e)
-            traceback.print_exc()
-        finally:
-            conn.close()
-            print(f"Disconnect from {host}")
+            except Exception as e:
+                print(e)
+                traceback.print_exc()
+            finally:
+                conn.close()
+                print(f"Disconnect from {host}")
 
 
 if __name__ == "__main__":
