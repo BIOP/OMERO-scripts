@@ -23,18 +23,24 @@ Dependencies
     - PyQt6
     - ezomero
 """
-
+import os
+import tempfile
+import yaml
+from omero.cli import CLI
 import ezomero
 import traceback
 from PyQt6.QtWidgets import QLineEdit, QLabel, QFileDialog, QPushButton, QMainWindow, QVBoxLayout, \
     QWidget, QApplication, QHBoxLayout, QRadioButton, QButtonGroup, QComboBox
-
+from omero.plugins.sessions import SessionsControl
+from importlib import import_module
+ImportControl = import_module("omero.plugins.import").ImportControl
 
 FONT_SIZE = 'font-size: 14px'
 SEPARATOR = ","
 NEW_PREFIX = "$new$"
 FIXED_WIDTH = 300
 HOST = "omero-server-poc.epfl.ch"
+PORT = 4064
 
 GROUP = "group"
 DST_NAME = "datasetName"
@@ -49,7 +55,6 @@ class MainWindow(QMainWindow):
 
         self.is_connected = False
         self.conn = None
-        self.host = HOST
         self.project_dict = {}
         self.dataset_dict = {}
         self.group_dict = {}
@@ -297,7 +302,7 @@ class MainWindow(QMainWindow):
 
         self.close()
 
-        run_script(self.conn, self.host, username, password, self.upload_list, self.project_dict, self.dataset_dict)
+        run_script(self.conn, HOST, PORT, username, password, self.upload_list, self.project_dict, self.dataset_dict)
 
 
     def open_file_chooser(self):
@@ -317,7 +322,7 @@ class MainWindow(QMainWindow):
         group = self.group_combo.currentText()
         self.conn.close()
 
-        self.conn = ezomero.connect(username, password, group=f"{group}", host=self.host, port=4064, secure=True)
+        self.conn = ezomero.connect(username, password, group=f"{group}", host=HOST, port=PORT, secure=True)
 
         if self.conn is not None and self.conn.isConnected():
             self.is_connected = True
@@ -348,7 +353,7 @@ class MainWindow(QMainWindow):
     def load_groups(self):
         username = self.username.text()
         password = self.password.text()
-        self.conn = ezomero.connect(username, password, group="", host=self.host, port=4064, secure=True)
+        self.conn = ezomero.connect(username, password, group="", host=HOST, port=PORT, secure=True)
 
         if self.conn is not None and self.conn.isConnected():
             group_names = sorted(self.list_groups(self.conn))
@@ -436,10 +441,157 @@ class MainWindow(QMainWindow):
             self.dataset_combo.setCurrentText(dataset_names[0])
 
 
-def run_script(conn, host, username, password, upload_task_list, project_dict, dataset_dict):
+
+
+def upload_on_omero(cli, session_id, host, port, dataset_id, image_file, omero_logfile="", _fetch_zip_only=False):
+    """Upload an image into a specific dataset in OMERO.
+
+    The import itself is done by instantiating the CLI class, assembling the required
+    arguments, and finally running `cli.invoke()`. This eventually triggers the
+    `importer()` method defined in [OMERO's Python bindings][1].
+
+    [1]: https://github.com/ome/omero-py/blob/master/src/omero/plugins/import.py
+
+    Parameters
+    ----------
+    cli: omero.cli.CLI object
+        command line object to upload images on the server
+    session_id: UUID
+        current session id
+    host: String
+        current hostname address
+    port: int
+        the OMERO communication port
+    dataset_id : int
+        The ID of the target dataset in OMERO.
+    image_file : str
+        The local image file including the full path.
+    omero_logfile : str, optional
+        The prefix of files to be used to capture OMERO's `import` call stderr messages.
+        If the parameter is non-empty the `--debug ALL` option will be added to the
+        `omero` call with the output being placed in the specified file. If the
+        parameter is omitted or empty, debug messages will be disabled.
+    _fetch_zip_only : bool, optional
+        Replaces all parameters to the import call by `--advanced-help`, which is
+        **intended for INTERNAL TESTING ONLY**. No actual import will be attempted!
+
+    Returns
+    -------
+    list
+        a list of imported ids or None is the id cannot be parsed
+
+    Raises
+    ------
+    TypeError
+        Raised in case `image_file` is in a format that is not supported by OMERO.
+
+    """
+
+    import_args = ["import",
+                   '-k', str(session_id),
+                   '-s', host,
+                   '-p', str(port),
+                   "--skip", "upgrade"
+                   # disable upgrade checks (https://forum.image.sc/t/unable-to-use-cli-importer/26424)
+                   ]
+
+    if omero_logfile:
+        print(f"Messages (stderr) from import will go to [{omero_logfile}].")
+        import_args.extend(["--debug", "ALL"])
+        import_args.extend(["--errs", omero_logfile])
+
+    import_args.extend(["-d", str(dataset_id)])
+
+    # capture stdout and request YAML format to parse the output later on:
+    tempdir = tempfile.TemporaryDirectory(prefix="hrm-omero__")
+    cap_stdout = f"{tempdir.name}/omero-import-stdout"
+    print(f"Capturing stdout of the 'omero' call into [{cap_stdout}]...")
+    import_args.extend(["--file", cap_stdout])
+    import_args.extend(["--output", "yaml"])
+    import_args.append(image_file)
+
+    if _fetch_zip_only:
+        # calling 'import --advanced-help' will trigger the download of OMERO.java.zip
+        # in case it is not yet present (the extract_image_id() call will then fail,
+        # resulting in the whole function returning "False")
+        print("WARNING", "As '_fetch_zip_only' is set NO IMPORT WILL BE ATTEMPTED!")
+        import_args = ["import", "--advanced-help"]
+    print(f"import_args: {import_args}")
+    try:
+        cli.invoke(import_args, strict=True)
+        cli.get_client().closeSession()  # force killing the session
+        imported_ids = extract_image_id(cap_stdout)
+        print(f"Imported OMERO image ID: {imported_ids}")
+        imported_ids = [int(img_id) for img_id in imported_ids.split(",")]
+    except PermissionError as err:
+        print("ERROR", err)
+        omero_userdir = os.environ.get("OMERO_USERDIR", "<not-set>")
+        print("ERROR", f"Current OMERO_USERDIR value: {omero_userdir}")
+        print(
+            "ERROR",
+            (
+                "Please make sure to read the documentation about the 'OMERO_USERDIR' "
+                "environment variable and also check if the file to be imported has "
+                "appropriate permissions!"
+            ),
+        )
+        return []
+    except Exception as err:  # pylint: disable-msg=broad-except
+        print("ERROR", f"ERROR: uploading '{image_file}' to dataset {dataset_id} failed!")
+        print("ERROR", f"OMERO error message: >>>{err}<<<")
+        print("WARNING", f"import_args: {import_args}")
+        return []
+    finally:
+        tempdir.cleanup()
+
+    return imported_ids
+
+
+def extract_image_id(fname):
+    """Parse the YAML returned by an 'omero import' call and extract the image ID.
+
+    Parameters
+    ----------
+    fname : str
+        The path to the `yaml` file to parse.
+
+    Returns
+    -------
+    int or None
+        The OMERO ID of the newly imported image, e.g. `1568386` or `None` in case
+        parsing the file failed for any reason.
+    """
+
+    try:
+        with open(fname, "r", encoding="utf-8") as stream:
+            parsed = yaml.safe_load(stream)
+        if len(parsed[0]["Image"]) != 1:
+            if parsed[0]["Fileset"] is not None:
+                image_id = ",".join([str(img_id) for img_id in parsed[0]["Image"]])
+            else:
+                msg = f"Unexpected YAML retrieved from OMERO, unable to parse:\n{parsed}"
+                print("ERROR", msg)
+                raise SyntaxError(msg)
+        else:
+            image_id = parsed[0]["Image"][0]
+    except Exception as err:  # pylint: disable-msg=broad-except
+        print("ERROR", f"Error parsing imported image ID from YAML output: {err}")
+        return None
+
+    print(f"Successfully parsed Image ID from YAML: {image_id}")
+    return str(image_id)
+
+
+
+def run_script(conn, host, port, username, password, upload_task_list, project_dict, dataset_dict):
 
     if conn is not None and conn.isConnected():
         print(f"Connected to {host}")
+
+        cli = CLI()
+        cli.register('import', ImportControl, '_')
+        cli.register('sessions', SessionsControl, '_')
+
         try:
             for upload_task in upload_task_list:
                 project_name = upload_task[PRJ_NAME]
@@ -467,29 +619,31 @@ def run_script(conn, host, username, password, upload_task_list, project_dict, d
                             dataset_id = dataset_dict[dataset_name]
 
                         # importing the image in the right dataset
-
-                        image_ids = ezomero.ezimport(conn, image_path, dataset=dataset_id)
+                        image_ids = upload_on_omero(cli, conn._getSessionId(), host, port, dataset_id, image_path)
 
                         # because the upload can be long, we need to re-connect again to omero
                         if conn is None or not conn.isConnected():
                             print(f"Reconnection to {host}...")
-                            conn = ezomero.connect(username, password, group=group, host=host, port=4064, secure=True)
+                            conn = ezomero.connect(username, password, group=group, host=host, port=port, secure=True)
                             print(f"Reconnected...")
 
                         # attaching the file(s) to the image
-                        if len(image_ids) > 0 and attachments is not None and attachments != "":
-                            image = conn.getObject("Image", image_ids[0])
+                        if image_ids is not None and len(image_ids) > 0:
+                            if attachments is not None and attachments != "":
+                                image = conn.getObject("Image", image_ids[0])
 
-                            attachments_list = attachments.split(SEPARATOR)
-                            for att in attachments_list:
-                                mimetype = None
-                                if att.endswith(".pdf"):
-                                    mimetype = "application/pdf"
+                                attachments_list = attachments.split(SEPARATOR)
+                                for att in attachments_list:
+                                    mimetype = None
+                                    if att.endswith(".pdf"):
+                                        mimetype = "application/pdf"
 
-                                file_ann = conn.createFileAnnfromLocalFile(att, mimetype=mimetype)
-                                print(f"Attaching FileAnnotation to Image: ", image.getId(), "File ID:", file_ann.getId(),
-                                      ",", file_ann.getFile().getName(), "Size:", file_ann.getFile().getSize())
-                                image.linkAnnotation(file_ann)  # link it to image.
+                                    file_ann = conn.createFileAnnfromLocalFile(att, mimetype=mimetype)
+                                    print(f"Attaching FileAnnotation to Image: ", image.getId(), "File ID:", file_ann.getId(),
+                                          ",", file_ann.getFile().getName(), "Size:", file_ann.getFile().getSize())
+                                    image.linkAnnotation(file_ann)  # link it to image.
+                            else:
+                                print(f"WARNING: No attachment was provided for image {image_ids[0]}")
                         else:
                             print("ERROR: images cannot be uploaded on OMERO : an error occurred during the import")
                     else:
