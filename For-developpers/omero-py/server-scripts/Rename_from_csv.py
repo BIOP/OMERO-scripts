@@ -513,6 +513,7 @@ def run_script():
      To use this script, please
      \t
      - run another script called 'Export to CSV...' located under 'Annotation_scripts' folder
+     - Delete all columns AFTER the column 'OBJECT_NAME'
      - Add a new column in the generated CSV file with the replacement text to rename objects with (no header is required)
      - Save the modified CSV
      - Run this script
