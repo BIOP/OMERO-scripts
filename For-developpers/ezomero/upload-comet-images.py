@@ -39,7 +39,7 @@ FONT_SIZE = 'font-size: 14px'
 SEPARATOR = ","
 NEW_PREFIX = "$new$"
 FIXED_WIDTH = 300
-HOST = "omero-server-poc.epfl.ch"
+HOST = "omero-server.epfl.ch"
 PORT = 4064
 
 GROUP = "group"
