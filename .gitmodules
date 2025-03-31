@@ -1,0 +1,3 @@
+[submodule "For-developpers/omero-py/server-scripts/omero-HCS-utility"]
+	path = For-developpers/omero-py/server-scripts/omero-HCS-utility
+	url = https://github.com/cai-hhu/omero-HCS-utility/tree/main/scripts/omero/hcs_scripts
