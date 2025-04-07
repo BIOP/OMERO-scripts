@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import QLineEdit, QLabel, QFileDialog, QPushButton, QMainWi
 
 
 FONT_SIZE = 'font-size: 14px'
-
+DEFAULT_HOST = 'omero-server.epfl.ch'
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -18,6 +18,20 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(400, 100)
         widgets = []
         main_layout = QVBoxLayout()
+
+        # host fields
+        host_layout = QHBoxLayout()
+        host_label = QLabel("Host")
+        host_label.setStyleSheet(FONT_SIZE)
+        self.host = QLineEdit()
+        self.host.setStyleSheet(FONT_SIZE)
+        self.host.setText(DEFAULT_HOST)
+        host_widget = QWidget()
+        host_layout.addWidget(host_label)
+        host_layout.addWidget(self.host)
+        host_widget.setLayout(host_layout)
+        widgets.append(host_widget)
+
 
         # username fields
         username_layout = QHBoxLayout()
@@ -101,12 +115,13 @@ class MainWindow(QMainWindow):
         self.close()
 
     def run_app(self):
+        host = self.host.text()
         username = self.username.text()
         password = self.password.text()
         ids = self.image_ids.text()
         folder = self.folder.text()
         self.close()
-        run_script(username, password, folder, ids)
+        run_script(host, username, password, folder, ids)
 
     def open_file_chooser(self):
         response = QFileDialog.getExistingDirectory(parent=self, caption="select a folder", directory=os.getcwd())
@@ -118,8 +133,7 @@ class MainWindow(QMainWindow):
         self.folder.setText(str(path_list))
 
 
-def run_script(username, password, saving_folder, images_url):
-    host = "localhost"
+def run_script(host, username, password, saving_folder, images_url):
     conn = BlitzGateway(username, password, host=host, port=4064, secure=True)
     conn.connect()
 
