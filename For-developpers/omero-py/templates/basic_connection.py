@@ -17,7 +17,7 @@ def run_script():
             traceback.print_exc()
         finally:
             conn.close()
-            print(f"Disconnect from {host}")
+            print(f"Disconnected from {host}")
 
 
 if __name__ == "__main__":

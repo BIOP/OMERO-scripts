@@ -122,16 +122,17 @@ def run_script(host, username, password, min_days):
         try:
             users_dict, logout_dict = find_users(conn, min_days)
             file_content = create_file(users_dict, logout_dict)
+            print("______________________________________________")
             print(f"Found {len(users_dict)} users")
             print(file_content)
-            print("______________________________________________\n______________________________________________")
+            print("______________________________________________")
 
         except Exception as e:
             print(e)
             traceback.print_exc()
         finally:
             conn.close()
-            print(f"Disconnect from {host}")
+            print(f"Disconnected from {host}")
 
 
 def create_file(users, logouts):

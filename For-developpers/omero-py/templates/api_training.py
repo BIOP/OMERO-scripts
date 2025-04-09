@@ -114,7 +114,7 @@ def run_script():
             traceback.print_exc()
         finally:
             conn.close()
-            print(f"Disconnect from {host}")
+            print(f"Disconnected from {host}")
     else:
         print("Not able to connect to OMERO server. Please check your credentials and hostname")
 

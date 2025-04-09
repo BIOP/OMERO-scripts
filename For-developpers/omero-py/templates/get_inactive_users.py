@@ -113,7 +113,7 @@ def run_script(host, username, password):
             traceback.print_exc()
         finally:
             conn.close()
-            print(f"Disconnect from {host}")
+            print(f"Disconnected from {host}")
 
 
 def create_file(users):
