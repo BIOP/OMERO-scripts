@@ -50,10 +50,12 @@ P_REMOVE_FROM_DATASET = "Remove_From_Dataset"
 
 DEFAULT_PATTERN = "<select>"
 EVOS_TEMPLATE = "EVOS <..._Plate_<RunId>_p00_0_<wellA00>f00d0.tif>"
+VDG_TEMPLATE = "VDG-CREST-ORGANOIDS <wellId_<wellA00>_....ome.tif>"
 
 
 position_template_map = {
-    EVOS_TEMPLATE : r".*_Plate_(?P<run>\w*)_p\d*_\d*_(?P<wellRow>\w)(?P<wellColumn>\d*)f(?P<field>\d*)d\d*.(TIF|tif|TIFF|tiff)"}
+    EVOS_TEMPLATE : r".*_Plate_(?P<run>\w*)_p\d*_\d*_(?P<wellRow>\w)(?P<wellColumn>\d*)f(?P<field>\d*)d\d*.(TIF|tif|TIFF|tiff)",
+    VDG_TEMPLATE : r"\d*_(?P<wellRow>\w)(?P<wellColumn>\d*)_.*"}
 
 
 def add_images_to_plate(conn, run_map, created_runs_map, plate_id, column, row, remove_from=None):
@@ -185,7 +187,9 @@ def sort_by_well(images, images_per_well, script_params):
                 # get the well position in the plate
                 well_row = match.group("wellRow")
                 well_column = match.group("wellColumn")
-                run = match.group("run")
+                run = match.groupdict().get("run")
+                if run is None:
+                    run = "Run0"
                 well = f"{convert_letter_to_number(well_row)}_{int(well_column)-1}"
                 if well_map.get(well) is not None:
                     plt_acq_map = well_map.get(well)
