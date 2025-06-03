@@ -11,8 +11,10 @@ to install/update the scripts.
 - [Duplicate images](#duplicate-images)
 - [Export Cellprofiler IDs](#export-cellprofiler-ids)
 - [Intensity Projection](#intensity-projection)
-- [Share images across groups](#share-images-across-groups)
 - [Import from csv](#import-from-csv)
+- [Merge plate run](#merge-plate-run)
+- [Share images across groups](#share-images-across-groups)
+
 
 ## Add owner as key value
 ### Description
@@ -172,6 +174,13 @@ Script performing an intensity projection (max or min projection) along Z axis f
 - Linked to each projection image, a `min_projection` or `max_projection` tag
 - Linked to each projection image, a key-value pair with the source image, projection type and projected slices, under the `z-projection` namespace
 
+## Merge plate run
+### Description
+This script is not hosted on our GitHub, as it used as is on our server.
+You can find the script & documentation on the [cai-hhu GitHub](https://github.com/cai-hhu/omero-HCS-utility/tree/main/scripts/omero/hcs_scripts).
+ ### How to install it
+#### Upload
+- Have a look to [Upload](#uploading-on-server) section.
 
 ## Share images across groups
 ### Description
