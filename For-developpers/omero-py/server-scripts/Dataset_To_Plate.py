@@ -55,7 +55,7 @@ VDG_TEMPLATE = "VDG-CREST-ORGANOIDS <<EDF_sigma-_?>000_<wellA00>_<runId>_....ome
 
 position_template_map = {
     EVOS_TEMPLATE : r".*_Plate_(?P<run>\w*)_p\d*_\d*_(?P<wellRow>\w)(?P<wellColumn>\d*)f(?P<field>\d*)d\d*.(TIF|tif|TIFF|tiff)",
-    VDG_TEMPLATE : r"(?<edf>EDF_sigma-\d*_)?\d*_(?P<wellRow>\w)(?P<wellColumn>\d*)_(?P<run>\w*\d)?_?.*"}
+    VDG_TEMPLATE : r"(?P<edf>EDF_sigma-\d*_)?\d*_(?P<wellRow>[a-zA-Z])(?P<wellColumn>\d*)_(?P<run>[a-zA-Z]*[\d])?_?.*"}
 
 
 def add_images_to_plate(conn, run_map, created_runs_map, plate_id, column, row, remove_from=None):
