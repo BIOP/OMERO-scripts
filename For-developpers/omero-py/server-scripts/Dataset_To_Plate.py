@@ -51,11 +51,12 @@ P_REMOVE_FROM_DATASET = "Remove_From_Dataset"
 DEFAULT_PATTERN = "<select>"
 EVOS_TEMPLATE = "EVOS <..._Plate_<RunId>_p00_0_<wellA00>f00d0.tif>"
 VDG_TEMPLATE = "VDG-CREST-ORGANOIDS <<EDF_sigma-_?>000_<wellA00>_<runId>_....ome.tif>"
-
+CENFIND_TEMPLATE = "UPGON-CENFIND-SCREENS <wellA00>_<field00>_<runId>....tif>"
 
 position_template_map = {
     EVOS_TEMPLATE : r".*_Plate_(?P<run>\w*)_p\d*_\d*_(?P<wellRow>\w)(?P<wellColumn>\d*)f(?P<field>\d*)d\d*.(TIF|tif|TIFF|tiff)",
-    VDG_TEMPLATE : r"(?P<edf>EDF_sigma-\d*_)?\d*_(?P<wellRow>[a-zA-Z])(?P<wellColumn>\d*)_(?P<run>[a-zA-Z]*[\d])?_?.*"}
+    VDG_TEMPLATE : r"(?P<edf>EDF_sigma-\d*_)?\d*_(?P<wellRow>[a-zA-Z])(?P<wellColumn>\d*)_(?P<run>[a-zA-Z]*[\d])?_?.*",
+    CENFIND_TEMPLATE : r"(?P<wellRow>[a-zA-Z])(?P<wellColumn>[0-9]*)_fld(?P<field>[0-9]*)_(?P<run>[a-zA-Z0-9]*).*"}
 
 
 def add_images_to_plate(conn, run_map, created_runs_map, plate_id, column, row, remove_from=None):
