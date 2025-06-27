@@ -381,7 +381,7 @@ if (user_client.isConnected()){
 			else 
 				message = "The upload and tagging have been successfully done."
 		}else{
-			message = "The script was ended by the user."
+			IJLoggerInfo("LOCAL", "The script was ended by the user")
 			endedByUser = true
 		}
 
