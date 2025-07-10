@@ -1,7 +1,12 @@
+#@String(label="Host", value="omero-server.epfl.ch", persist=true) host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Image ID", value=119273) id
-
+#@Boolean(label="Parent containers", value=true) printParent
+#@Boolean(label="Sizes & pixels info", value=true) printSizes
+#@Boolean(label="Channels", value=true) printChannels
+#@Boolean(label="ROIs", value=true) printROIs
+#@Boolean(label="Hardware", value=true) printHardware
 
 /* = CODE DESCRIPTION =
  * This is a template to interact with OMERO. 
@@ -57,7 +62,6 @@
  */
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
 
 Client user_client = new Client()
@@ -97,30 +101,33 @@ def processImage(user_client, image_wpr){
 	// Print image information
 	println "\nImage infos"
 	println ("Image_name : "+image_wpr.getName() + " / id : "+ image_wpr.getId())
-	def dataset_wpr_list = image_wpr.getDatasets(user_client)
-
-	// if the image is part of a dataset
-	if(!dataset_wpr_list.isEmpty()){
-		dataset_wpr_list.each{println("dataset_name : "+it.getName()+" / id : "+it.getId())};
-		image_wpr.getProjects(user_client).each{println("Project_name : "+it.getName()+" / id : "+it.getId())};
-	}
 	
-	// TO DECOMMENT WHEN THE RELEASE 5.9.2 OF SIMPLE-OMERO-CLIENT IS AVAILABLE
-	// IF YOU NEED THIS PART OF CODE FOR YOUR APPLICATION, PLEASE CONTACT REMY DORNIER
-	// if the image is part of a plate
-	else {
-		def well_wpr = image_wpr.getWells(user_client).get(0)
-		println ("Well_name : "+well_wpr.getName() +" / id : "+ well_wpr.getId())
+	if(printParent){
+		def dataset_wpr_list = image_wpr.getDatasets(user_client)
+	
+		// if the image is part of a dataset
+		if(!dataset_wpr_list.isEmpty()){
+			dataset_wpr_list.each{println("dataset_name : "+it.getName()+" / id : "+it.getId())};
+			image_wpr.getProjects(user_client).each{println("Project_name : "+it.getName()+" / id : "+it.getId())};
+		}
 		
-		def plate_wpr = image_wpr.getPlates(user_client).get(0)
-		println ("plate_name : "+plate_wpr.getName() + " / id : "+ plate_wpr.getId())
-
-		def screen_wpr = image_wpr.getScreens(user_client).get(0)
-		println ("screen_name : "+screen_wpr.getName() + " / id : "+ screen_wpr.getId())
-	}
+		// if the image is part of a plate
+		else {
+			def well_wpr = image_wpr.getWells(user_client).get(0)
+			println ("Well_name : "+well_wpr.getName() +" / id : "+ well_wpr.getId())
+			
+			def plate_wpr = image_wpr.getPlates(user_client).get(0)
+			println ("plate_name : "+plate_wpr.getName() + " / id : "+ plate_wpr.getId())
 	
+			def screen_wpr = image_wpr.getScreens(user_client).get(0)
+			println ("screen_name : "+screen_wpr.getName() + " / id : "+ screen_wpr.getId())
+		}
+	}
+	// print image metadata
 	getImageMetadata(user_client, image_wpr)
-	getHardwareMetadata(user_client, image_wpr)
+	
+	// print microscope metadata
+	if(printHardware) getHardwareMetadata(user_client, image_wpr)
 }
 
 
@@ -134,35 +141,42 @@ def processImage(user_client, image_wpr){
  * */
 def getImageMetadata(user_client, image_wpr){
 	
-	def bounds = image_wpr.getPixels().getBounds(null, null, null, null, null);
-    println "Image width : "+bounds.getSize().getX() +" pixels"
-    println "Image height : "+bounds.getSize().getY() +" pixels"
-    println "Number of channels : "+bounds.getSize().getC()
-    println "Number of slices : "+bounds.getSize().getZ()
-    println "Number of frames : "+bounds.getSize().getT()
-
-    print "Pixel size in x ("+image_wpr.getPixels().getPixelSizeX().getValue().round(3)+" "+image_wpr.getPixels().getPixelSizeX().getUnit()+
-    "), y ("+image_wpr.getPixels().getPixelSizeY().getValue().round(3)+" "+image_wpr.getPixels().getPixelSizeY().getUnit()+") "
+	if(printSizes){
+		def bounds = image_wpr.getPixels().getBounds(null, null, null, null, null);
+	    println "Image width : "+bounds.getSize().getX() +" pixels"
+	    println "Image height : "+bounds.getSize().getY() +" pixels"
+	    println "Number of channels : "+bounds.getSize().getC()
+	    println "Number of slices : "+bounds.getSize().getZ()
+	    println "Number of frames : "+bounds.getSize().getT()
+	
+	    print "Pixel size in x ("+image_wpr.getPixels().getPixelSizeX().getValue().round(3)+" "+image_wpr.getPixels().getPixelSizeX().getUnit()+
+	    "), y ("+image_wpr.getPixels().getPixelSizeY().getValue().round(3)+" "+image_wpr.getPixels().getPixelSizeY().getUnit()+") "
+	    
+	    if(bounds.getSize().getZ() > 1)
+	    	print "and z"+image_wpr.getPixels().getPixelSizeZ().getValue().round(3)+" "+image_wpr.getPixels().getPixelSizeZ().getUnit()+"\n"
+	    else
+	    	print"and z = 0 \n"
+	    
+	    println "Pixel type : " +image_wpr.getPixels().getPixelType()
+	    println "Time step : NOT POSSIBLE TO CATCH FROM OMERO DIRECTLY. Should be sth like imageWrapper.getPixels().getTimeIncrement().getValue()(and .getUnit())" 
+	}
     
-    if(bounds.getSize().getZ() > 1)
-    	print "and z"+image_wpr.getPixels().getPixelSizeZ().getValue().round(3)+" "+image_wpr.getPixels().getPixelSizeZ().getUnit()+"\n"
-    else
-    	print"and z = 0 \n"
-    
-    println "Pixel type : " +image_wpr.getPixels().getPixelType()
-    println "Time step : NOT POSSIBLE TO CATCH FROM OMERO DIRECTLY. Should be sth like imageWrapper.getPixels().getTimeIncrement().getValue()(and .getUnit())" 
-    def NANOMETER = 15
-    println "\nChannel information"
-    user_client.getMetadata().getChannelData(user_client.getCtx(), image_wpr.getId()).each{println "Name : "+it.getName()
-    																					   println "Emission lambda = "+it.getEmissionWavelength(UnitsLength.valueOf(NANOMETER))
-    																					   println "Excitation lambda = "+it.getExcitationWavelength(UnitsLength.valueOf(NANOMETER))
-    																					   println "Illumination mode = "+it.getIllumination()
-    																					   println "Acquisition mode = "+it.getMode()+"\n"} // more method available like it.getPinholeSize(); it.getNDFilter(); it.getFluor()
-    
-   println "Number of ROIs on the image : " + image_wpr.getROIs(user_client).size()
-   image_wpr.getROIs(user_client).each{
-   		println "Shape count per ROI : "+it.asROIData().getShapeCount()+"-->"+it.getShapes()
-   }
+    if(printChannels){
+	    def NANOMETER = 15
+	    println "\nChannel information"
+	    user_client.getMetadata().getChannelData(user_client.getCtx(), image_wpr.getId()).each{println "Name : "+it.getName()
+	    																					   println "Emission lambda = "+it.getEmissionWavelength(UnitsLength.valueOf(NANOMETER))
+	    																					   println "Excitation lambda = "+it.getExcitationWavelength(UnitsLength.valueOf(NANOMETER))
+	    																					   println "Illumination mode = "+it.getIllumination()
+	    																					   println "Acquisition mode = "+it.getMode()+"\n"} // more method available like it.getPinholeSize(); it.getNDFilter(); it.getFluor()
+	}
+	
+	if(printROIs){
+	    println "Number of ROIs on the image : " + image_wpr.getROIs(user_client).size()
+	    image_wpr.getROIs(user_client).each{
+	   		println "Shape count per ROI : "+it.asROIData().getShapeCount()+"-->"+it.getShapes()
+	    }
+	}
 }
 
 
