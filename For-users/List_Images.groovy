@@ -336,7 +336,7 @@ def writeCSVFile(path, name, fileContent){
 
 
 /**
- * Import all images from a dataset in Fiji
+ * Loop over images from a dataset
  * 
  * inputs
  * 		user_client : OMERO client
@@ -354,7 +354,7 @@ def processDataset( user_client, dataset_wpr ){
 
 
 /**
- * Import all images from a dataset in Fiji
+ * Loop over datasets from a projet
  * 
  * inputs
  * 		user_client : OMERO client
@@ -372,7 +372,7 @@ def processProject( user_client, project_wpr ){
 
 
 /**
- * Import all images from a well in Fiji
+ * Loop over images from a well
  * 
  * inputs
  * 		user_client : OMERO client
@@ -392,7 +392,7 @@ def processWell(user_client, well_wpr_list){
 
 
 /**
- * Import all images from a plate in Fiji
+ * Loop over wells from a plate
  * 
  * inputs
  * 		user_client : OMERO client
@@ -410,7 +410,7 @@ def processPlate(user_client, plate_wpr_list){
 
 
 /**
- * Import all images from a screen in Fiji
+ * Loop over plates from a screen
  * 
  * inputs
  * 		user_client : OMERO client
