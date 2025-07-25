@@ -150,7 +150,9 @@ def getImageMetadata(user_client, image_wpr){
     	print"and z = 0 \n"
     
     println "Pixel type : " +image_wpr.getPixels().getPixelType()
-    println "Time step : NOT POSSIBLE TO CATCH FROM OMERO DIRECTLY. Should be sth like imageWrapper.getPixels().getTimeIncrement().getValue()(and .getUnit())" 
+    println "Time step : "+image_wpr.getPixels().getMeanTimeInterval().getValue() + " " +image_wpr.getPixels().getMeanTimeInterval().getUnit()
+    def channelIdx = 0
+    println "Exposure time : "+image_wpr.getPixels().getMeanExposureTime(channelIdx).getValue() + " " +image_wpr.getPixels().getMeanExposureTime(channelIdx).getUnit()
     def NANOMETER = 15
     println "\nChannel information"
     user_client.getMetadata().getChannelData(user_client.getCtx(), image_wpr.getId()).each{println "Name : "+it.getName()
