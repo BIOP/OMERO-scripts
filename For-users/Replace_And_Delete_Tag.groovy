@@ -1,5 +1,7 @@
+#@String(label="Host", value="omero-server.epfl.ch", persist=true) host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
+#@String(label="OMERO group", value="default") omeroGroup
 #@String(label="Name of the tag to replace") tagToDeleteStr
 #@Boolean(label="Case insensitive ?", value=true) caseInsensitive
 #@String(label="Name of the new tag") newTagStr
@@ -8,6 +10,7 @@
 /* 
  * == INPUTS ==
  *  - credentials 
+ *  - OMERO group
  *  - name of the tag to replace
  *  - name of the new tag
  *  - Case insensitive ? true if you want to delete like "DAPI", "dapi", "dApi"... in one run. False otherwise
@@ -31,7 +34,7 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
  * 20.07.2023
- * version v2.1.1
+ * version v2.1.2
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2023
@@ -58,10 +61,10 @@
  * - 2023.11.07 : Improve popup message, improve CSV report and add IJ logs --v2.0
  * - 2024.05.07 : Trim tag to remove noisy spaces and fix bug when trying to replace a tag by the same one -- v2.1
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.1.1
+ * - 2025.08.20 : Select the OMERO group to process --v2.1.2
  */
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 
@@ -98,125 +101,167 @@ if (user_client.isConnected()){
 	List<Map<String, String>> transferSummary = new ArrayList<>()
 	
 	try{
-		IJLoggerInfo("Input", "You choose the option '"+mode+"'")
-		def foundRepoToUpdate
-		def tagToRepoMap = new HashMap<>()
-		Map<Long,String> experimentersMap = new HashMap<>()
-		
-		// get all group tags
-		def groupTags
-		try{
-			groupTags = user_client.getTags()
-		}catch(Exception e){
-			hasFailed = true
-			message = "Tags from your group cannot be retrieved"
-			IJLoggerError("OMERO", message)
-			throw e
-		}
-		
-		// check if the tag to delete exists or not
-		def tagsToDelete
-		if(caseInsensitive)
-			tagsToDelete = groupTags.findAll{it.getName().trim().equalsIgnoreCase(tagToDeleteStr.trim())}
-		else
-			tagsToDelete = groupTags.findAll{it.getName().trim().equals(tagToDeleteStr.trim())}
-			
-		if(!tagsToDelete.isEmpty()){
-			IJLoggerInfo("OMERO", "Found following tags to delete : " + tagsToDelete.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList()).join(tokenSeparator))
-
-			// check if the new tag already exists. Create it otherwise or return null if the tag should exist
-			def newTag = new TagAnnotationWrapper(new TagAnnotationData(newTagStr.trim()))
-			IJLoggerInfo("OMERO", "The old tag(s) will be replaced by tag '"+newTag.getName()+"'")
-			
-			tagsToDelete.each{tagToDelete->
-				def tagToDeleteName = tagToDelete.getName()
-				IJLoggerInfo("OMERO", "******* Begin with tag '"+tagToDeleteName+"'...********")
-				
-				// get all the images / containers / folders linked to the tag to delete
-				def imgList = tagToDelete.getImages(user_client)
-				def datasetList = tagToDelete.getDatasets(user_client)
-				def projectList = tagToDelete.getProjects(user_client)
-				def wellList = tagToDelete.getWells(user_client)
-				def plateList = tagToDelete.getPlates(user_client)
-				def screenList = tagToDelete.getScreens(user_client)
-				def plateAcquisitionList = tagToDelete.getPlateAcquisitions(user_client)
-				def folderList = tagToDelete.getFolders(user_client)
-				def tmpTransferSummary = []
-				
-				if(!mode.equalsIgnoreCase("Do nothing")){
-					// replace the old tag by the new one on all images / containers / folders
-					(newTag, repoSummaryList) = loopOverRepo(user_client, imgList, tagToDelete, newTag, experimentersMap)
-					if(repoSummaryList.isEmpty())
-						IJLoggerWarn("OMERO","No images linked to tag '"+tagToDeleteName+"'")
-					tmpTransferSummary.addAll(repoSummaryList)
-					
-					(newTag, repoSummaryList) = loopOverRepo(user_client, datasetList, tagToDelete, newTag, experimentersMap)
-					if(repoSummaryList.isEmpty())
-						IJLoggerWarn("OMERO","No datasets linked to tag '"+tagToDeleteName+"'")
-					tmpTransferSummary.addAll(repoSummaryList)
-					
-					(newTag, repoSummaryList) = loopOverRepo(user_client, projectList, tagToDelete, newTag, experimentersMap)
-					if(repoSummaryList.isEmpty())
-						IJLoggerWarn("OMERO","No projects linked to tag '"+tagToDeleteName+"'")
-					tmpTransferSummary.addAll(repoSummaryList)
-
-					(newTag, repoSummaryList) = loopOverRepo(user_client, wellList, tagToDelete, newTag, experimentersMap)
-					if(repoSummaryList.isEmpty())
-						IJLoggerWarn("OMERO","No wells linked to tag '"+tagToDeleteName+"'")
-					tmpTransferSummary.addAll(repoSummaryList)
-
-					(newTag, repoSummaryList) = loopOverRepo(user_client, plateList, tagToDelete, newTag, experimentersMap)
-					if(repoSummaryList.isEmpty())
-						IJLoggerWarn("OMERO","No plates linked to tag '"+tagToDeleteName+"'")
-					tmpTransferSummary.addAll(repoSummaryList)
-
-					(newTag, repoSummaryList) = loopOverRepo(user_client, screenList, tagToDelete, newTag, experimentersMap)
-					if(repoSummaryList.isEmpty())
-						IJLoggerWarn("OMERO","No screens linked to tag '"+tagToDeleteName+"'")
-					tmpTransferSummary.addAll(repoSummaryList)
-
-					(newTag, repoSummaryList) = loopOverRepo(user_client, plateAcquisitionList, tagToDelete, newTag, experimentersMap)
-					if(repoSummaryList.isEmpty())
-						IJLoggerWarn("OMERO","No plate aquisitions linked to tag '"+tagToDeleteName+"'")
-					tmpTransferSummary.addAll(repoSummaryList)
-
-					(newTag, repoSummaryList) = loopOverRepo(user_client, folderList, tagToDelete, newTag, experimentersMap)
-					if(repoSummaryList.isEmpty())
-						IJLoggerWarn("OMERO","No folders linked to tag '"+tagToDeleteName+"'")
-					tmpTransferSummary.addAll(repoSummaryList)
-				}
-				
-				// delete the tag only if it is not the same tag as the one added
-				def tagDeleted = false
-				if(mode.equalsIgnoreCase("Replace and delete") && tagToDelete.getId() != newTag.getId()){
-					try{
-						user_client.delete(tagToDelete)
-						IJLoggerInfo("OMERO", "Tag '"+tagToDeleteName+"' deleted !")
-						tagDeleted = true
-					}catch(Exception e){
-						hasSilentlyFailed = true
-						message = "Cannot delete tag '"+tagToDeleteName+"'. You don't have the permission to delete this tag"						
-						IJLoggerError("OMERO", message, e)
+		def groupId = -1
+		if(omeroGroup.toLowerCase().equals("default")){
+			IJLoggerInfo("OMERO", "Getting the default group '" + user_client.getDefaultGroup().getName() + "'")
+			groupId = user_client.getDefaultGroup().getId()
+		}else{
+			try{
+				IJLoggerInfo("OMERO", "Getting the group '" + omeroGroup + "'")
+				groupId = Integer.parseInt(omeroGroup)
+			}catch(Exception e){
+				try{
+					userGroups = user_client.getUser().getGroups()
+					for (def groupWrapper : userGroups){
+						if(groupWrapper.getName().toLowerCase().equals(omeroGroup.toLowerCase())){
+							groupId = groupWrapper.getId()
+							break
+						}
 					}
+				}catch(Exception e1){
+					hasFailed = true
+					message = "Cannot retrieve the different groups you're member of."
+					IJLoggerError("OMERO", message)
+					throw e1
 				}
+			}	
+		}
 
-				tmpTransferSummary.each{repoMap->
-					repoMap.put(OLD_TAG, tagToDeleteName)
-					repoMap.put(NEW_TAG, newTag.getName())
-				 	repoMap.put(STS_DEL_OLD_TAG, (tagDeleted ? "Yes": "No"))					
-				}
-				transferSummary.addAll(tmpTransferSummary)
+		if(groupId > 0){
+			try{
+				IJLoggerInfo("OMERO", "Switching to group '" + omeroGroup + "' : " + groupId)
+				user_client.switchGroup(groupId)
+			}catch(Exception e){
+				hasFailed = true
+				message = "Cannot switch to group '"+omeroGroup+"' ; id:"+groupId
+				IJLoggerError("OMERO", message)
+				throw e
+			}
+	
+			IJLoggerInfo("Input", "You choose the option '"+mode+"'")
+			def foundRepoToUpdate
+			def tagToRepoMap = new HashMap<>()
+			Map<Long,String> experimentersMap = new HashMap<>()
+			
+			// get all group tags
+			def groupTags
+			try{
+				groupTags = user_client.getTags()
+			}catch(Exception e){
+				hasFailed = true
+				message = "Tags from your group cannot be retrieved"
+				IJLoggerError("OMERO", message)
+				throw e
 			}
 			
-			if(hasSilentlyFailed)
-				message = "The script ended with some errors."
-			else 
-				message = "The tags have been successfully replaced."
-		} else {
-			message = "The tag to delete '"+tagToDeleteStr+"' does not exist on OMERO."
+			// check if the tag to delete exists or not
+			def tagsToDelete
+			if(caseInsensitive)
+				tagsToDelete = groupTags.findAll{it.getName().trim().equalsIgnoreCase(tagToDeleteStr.trim())}
+			else
+				tagsToDelete = groupTags.findAll{it.getName().trim().equals(tagToDeleteStr.trim())}
+				
+			if(!tagsToDelete.isEmpty()){
+				IJLoggerInfo("OMERO", "Found following tags to delete : " + tagsToDelete.stream().map(TagAnnotationWrapper::getName).collect(Collectors.toList()).join(tokenSeparator))
+	
+				// check if the new tag already exists. Create it otherwise or return null if the tag should exist
+				def newTag = new TagAnnotationWrapper(new TagAnnotationData(newTagStr.trim()))
+				IJLoggerInfo("OMERO", "The old tag(s) will be replaced by tag '"+newTag.getName()+"'")
+				
+				tagsToDelete.each{tagToDelete->
+					def tagToDeleteName = tagToDelete.getName()
+					IJLoggerInfo("OMERO", "******* Begin with tag '"+tagToDeleteName+"'...********")
+					
+					// get all the images / containers / folders linked to the tag to delete
+					def imgList = tagToDelete.getImages(user_client)
+					def datasetList = tagToDelete.getDatasets(user_client)
+					def projectList = tagToDelete.getProjects(user_client)
+					def wellList = tagToDelete.getWells(user_client)
+					def plateList = tagToDelete.getPlates(user_client)
+					def screenList = tagToDelete.getScreens(user_client)
+					def plateAcquisitionList = tagToDelete.getPlateAcquisitions(user_client)
+					def folderList = tagToDelete.getFolders(user_client)
+					def tmpTransferSummary = []
+					
+					if(!mode.equalsIgnoreCase("Do nothing")){
+						// replace the old tag by the new one on all images / containers / folders
+						(newTag, repoSummaryList) = loopOverRepo(user_client, imgList, tagToDelete, newTag, experimentersMap)
+						if(repoSummaryList.isEmpty())
+							IJLoggerWarn("OMERO","No images linked to tag '"+tagToDeleteName+"'")
+						tmpTransferSummary.addAll(repoSummaryList)
+						
+						(newTag, repoSummaryList) = loopOverRepo(user_client, datasetList, tagToDelete, newTag, experimentersMap)
+						if(repoSummaryList.isEmpty())
+							IJLoggerWarn("OMERO","No datasets linked to tag '"+tagToDeleteName+"'")
+						tmpTransferSummary.addAll(repoSummaryList)
+						
+						(newTag, repoSummaryList) = loopOverRepo(user_client, projectList, tagToDelete, newTag, experimentersMap)
+						if(repoSummaryList.isEmpty())
+							IJLoggerWarn("OMERO","No projects linked to tag '"+tagToDeleteName+"'")
+						tmpTransferSummary.addAll(repoSummaryList)
+	
+						(newTag, repoSummaryList) = loopOverRepo(user_client, wellList, tagToDelete, newTag, experimentersMap)
+						if(repoSummaryList.isEmpty())
+							IJLoggerWarn("OMERO","No wells linked to tag '"+tagToDeleteName+"'")
+						tmpTransferSummary.addAll(repoSummaryList)
+	
+						(newTag, repoSummaryList) = loopOverRepo(user_client, plateList, tagToDelete, newTag, experimentersMap)
+						if(repoSummaryList.isEmpty())
+							IJLoggerWarn("OMERO","No plates linked to tag '"+tagToDeleteName+"'")
+						tmpTransferSummary.addAll(repoSummaryList)
+	
+						(newTag, repoSummaryList) = loopOverRepo(user_client, screenList, tagToDelete, newTag, experimentersMap)
+						if(repoSummaryList.isEmpty())
+							IJLoggerWarn("OMERO","No screens linked to tag '"+tagToDeleteName+"'")
+						tmpTransferSummary.addAll(repoSummaryList)
+	
+						(newTag, repoSummaryList) = loopOverRepo(user_client, plateAcquisitionList, tagToDelete, newTag, experimentersMap)
+						if(repoSummaryList.isEmpty())
+							IJLoggerWarn("OMERO","No plate aquisitions linked to tag '"+tagToDeleteName+"'")
+						tmpTransferSummary.addAll(repoSummaryList)
+	
+						(newTag, repoSummaryList) = loopOverRepo(user_client, folderList, tagToDelete, newTag, experimentersMap)
+						if(repoSummaryList.isEmpty())
+							IJLoggerWarn("OMERO","No folders linked to tag '"+tagToDeleteName+"'")
+						tmpTransferSummary.addAll(repoSummaryList)
+					}
+					
+					// delete the tag only if it is not the same tag as the one added
+					def tagDeleted = false
+					if(mode.equalsIgnoreCase("Replace and delete") && tagToDelete.getId() != newTag.getId()){
+						try{
+							user_client.delete(tagToDelete)
+							IJLoggerInfo("OMERO", "Tag '"+tagToDeleteName+"' deleted !")
+							tagDeleted = true
+						}catch(Exception e){
+							hasSilentlyFailed = true
+							message = "Cannot delete tag '"+tagToDeleteName+"'. You don't have the permission to delete this tag"						
+							IJLoggerError("OMERO", message, e)
+						}
+					}
+	
+					tmpTransferSummary.each{repoMap->
+						repoMap.put(OLD_TAG, tagToDeleteName)
+						repoMap.put(NEW_TAG, newTag.getName())
+					 	repoMap.put(STS_DEL_OLD_TAG, (tagDeleted ? "Yes": "No"))					
+					}
+					transferSummary.addAll(tmpTransferSummary)
+				}
+				
+				if(hasSilentlyFailed)
+					message = "The script ended with some errors."
+				else 
+					message = "The tags have been successfully replaced."
+			} else {
+				message = "The tag to delete '"+tagToDeleteStr+"' does not exist on OMERO."
+				IJLoggerWarn("OMERO", message)
+				hasSilentlyFailed = true
+			}
+		}else{
+			message = "You are not part of the group '"+omeroGroup+"'. Please select the right group"
 			IJLoggerWarn("OMERO", message)
+			hasSilentlyFailed = true
 		}
-		
 	}catch(Exception e){
 		IJLoggerError(e.toString(), "\n"+getErrorStackTraceAsString(e))
 		if(!hasFailed){
