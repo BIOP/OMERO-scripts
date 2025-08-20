@@ -38,8 +38,8 @@ P_GROUP = "Target group"
 P_PROJECT = "Target project"
 P_DATASET = "Dataset"
 
-OMERO_SERVER = "omero-server-poc.epfl.ch"
-OMERO_WEBSERVER = "omero-poc.epfl.ch"
+OMERO_SERVER = "omero-server.epfl.ch"
+OMERO_WEBSERVER = "omero.epfl.ch"
 PORT = "4064"
 
 
