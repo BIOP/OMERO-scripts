@@ -173,7 +173,7 @@ if (user_client.isConnected()){
 			if(!hasFailed) {
 				message += " A CSV report has been created in your 'Downloads' folder."
 				if(hasSilentlyFailed){
-					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.WARNING_MESSAGE);
+					JOptionPane.showMessageDialog(null, message, "WARNING", JOptionPane.WARNING_MESSAGE);
 				}else{
 					JOptionPane.showMessageDialog(null, message, "The end", JOptionPane.INFORMATION_MESSAGE);
 				}
