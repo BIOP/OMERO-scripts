@@ -1,3 +1,4 @@
+#@String(label="Host", value="omero-server.epfl.ch", persist=true) host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Option", choices={"Report only", "Report and delete"}, style="radioButtonHorizontal", value="Report only", persist=false) dryRun
@@ -57,11 +58,11 @@
  * == HISTORY ==
  * - 2024.06.14: first release --v1.0.0
  * - 2025.09.10: Save Fiji log window --v1.0.1
+ * - 2025.09.01: Adding host in UI --v1.0.1
  */
 
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 try{

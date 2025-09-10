@@ -1,3 +1,4 @@
+#@String(label="Host", value="omero-server.epfl.ch", persist=true) host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Source dataset ID", value=119273) srcDatasetId
@@ -83,6 +84,7 @@
  * - Found a script here https://gist.github.com/will-moore/d8a12aa9124889440ff243c29c201a3e in Python but doesn't include everything
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v1.0.1
  * - 2025.09.10 : Save Fiji log window --v1.0.2
+ * - 2025.09.10 : Adding host in UI --v1.0.2
  */
 
 
@@ -99,7 +101,6 @@ if(!csvFile.exists()){
 }
  
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 

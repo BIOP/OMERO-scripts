@@ -1,3 +1,4 @@
+#@String(label="Host", value="omero-server.epfl.ch", persist=true) host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Datasets ID", value=119273, required=false) datasetsId
@@ -49,6 +50,7 @@ s. If multiple dataset, separate them with ONLY a semi-colon ;
  * - 2024.03.11 : Add support for multiple datasets --v2.0
  * - 2024.05.10 : Update logger, CSV file generation and token separator --v2.0.1
  * - 2025.09.10 : Save Fiji log window --v2.0.2
+ * - 2025.09.10 : Adding host in UI --v2.0.2
  */
 
 
@@ -67,7 +69,6 @@ STS = "Status"
 TAG = "Tags"
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 

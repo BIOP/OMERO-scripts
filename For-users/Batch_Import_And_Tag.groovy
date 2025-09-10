@@ -1,3 +1,4 @@
+#@String(label="Host", value="omero-server.epfl.ch", persist=true) host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 
@@ -68,6 +69,7 @@
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.1.1
  * - 2025.03.14 : Handle standalone ome.tiff files --v2.2.0
  * - 2025.09.10 : Save Fiji log window --v2.2.1
+ * - 2025.09.10 : Adding host in UI --v2.2.1
  * 
  */
 
@@ -118,7 +120,6 @@ String TAG_SER = "tagSerie";
 String TAG_FOL = "tagFolder";
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 

@@ -1,3 +1,4 @@
+#@String(label="Host", value="omero-server.epfl.ch", persist=true) host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@Boolean(label="Delete unlinked files", value=false, persist=false) toDelete
@@ -53,11 +54,11 @@
  * - 2023.11.07 : Update script with formatted CSV file, popup messages and error catching --v2.0
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.0.1
  * - 2025.09.10 : Save Fiji log window --v2.0.2
+ * - 2025.09.10 : Adding host in UI --v2.0.2
  */
 
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 try{

@@ -1,3 +1,4 @@
+#@String(label="Host", value="omero-server.epfl.ch", persist=true) host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
@@ -78,6 +79,7 @@
  * - 2023.11.14 : Update with user script template --v2.0
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.0.1
  * - 2025.09.10 : Save Fiji log window --v2.0.2
+ * - 2025.09.10 : Adding host in UI --v2.0.2
  */
 
 /**
@@ -97,7 +99,6 @@ rm.reset()
 rt_image.reset()
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
 Client user_client = new Client()
 
