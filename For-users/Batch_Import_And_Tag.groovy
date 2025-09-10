@@ -55,7 +55,7 @@
  *  = AUTHOR INFORMATION =
  * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
  * date : 2023-08-10
- * version : v2.2.0
+ * version : v2.2.1
  * 
  * = HISTORY =
  * - 2023.08.10 : First release --v1.0
@@ -67,6 +67,7 @@
  * - 2024.02.29 : Add support for the fluorescence VSI images from new Slide Scanner (i.e. split serie name with comma) --v2.1
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.1.1
  * - 2025.03.14 : Handle standalone ome.tiff files --v2.2.0
+ * - 2025.09.10 : Save Fiji log window --v2.2.1
  * 
  */
 
@@ -716,6 +717,9 @@ def generateCSVReport(transferSummaryList){
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
 	IJLoggerInfo("CSV report", "DONE!")
+	
+	// save the log window
+    saveFijiLogWindow(path, name)
 }
 
 
@@ -733,6 +737,20 @@ def writeCSVFile(path, name, fileContent){
 	}
 }
 
+
+/**
+ * Saves the Log of Fiji
+ */
+def saveFijiLogWindow(path, name){
+	// create the path locally
+    String filePath = path.toString() + File.separator + name + "_logs.txt";
+
+	// select the log window
+    IJ.selectWindow("Log")
+    
+    // save it
+	IJ.saveAs("Text", filePath);
+}
 
 
 /**

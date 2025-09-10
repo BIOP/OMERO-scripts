@@ -27,7 +27,7 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
  * 27.02.2023
- * version v2.0.1
+ * version v2.0.2
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
@@ -52,6 +52,7 @@
  * == HISTORY ==
  * - 2023.11.07 : Update script with formatted CSV file, popup messages and error catching --v2.0
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.0.1
+ * - 2025.09.10 : Save Fiji log window --v2.0.2
  */
 
 
@@ -349,6 +350,9 @@ def generateCSVReport(transferSummaryList){
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
 	IJLoggerInfo("CSV report", "DONE!")
+		
+	// save the log window
+    saveFijiLogWindow(path, name)
 }
 
 
@@ -367,6 +371,19 @@ def writeCSVFile(path, name, fileContent){
 }
 
 
+/**
+ * Saves the Log of Fiji
+ */
+def saveFijiLogWindow(path, name){
+	// create the path locally
+    String filePath = path.toString() + File.separator + name + "_logs.txt";
+
+	// select the log window
+    IJ.selectWindow("Log")
+    
+    // save it
+	IJ.saveAs("Text", filePath);
+}
 
 /**
  * Logger methods

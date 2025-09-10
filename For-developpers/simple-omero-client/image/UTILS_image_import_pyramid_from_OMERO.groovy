@@ -163,7 +163,7 @@ def processImage(user_client, image_wpr){
 			}
 		}
 	}
-	
+	rawPixStore.close()
 	imp.setStack(stack);
 	
 	// set the calibration
@@ -195,7 +195,7 @@ def processImage(user_client, image_wpr){
         calibration.frameInterval = stepT.getValue();
     }
 	imp.setCalibration(calibration);
-	 
+
 	// show image
 	if (showImages) imp.show()
 }

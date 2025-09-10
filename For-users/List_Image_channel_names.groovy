@@ -30,6 +30,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
+ * version: 1.0.1
  * 
  * 
  * = COPYRIGHT =
@@ -51,6 +52,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * = HISTORY = 
+ * - 2025.09.10: Save Fiji log window --v1.0.1
  */
 
 /**
@@ -301,6 +305,9 @@ def generateCSVReport(transferSummaryList){
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
 	IJLoggerInfo("CSV report", "DONE!")
+		
+	// save the log window
+    saveFijiLogWindow(path, name)
 }
 
 
@@ -316,6 +323,21 @@ def writeCSVFile(path, name, fileContent){
 	}catch(Exception e){
 		throw e
 	}
+}
+
+
+/**
+ * Saves the Log of Fiji
+ */
+def saveFijiLogWindow(path, name){
+	// create the path locally
+    String filePath = path.toString() + File.separator + name + "_logs.txt";
+
+	// select the log window
+    IJ.selectWindow("Log")
+    
+    // save it
+	IJ.saveAs("Text", filePath);
 }
 
 

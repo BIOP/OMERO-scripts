@@ -41,13 +41,14 @@ s. If multiple dataset, separate them with ONLY a semi-colon ;
  *  = AUTHOR INFORMATION =
  * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
  * date : 2023.11.08
- * version : v2.0.1
+ * version : v2.0.2
  * 
  * = HISTORY =
  * - 2023.11.08 : First release --v1.0
  * - 2024.02.29 : Add support for the fluorescence VSI images from new Slide Scanner (i.e. split serie name with comma) --v1.1
  * - 2024.03.11 : Add support for multiple datasets --v2.0
  * - 2024.05.10 : Update logger, CSV file generation and token separator --v2.0.1
+ * - 2025.09.10 : Save Fiji log window --v2.0.2
  */
 
 
@@ -299,6 +300,9 @@ def generateCSVReport(transferSummaryList){
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
 	IJLoggerInfo("CSV report", "DONE!")
+	
+	// save the log window
+    saveFijiLogWindow(path, name)
 }
 
 
@@ -316,6 +320,20 @@ def writeCSVFile(path, name, fileContent){
 	}
 }
 
+
+/**
+ * Saves the Log of Fiji
+ */
+def saveFijiLogWindow(path, name){
+	// create the path locally
+    String filePath = path.toString() + File.separator + name + "_logs.txt";
+
+	// select the log window
+    IJ.selectWindow("Log")
+    
+    // save it
+	IJ.saveAs("Text", filePath);
+}
 
 
 /**

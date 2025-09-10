@@ -34,11 +34,12 @@
  * 
  * = PROJECT INFORMATION =
  * date : 2024.05.06
- * version : v1.0.1
+ * version : v1.0.2
  * 
  * = HISTORY =
  * - 2024.05.06 : First release --v1.0 
  * - 2024.05.10 : fix bug when downloading a single image and update token separator --v1.0.1
+ * - 2025.09.10 : Save Fiji log window --v1.0.2
  *  
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
@@ -342,6 +343,9 @@ def generateCSVReport(transferSummaryList){
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
 	IJLoggerInfo("CSV report", "DONE!")
+		
+	// save the log window
+    saveFijiLogWindow(path, name)
 }
 
 
@@ -358,6 +362,22 @@ def writeCSVFile(path, name, fileContent){
 	}catch(Exception e){
 		throw e
 	}
+}
+
+
+
+/**
+ * Saves the Log of Fiji
+ */
+def saveFijiLogWindow(path, name){
+	// create the path locally
+    String filePath = path.toString() + File.separator + name + "_logs.txt";
+
+	// select the log window
+    IJ.selectWindow("Log")
+    
+    // save it
+	IJ.saveAs("Text", filePath);
 }
 
 

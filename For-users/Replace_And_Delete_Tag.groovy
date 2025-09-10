@@ -34,7 +34,7 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
  * 20.07.2023
- * version v2.1.2
+ * version v2.1.3
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2023
@@ -62,6 +62,7 @@
  * - 2024.05.07 : Trim tag to remove noisy spaces and fix bug when trying to replace a tag by the same one -- v2.1
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.1.1
  * - 2025.08.20 : Select the OMERO group to process --v2.1.2
+ * - 2025.09.10 : Save Fiji log window --v2.1.3
  */
 
 // Connection to server
@@ -411,6 +412,9 @@ def generateCSVReport(transferSummaryList){
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
 	IJLoggerInfo("CSV report", "DONE!")
+		
+	// save the log window
+    saveFijiLogWindow(path, name)
 }
 
 
@@ -428,6 +432,20 @@ def writeCSVFile(path, name, fileContent){
 	}
 }
 
+
+/**
+ * Saves the Log of Fiji
+ */
+def saveFijiLogWindow(path, name){
+	// create the path locally
+    String filePath = path.toString() + File.separator + name + "_logs.txt";
+
+	// select the log window
+    IJ.selectWindow("Log")
+    
+    // save it
+	IJ.saveAs("Text", filePath);
+}
 
 
 /**

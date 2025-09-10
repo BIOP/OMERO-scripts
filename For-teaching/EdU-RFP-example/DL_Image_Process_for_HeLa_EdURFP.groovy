@@ -46,7 +46,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Code written by romain guiet and Rémy Dornier, EPFL - SV - PTECH - BIOP 
- * version v2.0.1
+ * version v2.0.2
  * 12.07.2022
  * 
  * = COPYRIGHT =
@@ -77,6 +77,7 @@
  * - 2023-10-04 : Fix bug when deleting tables if there is not table to delete --v1.3
  * - 2023.11.14 : Update with user script template --v2.0
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v2.0.1
+ * - 2025.09.10 : Save Fiji log window --v2.0.2
  */
 
 /**
@@ -519,6 +520,9 @@ def generateCSVReport(transferSummaryList){
 	IJLoggerInfo("CSV report", "Saving the report as '"+name+".csv' in "+path+"....")
 	writeCSVFile(path, name, content)	
 	IJLoggerInfo("CSV report", "DONE!")
+		
+	// save the log window
+    saveFijiLogWindow(path, name)
 }
 
 
@@ -534,6 +538,21 @@ def writeCSVFile(path, name, fileContent){
 	}catch(Exception e){
 		throw e
 	}
+}
+
+
+/**
+ * Saves the Log of Fiji
+ */
+def saveFijiLogWindow(path, name){
+	// create the path locally
+    String filePath = path.toString() + File.separator + name + "_logs.txt";
+
+	// select the log window
+    IJ.selectWindow("Log")
+    
+    // save it
+	IJ.saveAs("Text", filePath);
 }
 
 

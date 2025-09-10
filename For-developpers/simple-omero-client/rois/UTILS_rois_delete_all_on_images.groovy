@@ -2,7 +2,7 @@
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
-
+#@Long(label="ONLY FOR PLATES, Run ID to process (-1 for all)", value = -1) runId
 
 /* = CODE DESCRIPTION =
  * This is a template to interact with OMERO . 
@@ -78,13 +78,22 @@ if (user_client.isConnected()){
 				processWell(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				processPlate(user_client, user_client.getPlates(id))
+				if(runId > 0){
+					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
+					if(!listRuns.isEmpty()){
+						n = processRun(user_client, listRuns.get(0))
+					}else{
+						println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
+					}
+				}else{
+					n = processPlate(user_client, user_client.getPlate(id))
+				}
 				break
 			case "screen":
 				processScreen(user_client, user_client.getScreens(id))
 				break
 		}
-		println "Processing of "+object_type+", id "+id+": DONE !"
+		println "ROIs deleted for images under "+object_type+ " "+id + (runId > 0 && object_type.equals("plate") ? ", run " + runId : "")
 		
 	} finally{
 		user_client.disconnect()
@@ -155,6 +164,21 @@ def processWell(user_client, well_wpr_list){
 
 
 /**
+ * get all images within a run
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		pa_wpr : OMERO plate acquisition wrapper
+ * 
+ * */
+def processRun(user_client, pa_wpr){
+	pa_wpr.getImages(user_client).each{ image_wpr ->	
+		processImage(user_client, image_wpr)
+	} 
+}
+
+
+/**
  * get all wells within a plate
  * 
  * inputs
@@ -191,3 +215,4 @@ import fr.igred.omero.*
 import fr.igred.omero.roi.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
+import java.util.stream.Collectors
