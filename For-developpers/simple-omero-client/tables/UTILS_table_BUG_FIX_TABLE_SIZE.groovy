@@ -259,8 +259,8 @@ def loopOverRepo(user_client, repoWprList, oldFileWpr, newFileWpr){
 /**
  * Delete all tables attached to an image
  */
-def processImage(user_client, img_wpr) {
-	return processTable(user_client , img_wpr)
+def processImage(user_client, image_wpr) {
+	return processTable(user_client , image_wpr)
 }
 
 
@@ -275,8 +275,8 @@ def processImage(user_client, img_wpr) {
 def processDataset( user_client, dataset_wpr ){
 	def dataset_table = null;
 	def sizeDelAtt = processTable(user_client , dataset_wpr)
-	dataset_wpr.getImages(user_client).each{ img_wpr ->
-		sizeDelAtt += processImage(user_client , img_wpr)
+	dataset_wpr.getImages(user_client).each{ image_wpr ->
+		sizeDelAtt += processImage(user_client , image_wpr)
 	}
 	
 	return sizeDelAtt

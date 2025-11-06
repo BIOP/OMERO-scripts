@@ -150,7 +150,7 @@ def processImage(user_client, image_wpr){
 	// delete existing ROIs
 	if( isDeleteExistingROIs){
 		println "Deleting existing OMERO-ROIs"
-		def roisToDelete = img_wpr.getROIs(user_client)
+		def roisToDelete = image_wpr.getROIs(user_client)
 		user_client.delete((Collection<GenericObjectWrapper<?>>)roisToDelete)
 	}
 	else {
@@ -167,7 +167,7 @@ def processImage(user_client, image_wpr){
 	if (isSendNewROIs){
 		println "New ROIs uploading to OMERO"
 		def roisToUpload = ROIWrapper.fromImageJ(rm.getRoisAsArray() as List)
-		img_wpr.saveROIs(user_client , roisToUpload)
+		image_wpr.saveROIs(user_client , roisToUpload)
 	}
 	
 }
@@ -181,8 +181,8 @@ def processImage(user_client, image_wpr){
  * 
  * */
 def processDataset( user_client, dataset_wpr ){
-	dataset_wpr.getImages(user_client).each{ img_wpr ->
-		processImage(user_client , img_wpr)
+	dataset_wpr.getImages(user_client).each{ image_wpr ->
+		processImage(user_client , image_wpr)
 	}
 }
 

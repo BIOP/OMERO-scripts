@@ -187,9 +187,9 @@ def processAttachment(user_client, repository_wpr){
  * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
  * 
  * */
-def processImage(user_client, img_wpr) {
+def processImage(user_client, image_wpr) {
 	
-	return processAttachment(user_client , img_wpr)
+	return processAttachment(user_client , image_wpr)
 }
 
 
@@ -204,8 +204,8 @@ def processImage(user_client, img_wpr) {
 def processDataset( user_client, dataset_wpr ){
 	def dataset_table = null;
 	def sizeDelAtt = 0
-	dataset_wpr.getImages(user_client).each{ img_wpr ->
-		sizeDelAtt += processImage(user_client , img_wpr)
+	dataset_wpr.getImages(user_client).each{ image_wpr ->
+		sizeDelAtt += processImage(user_client , image_wpr)
 	}
 	
 	return sizeDelAtt

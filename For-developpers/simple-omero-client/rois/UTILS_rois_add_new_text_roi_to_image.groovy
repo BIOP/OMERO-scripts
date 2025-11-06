@@ -25,8 +25,8 @@ if (user_client.isConnected()){
 }
 
 
-def processImage(user_client, img_wpr){
-	println img_wpr.getName()
+def processImage(user_client, image_wpr){
+	println image_wpr.getName()
 
   	def txtroi1 = new TextRoi( 0 , 0 ,50.0 , 50.0,"myTextArial" ,  new FontUtil().getFont("Arial", 2 , 72 as float ) )
 	
@@ -48,7 +48,7 @@ def processImage(user_client, img_wpr){
 */
 
 	// upload to OMERO
-	img_wpr.saveROIs(user_client, roisToUpload)
+	image_wpr.saveROIs(user_client, roisToUpload)
 }
 
 

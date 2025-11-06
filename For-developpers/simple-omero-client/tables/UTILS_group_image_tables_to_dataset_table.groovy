@@ -88,7 +88,7 @@ if (user_client.isConnected()){
 		def dataset_wpr = user_client.getDataset(id)
 		
 		// get tables attached to the current dataset
-		List<ImageWrapper> img_wpr_list = dataset_wpr.getImages(user_client)
+		List<ImageWrapper> image_wpr_list = dataset_wpr.getImages(user_client)
 	
 		// initialize variables
 		TableWrapper dataset_table_wpr = null;
@@ -96,35 +96,35 @@ if (user_client.isConnected()){
 		ResultsTable rt_dataset = new ResultsTable()
 	
 		boolean isCSV = false
-		img_wpr_list.each{img_wpr->	
+		image_wpr_list.each{image_wpr->	
 			rt_image.reset()
 			rt_dataset.reset()
 	
 			if(fileChoice.equals("OMERO table")){
-				List<TableWrapper> table_wpr_list = img_wpr.getTables(user_client)
+				List<TableWrapper> table_wpr_list = image_wpr.getTables(user_client)
 				rt_image = convertTableToResultsTable(table_wpr_list, tableName)
 			}
 			else{
 				isCSV = true
-				List<FileAnnotationWrapper> file_List = img_wpr.getFileAnnotations(user_client).findAll{it.getFileName().endsWith(".csv")}
+				List<FileAnnotationWrapper> file_List = image_wpr.getFileAnnotations(user_client).findAll{it.getFileName().endsWith(".csv")}
 				rt_image = convertCSVToResultsTable(user_client, file_List, tableName)
 			}
 				
 			// build the dataset table
 			if(rt_image.size() > 0){
-				println "Process image "+img_wpr.getName()+", id: "+ img_wpr.getId()
+				println "Process image "+image_wpr.getName()+", id: "+ image_wpr.getId()
 				
-				rt_dataset = buildDatasetResultsTable(rt_image, rt_dataset, img_wpr, isCSV)
+				rt_dataset = buildDatasetResultsTable(rt_image, rt_dataset, image_wpr, isCSV)
 	
 				List<Roi> rois =  new ArrayList<>(0)
 				if(dataset_table_wpr == null)
-					dataset_table_wpr = new TableWrapper(user_client, rt_dataset, img_wpr.getId(), rois)
+					dataset_table_wpr = new TableWrapper(user_client, rt_dataset, image_wpr.getId(), rois)
 				else
-					dataset_table_wpr.addRows(user_client, rt_dataset , img_wpr.getId(), rois)
+					dataset_table_wpr.addRows(user_client, rt_dataset , image_wpr.getId(), rois)
 	
 			}
 			else{
-				println "There is no tables for image "+img_wpr.getName()+", id: "+ img_wpr.getId()
+				println "There is no tables for image "+image_wpr.getName()+", id: "+ image_wpr.getId()
 			}
 		}
 	
@@ -275,14 +275,14 @@ def uploadResultsTable(user_client, repository_wpr, rt, temp_folder){
  * (more inputs, other processings...)
  * 
  * */
-def buildDatasetResultsTable(rt_image, rt_dataset, img_wpr, isCSV){
+def buildDatasetResultsTable(rt_image, rt_dataset, image_wpr, isCSV){
 	// the shift is necessary in case of CSV file
 	def shift = 0
 	if(isCSV)
 		shift = -2
 		
 	rt_dataset.incrementCounter()
-	rt_dataset.setValue("Image Name", 0, img_wpr.getName())
+	rt_dataset.setValue("Image Name", 0, image_wpr.getName())
 
 	// extract your stats from the image resultsTable
 	def feature1 = rt_image.getColumn(2 + shift)

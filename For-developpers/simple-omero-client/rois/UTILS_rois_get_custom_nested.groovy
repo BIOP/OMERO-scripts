@@ -88,10 +88,10 @@ if (user_client.isConnected()){
  * Read the ROIs from OMERO and treat nested ROIs as multiple independant ROIs.
  * Display the image with ROIs.
  */
-def processRois(user_client, img_wpr){
+def processRois(user_client, image_wpr){
 	IJ.run("Close All", "");
 	rm.reset()
-	def roi_wpr_list = img_wpr.getROIs(user_client)
+	def roi_wpr_list = image_wpr.getROIs(user_client)
 	def ij_roi_list = new ArrayList()
 	
 	roi_wpr_list.each{
@@ -102,7 +102,7 @@ def processRois(user_client, img_wpr){
 		rm.addRoi(it)
 	}
 	
-	def imp = img_wpr.toImagePlus(user_client)
+	def imp = image_wpr.toImagePlus(user_client)
 	imp.show()
 	rm.runCommand(imp,"Show All");
 }

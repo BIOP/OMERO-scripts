@@ -148,8 +148,8 @@ def processImage(user_client, wpr){
  * */
 def processDataset( user_client, dataset_wpr ){
 	def dataset_table = null;
-	dataset_wpr.getImages(user_client).each{ img_wpr ->
-		processImage(user_client , img_wpr)
+	dataset_wpr.getImages(user_client).each{ image_wpr ->
+		processImage(user_client , image_wpr)
 	}
 }
 

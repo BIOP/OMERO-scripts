@@ -80,13 +80,13 @@ if (user_client.isConnected()){
 
 
 
-def processImage(user_client, img_wpr){
+def processImage(user_client, image_wpr){
 	// clear Fiji env
 	IJ.run("Close All", "");
 	rm.reset()
 	
-	println img_wpr.getName()
-	ImagePlus imp = img_wpr.toImagePlus(user_client);
+	println image_wpr.getName()
+	ImagePlus imp = image_wpr.toImagePlus(user_client);
 	
 	// create dummy rois for example
 	createDummyROIs(imp, rm)
@@ -94,14 +94,14 @@ def processImage(user_client, img_wpr){
 	// delete existing ROIs
 	if(isDeleteExistingROIs){
 		println "Deleting existing OMERO-ROIs"
-		def roisToDelete = img_wpr.getROIs(user_client)
+		def roisToDelete = image_wpr.getROIs(user_client)
 		user_client.delete((Collection<GenericObjectWrapper<?>>)roisToDelete)
 	} 
 	
 	// send ROIs to Omero
 	println "New ROIs uploading to OMERO"
 	def roisToUpload = ROIWrapper.fromImageJ(rm.getRoisAsArray() as List)
-	img_wpr.saveROIs(user_client , roisToUpload)
+	image_wpr.saveROIs(user_client , roisToUpload)
 }
 
 

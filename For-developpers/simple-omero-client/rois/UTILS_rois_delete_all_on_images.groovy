@@ -105,10 +105,10 @@ if (user_client.isConnected()){
 }
 
 
-def processImage(user_client, img_wpr){
-	println "Deleting existing OMERO-ROIs on image " + img_wpr.getId() + " : " + img_wpr.getName()
+def processImage(user_client, image_wpr){
+	println "Deleting existing OMERO-ROIs on image " + image_wpr.getId() + " : " + image_wpr.getName()
 	// get the rois attached on the image
-	def rois = img_wpr.getROIs(user_client)
+	def rois = image_wpr.getROIs(user_client)
 	
 	// delete all ROIs at once
 	user_client.delete((Collection<GenericObjectWrapper<?>>)rois)
@@ -125,8 +125,8 @@ def processImage(user_client, img_wpr){
  * */
 def processDataset( user_client, dataset_wpr ){
 	def dataset_table = null;
-	dataset_wpr.getImages(user_client).each{ img_wpr ->
-		processImage(user_client , img_wpr)
+	dataset_wpr.getImages(user_client).each{ image_wpr ->
+		processImage(user_client , image_wpr)
 	}
 }
 

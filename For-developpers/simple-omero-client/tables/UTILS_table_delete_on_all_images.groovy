@@ -99,9 +99,9 @@ if (user_client.isConnected()){
 /**
  * Delete all tables attached to an image
  */
-def processImage(user_client, img_wpr) {
-	println "Deleting existing OMERO-Tables on image " + img_wpr.getId() + " : " + img_wpr.getName()
-	def tables_to_delete = img_wpr.getTables(user_client)
+def processImage(user_client, image_wpr) {
+	println "Deleting existing OMERO-Tables on image " + image_wpr.getId() + " : " + image_wpr.getName()
+	def tables_to_delete = image_wpr.getTables(user_client)
 	user_client.deleteTables(tables_to_delete)
 }
 
@@ -116,8 +116,8 @@ def processImage(user_client, img_wpr) {
  * */
 def processDataset( user_client, dataset_wpr ){
 	def dataset_table = null;
-	dataset_wpr.getImages(user_client).each{ img_wpr ->
-		processImage(user_client , img_wpr)
+	dataset_wpr.getImages(user_client).each{ image_wpr ->
+		processImage(user_client , image_wpr)
 	}
 }
 

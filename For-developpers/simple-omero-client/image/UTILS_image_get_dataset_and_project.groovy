@@ -55,16 +55,16 @@ if (user_client.isConnected()){
 	
 	try{
 		// Create the image Wrapper object
-		ImageWrapper img_wpr = user_client.getImage(id)
+		ImageWrapper image_wpr = user_client.getImage(id)
 		
 		// Get dataset information from the image ID
-		List<DatasetWrapper> dataset_wpr_list = img_wpr.getDatasets(user_client)
+		List<DatasetWrapper> dataset_wpr_list = image_wpr.getDatasets(user_client)
 		
 		if(!dataset_wpr_list.isEmpty()){
 			dataset_wpr_list.each{println("dataset name : "+it.getName()+", dataset id : "+it.getId())};
 			
 			// Get dataset information from the image ID
-			List<ProjectWrapper> project_wpr_list = img_wpr.getProjects(user_client)
+			List<ProjectWrapper> project_wpr_list = image_wpr.getProjects(user_client)
 			project_wpr_list.each{println("Project name : "+it.getName()+", project id : "+it.getId())};
 		}
 		else{

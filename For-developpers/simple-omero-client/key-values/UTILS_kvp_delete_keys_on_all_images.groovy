@@ -116,9 +116,9 @@ if (user_client.isConnected()){
  * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
  * 
  * */
-def processImage(user_client, img_wpr) {
-	println "Deleting key-values on image " + img_wpr.getId() + " : " + img_wpr.getName()
-	List<MapAnnotationWrapper> keyValues = img_wpr.getMapAnnotations(user_client)		
+def processImage(user_client, image_wpr) {
+	println "Deleting key-values on image " + image_wpr.getId() + " : " + image_wpr.getName()
+	List<MapAnnotationWrapper> keyValues = image_wpr.getMapAnnotations(user_client)		
 	user_client.delete((Collection<GenericObjectWrapper<?>>)keyValues)
 	
 	return keyValues.size()
@@ -136,8 +136,8 @@ def processImage(user_client, img_wpr) {
 def processDataset( user_client, dataset_wpr ){
 	def dataset_table = null;
 	def sizeKVP = 0
-	dataset_wpr.getImages(user_client).each{ img_wpr ->
-		sizeKVP += processImage(user_client , img_wpr)
+	dataset_wpr.getImages(user_client).each{ image_wpr ->
+		sizeKVP += processImage(user_client , image_wpr)
 	}
 	
 	return sizeKVP

@@ -104,17 +104,17 @@ if (user_client.isConnected()){
  * Update channel name for each channel for the current image, based on user input.
  * 
  */
-def processImage(user_client, img_wpr){
+def processImage(user_client, image_wpr){
 	
 	// parse the user input
 	def chExcitationList = channelExcitations.split(",")
 	
 	// get channel metadata
-    def imgChannels = user_client.getMetadata().getChannelData(user_client.getCtx(), img_wpr.getId())
+    def imgChannels = user_client.getMetadata().getChannelData(user_client.getCtx(), image_wpr.getId())
     
     // check of the number of channels on the image matches the number of user inputs
     if(imgChannels.size() == chExcitationList.size()){
-    	println "Processing image : "+img_wpr.getId()
+    	println "Processing image : "+image_wpr.getId()
     	
     	// loop on channels
     	[imgChannels, chExcitationList].transpose().each{ch,excitation->
@@ -145,8 +145,8 @@ def processImage(user_client, img_wpr){
  * 
  * */
 def processDataset( user_client, dataset_wpr ){
-	dataset_wpr.getImages(user_client).each{ img_wpr ->
-		processImage(user_client , img_wpr)
+	dataset_wpr.getImages(user_client).each{ image_wpr ->
+		processImage(user_client , image_wpr)
 	}
 }
 

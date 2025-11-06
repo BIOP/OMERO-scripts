@@ -74,8 +74,8 @@ if (user_client.isConnected()){
 		def datasetWrapper = user_client.getDataset(id);
 		
 		// list images within the dataset
-		datasetWrapper.getImages(user_client).each{ img_wpr ->
-			processImage(user_client , img_wpr)	
+		datasetWrapper.getImages(user_client).each{ image_wpr ->
+			processImage(user_client , image_wpr)	
 		}
 		
 	} finally{
@@ -99,8 +99,8 @@ if (user_client.isConnected()){
  * 		image_wpr : OMERO image
  * 
  * */
-def processImage(user_client, img_wpr){
-	def name = img_wpr.getName()
+def processImage(user_client, image_wpr){
+	def name = image_wpr.getName()
 	def newName = name
 	def tag = null
 	def existingTags = user_client.getTags();
@@ -127,12 +127,12 @@ def processImage(user_client, img_wpr){
 		
 		if(updateImage){
 			// update image name
-			img_wpr.setName(newName)
-			img_wpr.saveAndUpdate(user_client)
+			image_wpr.setName(newName)
+			image_wpr.saveAndUpdate(user_client)
 			
 			if(tag != null){			
 				// add corresponding tag
-				img_wpr.getTags(user_client).find{ it.getName().equals(tag.getName()) } ?: img_wpr.addTag(user_client, tag)
+				image_wpr.getTags(user_client).find{ it.getName().equals(tag.getName()) } ?: image_wpr.addTag(user_client, tag)
 			}
 		}
 	}	

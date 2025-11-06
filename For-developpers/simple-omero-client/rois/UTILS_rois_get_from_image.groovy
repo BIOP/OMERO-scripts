@@ -78,19 +78,19 @@ if (user_client.isConnected()){
 
 
 
-def processImage(user_client, img_wpr){
+def processImage(user_client, image_wpr){
 	// clear Fiji env
 	IJ.run("Close All", "");
 	rm.reset()
 	
 	// convert imageWrapper to imagePlus
-	println img_wpr.getName()
-	ImagePlus imp = img_wpr.toImagePlus(user_client);
+	println image_wpr.getName()
+	ImagePlus imp = image_wpr.toImagePlus(user_client);
 	imp.show()
 	
 	// load OMERO rois
 	println "Loading existing OMERO-ROIs"
-	def omeroRois = img_wpr.getROIs(user_client)
+	def omeroRois = image_wpr.getROIs(user_client)
 	
 	// convert omero ROIs into ImageJ ROIs
 	ROIWrapper.toImageJ(omeroRois).each{rm.addRoi(it)}
