@@ -188,7 +188,7 @@ def duplicate_and_move_to_group(conn: BlitzGateway, script_params):
     add_annotation_key_value(conn, dataset, dataset_kvps)
 
     # get the duplicated images from the orphaned folder
-    duplicated_images = conn.getObjects("Image", opts={'orphaned': True, 'owner': conn.getUser().getId()})
+    duplicated_images = conn.getObjects("Image", opts={'orphaned': True})
 
     # get the target group
     target_group = [g for g in conn.listGroups()
