@@ -203,7 +203,7 @@ the dataset from the current group to the specified target group.
 - Open the script:
   - `Data Type`: should be filled automatically 
   - `IDs` : should be filled automatically.
-  - `Target group` : Exact name of the group to transfer the images to (NOT case-sensitive)
+  - `Target group` : Exact name of the group to transfer the images to (NOT case-sensitive) OR group ID
   - `Dataset`: Name of the dataset which will contain the duplicated images. Leave blank to put in orphaned folder.
 - Run the script
  
