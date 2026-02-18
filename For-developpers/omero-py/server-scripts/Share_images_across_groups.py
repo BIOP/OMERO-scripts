@@ -143,6 +143,13 @@ def duplicate_and_move_to_group(conn: BlitzGateway, script_params):
 
     # target group
     target_group_name = script_params[P_GROUP]
+    try:
+        group_id = int(target_group_name)
+        target_group_name = conn.getObject("ExperimenterGroup", group_id).name
+        print(f"User provided a group id {group_id}, which correspond to group {target_group_name}")
+    except ValueError:
+        print(f"User provided a group name: {target_group_name}")
+
     current_group = conn.getGroupFromContext()
     excluded_groups = [0, 1, 2]
 
