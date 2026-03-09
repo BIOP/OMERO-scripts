@@ -455,13 +455,6 @@ def run_script():
         version="1.0.0"
     )
 
-    # conn = None
-    # current_group = None
-    #
-    # host = "omero-server-poc.epfl.ch"
-    # conn = BlitzGateway("jd", "0321654987", host=host, port=4064, secure=True)
-    # conn.connect()
-    # script_params = {P_DATA_TYPE:"Image", P_IDS:[43320, 43319], P_GROUP:"biop - private group"}
     try:
         # process the list of args above.
         script_params = {}
@@ -488,14 +481,6 @@ def run_script():
         raise AssertionError(str(err))
     finally:
         client.closeSession()
-
-    # except Exception as e:
-    #     print(e)
-    #     traceback.print_exc()
-    #
-    # finally:
-    #     conn.close()
-    #     print(f"Disconnected from {host}")
 
 
 if __name__ == "__main__":
