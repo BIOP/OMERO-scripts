@@ -16,6 +16,11 @@
   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 ------------------------------------------------------------------------------
 Created by Rémy Dornier
+
+
+Warning: the user who is running the script must be a group owner
+
+
 """
 import traceback
 
@@ -98,7 +103,7 @@ def list_tag_attached(conn, qs, params, target, ids, src_group_tags):
     available_tags_src_group_ids = src_group_tags.keys()
     available_tags_src_group_ids = [str(img_id) for img_id in available_tags_src_group_ids]
 
-    # get the tags attached to entities
+    # get the tags attached to the different entities
     for image_id in image_ids:
         image_obj = conn.getObject("Image", image_id)
         instrument_obj = image_obj.getInstrument()
@@ -114,77 +119,83 @@ def list_tag_attached(conn, qs, params, target, ids, src_group_tags):
             fileset_ids.append(str(image_obj.getFileset().getId()))
             channel_ids = channel_ids + [str(ch.getId()) for ch in image_obj.getChannels()]
 
-        # get roi, shape, folder tags
+        # get roi & shape tags
         result = roi_service.findByImage(image_id, None)
         for roi in result.rois:
             roi_ids.append(str(roi.getId().getValue()))
             shape_ids = shape_ids + [str(s.getId().getValue()) for s in roi.copyShapes()]
 
-    print(f"Getting tags for {len(set(image_ids))} images")
+    print(f"Getting tags & object links for {len(set(image_ids))} images")
     image_ids = [str(img_id) for img_id in image_ids]
-    tags_on_images, image_objects, unique_image_tags, image_annotation_link_dic = get_tag_attached(conn, qs, params, "Image", set(image_ids), available_tags_src_group_ids)
+    tags_on_images, image_objects_ids, unique_image_tags, image_annotation_link_dic = get_tag_attached(conn, qs, params, "Image", set(image_ids), available_tags_src_group_ids)
     objects_tagged_map = {**objects_tagged_map, **tags_on_images}
-    objects_map["Image"] = image_objects
+    objects_map["Image"] = image_objects_ids
     tag_annotation_link_dic = {**tag_annotation_link_dic, **image_annotation_link_dic}
     tag_set = tag_set.union(unique_image_tags)
+    print(image_annotation_link_dic)
 
-    # print(f"Getting tags for {len(set(instrument_ids))} instruments")
-    # tags_on_instrument, instrument_objects, unique_instrument_tags, instrument_annotation_link_dic = get_tag_attached(conn, qs, params, "Instrument", set(instrument_ids), available_tags_src_group_ids, tag_target_count_dict)
-    # objects_tagged_map = {**objects_tagged_map, **tags_on_instrument}
-    # objects_map = {**objects_map, **instrument_objects}
-    # tag_annotation_link_dic = {**tag_annotation_link_dic, **instrument_annotation_link_dic}
-    # tag_set = tag_set.union(unique_instrument_tags)
-    #
-    # print(f"Getting tags for {len(set(fileset_ids))} filesets")
-    # tags_on_fileset, fileset_objects, unique_fileset_tags, fileset_annotation_link_dic = get_tag_attached(conn, qs, params,"Fileset", set(fileset_ids), available_tags_src_group_ids, tag_target_count_dict)
-    # objects_tagged_map = {**objects_tagged_map, **tags_on_fileset}
-    # objects_map = {**objects_map, **fileset_objects}
-    # tag_annotation_link_dic = {**tag_annotation_link_dic, **fileset_annotation_link_dic}
-    # tag_set = tag_set.union(unique_fileset_tags)
-    #
-    # print(f"Getting tags for {len(set(channel_ids))} channels")
-    # tags_on_channels, channel_objects, unique_channel_tags, channel_annotation_link_dic = get_tag_attached(conn, qs, params, "Channel", set(channel_ids), available_tags_src_group_ids, tag_target_count_dict)
-    # objects_tagged_map = {**objects_tagged_map, **tags_on_channels}
-    # objects_map = {**objects_map, **channel_objects}
-    # tag_annotation_link_dic = {**tag_annotation_link_dic, **channel_annotation_link_dic}
-    # tag_set = tag_set.union(unique_channel_tags)
-    #
-    # print(f"Getting tags for {len(set(detector_ids))} detectors")
-    # tags_on_detectors, detector_objects, unique_detectors_tags, detector_annotation_link_dic = get_tag_attached(conn, qs, params,"Detector", set(detector_ids), available_tags_src_group_ids, tag_target_count_dict)
-    # objects_tagged_map = {**objects_tagged_map, **tags_on_detectors}
-    # objects_map = {**objects_map, **detector_objects}
-    # tag_annotation_link_dic = {**tag_annotation_link_dic, **detector_annotation_link_dic}
-    # tag_set = tag_set.union(unique_detectors_tags)
+    print(f"Getting tags & object links for {len(set(instrument_ids))} instruments")
+    tags_on_inst, inst_objects_ids, unique_inst_tags, inst_annotation_link_dic = get_tag_attached(conn, qs, params, "Instrument", set(instrument_ids), available_tags_src_group_ids)
+    objects_tagged_map = {**objects_tagged_map, **tags_on_inst}
+    objects_map["Instrument"] = inst_objects_ids
+    tag_annotation_link_dic = {**tag_annotation_link_dic, **inst_annotation_link_dic}
+    tag_set = tag_set.union(unique_inst_tags)
 
-    # print(f"Getting tags for {len(set(dichroic_ids))} dichroics")
-    # tags_on_dichroics, dichroic_objects, unique_dichroics_tags = get_tag_attached(conn, qs, params,"Dichroic", set(dichroic_ids), available_tags_src_group_ids, tag_target_count_dict)
-    # objects_tagged_map = {**objects_tagged_map, **tags_on_dichroics}
-    # objects_map = {**objects_map, **dichroic_objects}
-    # tag_set = tag_set.union(unique_dichroics_tags)
-    #
-    # print(f"Getting tags for {len(set(filter_ids))} filters")
-    # tags_on_filters, filter_objects, unique_filters_tags = get_tag_attached(conn, qs, params,"Filter", set(filter_ids), available_tags_src_group_ids, tag_target_count_dict)
-    # objects_tagged_map = {**objects_tagged_map, **tags_on_filters}
-    # objects_map = {**objects_map, **filter_objects}
-    # tag_set = tag_set.union(unique_filters_tags)
-    #
-    # print(f"Getting tags for {len(set(obj_ids))} objectives")
-    # tags_on_objs, objective_objects, unique_objective_tags = get_tag_attached(conn, qs, params,"Objective", set(obj_ids), available_tags_src_group_ids, tag_target_count_dict)
-    # objects_tagged_map = {**objects_tagged_map, **tags_on_objs}
-    # objects_map = {**objects_map, **objective_objects}
-    # tag_set = tag_set.union(unique_objective_tags)
-    #
-    # print(f"Getting tags for {len(set(roi_ids))} rois")
-    # tags_on_rois, roi_objects, unique_rois_tags = get_tag_attached(conn,  qs, params,"Roi", set(roi_ids), available_tags_src_group_ids, tag_target_count_dict)
-    # objects_tagged_map = {**objects_tagged_map, **tags_on_rois}
-    # objects_map = {**objects_map, **roi_objects}
-    # tag_set = tag_set.union(unique_rois_tags)
-    #
-    # print(f"Getting tags for {len(set(shape_ids))} shapes")
-    # tags_on_shapes, shape_objects, unique_shapes_tags = get_tag_attached(conn,  qs, params,"Shape", set(shape_ids), available_tags_src_group_ids, tag_target_count_dict)
-    # objects_tagged_map = {**objects_tagged_map, **tags_on_shapes}
-    # objects_map = {**objects_map, **shape_objects}
-    # tag_set = tag_set.union(unique_shapes_tags)
+    print(f"Getting tags & object links for {len(set(fileset_ids))} filesets")
+    tags_on_fs, fs_objects_ids, unique_fs_tags, fs_annotation_link_dic = get_tag_attached(conn, qs, params,"Fileset", set(fileset_ids), available_tags_src_group_ids)
+    objects_tagged_map = {**objects_tagged_map, **tags_on_fs}
+    objects_map["Fileset"] = fs_objects_ids
+    tag_annotation_link_dic = {**tag_annotation_link_dic, **fs_annotation_link_dic}
+    tag_set = tag_set.union(unique_fs_tags)
+
+    print(f"Getting tags & object links for {len(set(channel_ids))} channels")
+    tags_on_ch, ch_objects_ids, unique_ch_tags, ch_annotation_link_dic = get_tag_attached(conn, qs, params, "Channel", set(channel_ids), available_tags_src_group_ids)
+    objects_tagged_map = {**objects_tagged_map, **tags_on_ch}
+    objects_map["Channel"] = ch_objects_ids
+    tag_annotation_link_dic = {**tag_annotation_link_dic, **ch_annotation_link_dic}
+    tag_set = tag_set.union(unique_ch_tags)
+
+    print(f"Getting tags & object links for {len(set(detector_ids))} detectors")
+    tags_on_det, det_objects_ids, unique_det_tags, det_annotation_link_dic = get_tag_attached(conn, qs, params,"Detector", set(detector_ids), available_tags_src_group_ids)
+    objects_tagged_map = {**objects_tagged_map, **tags_on_det}
+    objects_map["Detector"] = det_objects_ids
+    tag_annotation_link_dic = {**tag_annotation_link_dic, **det_annotation_link_dic}
+    tag_set = tag_set.union(unique_det_tags)
+
+    print(f"Getting tags & object links for {len(set(dichroic_ids))} dichroics")
+    tags_on_dic, dic_objects_ids, unique_dic_tags, dic_annotation_link_dic = get_tag_attached(conn, qs, params,"Dichroic", set(dichroic_ids), available_tags_src_group_ids)
+    objects_tagged_map = {**objects_tagged_map, **tags_on_dic}
+    objects_map["Dichroic"] = dic_objects_ids
+    tag_annotation_link_dic = {**tag_annotation_link_dic, **dic_annotation_link_dic}
+    tag_set = tag_set.union(unique_dic_tags)
+
+    print(f"Getting tags & object links for {len(set(filter_ids))} filters")
+    tags_on_flt, flt_objects_ids, unique_flt_tags, flt_annotation_link_dic = get_tag_attached(conn, qs, params,"Filter", set(filter_ids), available_tags_src_group_ids)
+    objects_tagged_map = {**objects_tagged_map, **tags_on_flt}
+    objects_map["Filter"] = flt_objects_ids
+    tag_annotation_link_dic = {**tag_annotation_link_dic, **flt_annotation_link_dic}
+    tag_set = tag_set.union(unique_flt_tags)
+
+    print(f"Getting tags & object links for {len(set(obj_ids))} objectives")
+    tags_on_obj, obj_objects_ids, unique_obj_tags, obj_annotation_link_dic = get_tag_attached(conn, qs, params,"Objective", set(obj_ids), available_tags_src_group_ids)
+    objects_tagged_map = {**objects_tagged_map, **tags_on_obj}
+    objects_map["Objective"] = obj_objects_ids
+    tag_annotation_link_dic = {**tag_annotation_link_dic, **obj_annotation_link_dic}
+    tag_set = tag_set.union(unique_obj_tags)
+
+    print(f"Getting tags & object links for {len(set(roi_ids))} rois")
+    tags_on_rois, roi_objects_ids, unique_rois_tags, roi_annotation_link_dic = get_tag_attached(conn,  qs, params,"Roi", set(roi_ids), available_tags_src_group_ids)
+    objects_tagged_map = {**objects_tagged_map, **tags_on_rois}
+    objects_map["Roi"] = roi_objects_ids
+    tag_annotation_link_dic = {**tag_annotation_link_dic, **roi_annotation_link_dic}
+    tag_set = tag_set.union(unique_rois_tags)
+
+    print(f"Getting tags & object links for {len(set(shape_ids))} shapes")
+    tags_on_shp, shp_objects_ids, unique_shp_tags, shp_annotation_link_dic = get_tag_attached(conn,  qs, params,"Shape", set(shape_ids), available_tags_src_group_ids)
+    objects_tagged_map = {**objects_tagged_map, **tags_on_shp}
+    objects_map["Shape"] = shp_objects_ids
+    tag_annotation_link_dic = {**tag_annotation_link_dic, **shp_annotation_link_dic}
+    tag_set = tag_set.union(unique_shp_tags)
 
     return objects_tagged_map, objects_map, tag_set, tag_target_count_dict, tag_annotation_link_dic
 
@@ -192,8 +203,10 @@ def list_tag_attached(conn, qs, params, target, ids, src_group_tags):
 def get_tag_attached(conn, qs, params, target, target_ids, tag_ids):
     target_tag_dic = {}
     annotation_link_dic = {}
-    tag_set = set()
     annotated_objects_list = []
+    tag_set = set()
+
+    # if no target, return empty dic
     if len(target_ids) == 0:
         return target_tag_dic, annotated_objects_list, tag_set, annotation_link_dic
 
@@ -202,7 +215,7 @@ def get_tag_attached(conn, qs, params, target, target_ids, tag_ids):
     results = qs.projection(q, params, conn.SERVICE_OPTS)
 
     for result in results:
-        # get an exhaustive list of tag ids
+        # get an exhaustive list of tag ids linked to the current object type
         tag_set.add(result[2].val)
 
         # populate a dic of which object is annotated with which tag(s)
@@ -241,6 +254,23 @@ def get_all_tags(conn, group_id):
     return tag_dict
 
 
+def get_objects_by_query(conn, qs, params, target, target_ids):
+    object_list = []
+
+    # if no target, return empty dic
+    if len(target_ids) == 0:
+        return object_list
+
+    q = f"select obj from {target} obj where obj.id in ({','.join(target_ids)})"
+    print(f"Query used : {q}")
+    results = qs.findAllByQuery(q, params, conn.SERVICE_OPTS)
+
+    for result in results:
+        object_list.append(parentObject[target](conn, result))
+
+    return object_list
+
+
 def duplicate_and_move_to_group(conn: BlitzGateway, script_params):
     """Duplicate selected images and move them to the selected group
     Parameters
@@ -268,7 +298,6 @@ def duplicate_and_move_to_group(conn: BlitzGateway, script_params):
     params = omero.sys.ParametersI()
     qs = conn.getQueryService()
 
-
     # check if the connected user is part of the target group
     available_groups = [g.name.lower() for g in conn.listGroups() if g.id not in excluded_groups]
 
@@ -281,34 +310,38 @@ def duplicate_and_move_to_group(conn: BlitzGateway, script_params):
                     if g.id not in excluded_groups and g.name.lower() == target_group_name.lower()][0]
     target_group_name = target_group.getName()
 
+    # throw error if the 2 groups are identical
+    if current_group.getId() == target_group.getId():
+        message = f"ERROR : You cannot transfer images to the same group (current and target group are the same)"
+        return message, None
 
-    # Build the chgrp command only if the 2 groups are different
-    if current_group.getId() != target_group.getId():
-        # get all available tag from source group
-        src_group_tags = get_all_tags(conn, current_group.getId())
+    # get all available tag from source group
+    src_group_tags = get_all_tags(conn, current_group.getId())
 
-        # get all tags linked to objects
-        object_tag_dic, object_dic, tag_list, tag_objects_count_dic, tag_annotation_link_dic = list_tag_attached(conn, qs, params, script_params[P_DATA_TYPE], target_ids, src_group_tags)
+    # get all tags linked to objects
+    object_tag_dic, object_dic, tag_list, tag_objects_count_dic, tag_annotation_link_dic = list_tag_attached(conn, qs, params, script_params[P_DATA_TYPE], target_ids, src_group_tags)
 
-        # remove current tag links to current objects
-        for obj_type, ann_link_dic in tag_annotation_link_dic.items():
-            conn.deleteObjects(f"{obj_type}AnnotationLink", ann_link_dic, wait=True)
+    # remove current tag links to current objects
+    for obj_type, ann_link_dic in tag_annotation_link_dic.items():
+        conn.deleteObjects(f"{obj_type}AnnotationLink", ann_link_dic, wait=True)
 
-        # move to the target group
-        target_ids = [str(img_id) for img_id in target_ids]
-        move_to_group(conn, script_params[P_DATA_TYPE], target_ids, current_group, target_group, target_group_name)
+    # move to the target group
+    target_ids = [str(img_id) for img_id in target_ids]
+    move_to_group(conn, script_params[P_DATA_TYPE], target_ids, current_group, target_group, target_group_name)
 
-        # switch to target group
-        conn.SERVICE_OPTS.setOmeroGroup(target_group.getId())
+    # switch to target group
+    conn.SERVICE_OPTS.setOmeroGroup(target_group.getId())
+    qs = conn.getQueryService()
+    params = omero.sys.ParametersI()
 
-        # get all available tag from target group
-        target_group_tags = get_all_tags(conn, target_group.getId())
+    # get all available tag from target group
+    target_group_tags = get_all_tags(conn, target_group.getId())
 
-        # get target tags or create new ones
-        tag_new_tag_dic = get_existing_tags_or_create_new_tags(conn, target_group_tags, src_group_tags, tag_list)
+    # get target tags or create new ones
+    tag_new_tag_dic = get_existing_tags_or_create_new_tags(conn, target_group_tags, src_group_tags, tag_list)
 
-        # link duplicate tags back to corresponding objects
-        link_tags_back(conn, object_tag_dic, object_dic, target_group_tags, tag_new_tag_dic)
+    # link duplicate tags back to corresponding objects
+    link_tags_back(conn, qs, params, object_tag_dic, object_dic, target_group_tags, tag_new_tag_dic)
 
     return "Great!", None
 
@@ -345,10 +378,11 @@ def create_tag(conn, tag_name):
     return tag_ann
 
 
-def link_tags_back(conn, object_tag_dic, object_dic, tag_dic, tag_new_tag_dic):
+def link_tags_back(conn, qs, params, object_tag_dic, object_dic, tag_dic, tag_new_tag_dic):
 
     for obj_type, object_ids_list in object_dic.items():
-        target_objects = conn.getObjects(obj_type, object_ids_list)
+        str_object_ids_list = [str(obj_id) for obj_id in object_ids_list] # converts to string for query
+        target_objects = get_objects_by_query(conn, qs, params, obj_type, str_object_ids_list)
         for target_object in target_objects:
             tag_id_list = object_tag_dic[f"{obj_type}:{target_object.getId()}"]
 
