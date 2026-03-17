@@ -18,11 +18,6 @@
 Created by Rémy Dornier
 
 
-Warning: the user who is running the script must be a group owner
-
-Warning: if you have a dataset with multiple image owners, then, you need to change the owner to have only one
-Please be aware that annotations that you don't own (kvp, attachments and other) will not be moved.
-Consider changing the ownership before running the script
 
 
 """
@@ -160,6 +155,7 @@ def get_image_attributes(conn, image_object, object_type_ids_dict):
     object_type_ids_dict: dict
         Dictionary of [object_type]:[list of all object ids for the current object_type]
     """
+    # get the image instrument
     instrument_obj = image_object.getInstrument()
 
     if instrument_obj is not None:
@@ -690,8 +686,19 @@ def run_script():
 
     client = scripts.client(
         'Move to group',
-        """
-    This script moves the selected data from the current group to the selected one. Tags are included in the transfer.
+        f"""
+    This script moves the selected data from the current group to the selected one. 
+    Tags linked to any object are included in the transfer except those linked to the following objects : 
+    {','.join(NOT_HANDLED_OBJECTS)}'
+    \t
+    Warning: the user who is running the script HAS TO BE a group owner.
+    \t
+    Warning: if you have a dataset with multiple image owners, then, you need to change the ownership of the images 
+    to have the same owner for all the transferred data.
+    \t
+    Warning: Please be aware that annotations that you don't own (kvp, attachments and other) will not be moved.
+    Consider changing the ownership of annotations before running the script.
+    \t
         """,
         scripts.String(
             P_DATA_TYPE, optional=False,grouping="1",
