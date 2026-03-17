@@ -90,7 +90,7 @@ CHILD_OBJECTS = {
 }
 
 # current omero server for the CLI call
-OMERO_SERVER = "omero-server-poc.epfl.ch"
+OMERO_SERVER = "omero-server.epfl.ch"
 PORT = "4064"
 
 
