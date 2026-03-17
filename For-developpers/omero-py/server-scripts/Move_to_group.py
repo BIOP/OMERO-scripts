@@ -1,8 +1,8 @@
 """
- Share_images_across_groups.py
- Duplicate and transfer images from one group to another
+ Move_to_group.py
+ Transfer images from one group to another
 -----------------------------------------------------------------------------
-  Copyright (C) 2023
+  Copyright (C) 2026
   This program is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation; either version 2 of the License, or
@@ -19,6 +19,10 @@ Created by Rémy Dornier
 
 
 Warning: the user who is running the script must be a group owner
+
+Warning: if you have a dataset with multiple image owners, then, you need to change the owner to have only one
+Please be aware that annotations that you don't own (kvp, attachments and other) will not be moved.
+Consider changing the ownership before running the script
 
 
 """
@@ -40,8 +44,7 @@ from datetime import datetime
 P_DATA_TYPE = "Data_Type"
 P_IDS = "IDs"
 P_GROUP = "Target group"
-P_PROJECT = "Target project"
-P_DATASET = "Dataset"
+P_TARGET = "Target object"
 
 CONTAINER_OBJECTS = ["Project", "Dataset", "Image", "Screen", "Plate", "PlateAcquisition", "Well"]
 IMAGE_LINKED_OBJECTS = ["Fileset", "Instrument", "Roi", "Channel"]
@@ -51,151 +54,172 @@ ROI_LINKED_OBJECTS = ["Shape"]
 NOT_HANDLED_OBJECTS = ["Session", "Namespace", "Node", "LightPath", "Job", "OriginalFile", "Experimenter",
                        "ExperimenterGroup", "Reagent", "Annotation", "LightSource", "FolderImage, FolderRoi"]
 
+INSTRUMENT_CLASS = "Instrument"
+DETECTOR_CLASS = "Detector"
+DICHROIC_CLASS = "Dichroic"
+FILTER_CLASS = "Filter"
+OBJECTIVE_CLASS = "Objective"
+CHANNEL_CLASS = "Channel"
+ROI_CLASS = "Roi"
+SHAPE_CLASS = "Shape"
+FILESET_CLASS = "Fileset"
+IMAGE_CLASS = "Image"
+DATASET_CLASS = "Dataset"
+PROJECT_CLASS = "Project"
+SCREEN_CLASS = "Screen"
+PLATE_CLASS = "Plate"
+WELL_SAMPLE_CLASS = "WellSample"
+WELL_CLASS = "Well"
+PA_CLASS = "PlateAcquisition"
+
 parentObject = {
-    'Project': omero.gateway.ProjectWrapper,
-    'Dataset': omero.gateway.DatasetWrapper,
-    'Image': omero.gateway.ImageWrapper,
-    'Screen': omero.gateway.ScreenWrapper,
-    'Plate': omero.gateway.PlateWrapper,
-    'PlateAcquisition': omero.gateway.PlateAcquisitionWrapper,
-    'Well': omero.gateway.WellWrapper,
-    'Fileset': omero.gateway.FilesetWrapper,
-    'Instrument': omero.gateway.InstrumentWrapper,
-    'Roi': omero.gateway.RoiWrapper,
-    'Channel': omero.gateway.ChannelWrapper,
-    'Objective': omero.gateway.ObjectiveWrapper,
-    'Filter': omero.gateway.FilterWrapper,
-    'Dichroic': omero.gateway.DichroicWrapper,
-    'Detector': omero.gateway.DetectorWrapper,
-    'Shape': omero.gateway.ShapeWrapper
+    PROJECT_CLASS: omero.gateway.ProjectWrapper,
+    DATASET_CLASS: omero.gateway.DatasetWrapper,
+    IMAGE_CLASS: omero.gateway.ImageWrapper,
+    SCREEN_CLASS: omero.gateway.ScreenWrapper,
+    PLATE_CLASS: omero.gateway.PlateWrapper,
+    PA_CLASS: omero.gateway.PlateAcquisitionWrapper,
+    WELL_CLASS: omero.gateway.WellWrapper,
+    FILESET_CLASS: omero.gateway.FilesetWrapper,
+    INSTRUMENT_CLASS: omero.gateway.InstrumentWrapper,
+    ROI_CLASS: omero.gateway.RoiWrapper,
+    CHANNEL_CLASS: omero.gateway.ChannelWrapper,
+    OBJECTIVE_CLASS: omero.gateway.ObjectiveWrapper,
+    FILTER_CLASS: omero.gateway.FilterWrapper,
+    DICHROIC_CLASS: omero.gateway.DichroicWrapper,
+    DETECTOR_CLASS: omero.gateway.DetectorWrapper,
+    SHAPE_CLASS: omero.gateway.ShapeWrapper
 }
 
+CHILD_OBJECTS = {
+    PROJECT_CLASS: DATASET_CLASS,
+    DATASET_CLASS: IMAGE_CLASS,
+    SCREEN_CLASS: PLATE_CLASS,
+    PLATE_CLASS: WELL_CLASS,
+    WELL_CLASS: WELL_SAMPLE_CLASS,
+    WELL_SAMPLE_CLASS: IMAGE_CLASS
+}
 
 OMERO_SERVER = "omero-server-poc.epfl.ch"
 OMERO_WEBSERVER = "omero-poc.epfl.ch"
 PORT = "4064"
 
 
+def get_children_recursive(conn, source_object, target_object_type, object_type_ids_dic):
+    # adding source object ids
+    if source_object.OMERO_CLASS in object_type_ids_dic:
+        object_type_ids_dic[source_object.OMERO_CLASS].append(str(source_object.getId()))
+    else:
+        object_type_ids_dic[source_object.OMERO_CLASS] = [str(source_object.getId())]
 
-def list_tag_attached(conn, qs, params, target, ids, src_group_tags):
+    if source_object.OMERO_CLASS == target_object_type:
+        return get_image_attributes(conn, source_object, object_type_ids_dic)
+
+    # Stop condition, we return the source_obj children
+    if source_object.OMERO_CLASS != WELL_SAMPLE_CLASS:
+        child_objs = source_object.listChildren()
+    else:
+        child_objs = [source_object.getImage()]
+
+    for child_obj in child_objs:
+        # Going down in the Hierarchy list
+        get_children_recursive(conn, child_obj, target_object_type, object_type_ids_dic)
+
+    return object_type_ids_dic
+
+
+def get_image_attributes(conn, image_object, object_type_ids_dic):
+    instrument_obj = image_object.getInstrument()
+
+    if instrument_obj is not None:
+        if INSTRUMENT_CLASS in object_type_ids_dic:
+            object_type_ids_dic[INSTRUMENT_CLASS].append(str(instrument_obj.getId()))
+        else:
+            object_type_ids_dic[INSTRUMENT_CLASS] = [str(instrument_obj.getId())]
+
+        det_ids = [str(det.getId()) for det in instrument_obj.getDetectors() if det is not None]
+        if DETECTOR_CLASS in object_type_ids_dic:
+            object_type_ids_dic[DETECTOR_CLASS] = object_type_ids_dic[DETECTOR_CLASS] + det_ids
+        else:
+            object_type_ids_dic[DETECTOR_CLASS] = det_ids
+
+        dic_ids = [str(dic.getId()) for dic in instrument_obj.getDichroics() if dic is not None]
+        if DICHROIC_CLASS in object_type_ids_dic:
+            object_type_ids_dic[DICHROIC_CLASS] = object_type_ids_dic[DICHROIC_CLASS] + dic_ids
+        else:
+            object_type_ids_dic[DICHROIC_CLASS] = dic_ids
+
+        flt_ids = [str(flt.getId()) for flt in instrument_obj.getFilters() if flt is not None]
+        if FILTER_CLASS in object_type_ids_dic:
+            object_type_ids_dic[FILTER_CLASS] = object_type_ids_dic[FILTER_CLASS] + flt_ids
+        else:
+            object_type_ids_dic[FILTER_CLASS] = flt_ids
+
+        obj_ids = [str(obj.getId()) for obj in instrument_obj.getObjectives() if obj is not None]
+        if OBJECTIVE_CLASS in object_type_ids_dic:
+            object_type_ids_dic[OBJECTIVE_CLASS] = object_type_ids_dic[OBJECTIVE_CLASS] + obj_ids
+        else:
+            object_type_ids_dic[OBJECTIVE_CLASS] = obj_ids
+
+
+    if image_object is not None:
+        if FILESET_CLASS in object_type_ids_dic:
+            object_type_ids_dic[FILESET_CLASS].append(str(image_object.getFileset().getId()))
+        else:
+            object_type_ids_dic[FILESET_CLASS] = [str(image_object.getFileset().getId())]
+
+        ch_ids = [str(ch.getId()) for ch in image_object.getChannels()]
+        if CHANNEL_CLASS in object_type_ids_dic:
+            object_type_ids_dic[CHANNEL_CLASS] = object_type_ids_dic[CHANNEL_CLASS] + ch_ids
+        else:
+            object_type_ids_dic[CHANNEL_CLASS] = ch_ids
+
+
+    # get roi & shape tags
+    roi_service = conn.getRoiService()
+    result = roi_service.findByImage(image_object.getId(), None)
+    roi_ids = []
+    shape_ids = []
+    for roi in result.rois:
+        roi_ids.append(str(roi.getId().getValue()))
+        shape_ids = shape_ids + [str(s.getId().getValue()) for s in roi.copyShapes()]
+
+    if ROI_CLASS in object_type_ids_dic:
+        object_type_ids_dic[ROI_CLASS] = object_type_ids_dic[ROI_CLASS] + roi_ids
+    else:
+        object_type_ids_dic[ROI_CLASS] = roi_ids
+
+    if SHAPE_CLASS in object_type_ids_dic:
+        object_type_ids_dic[SHAPE_CLASS] = object_type_ids_dic[SHAPE_CLASS] + shape_ids
+    else:
+        object_type_ids_dic[SHAPE_CLASS] = shape_ids
+
+    return object_type_ids_dic
+
+
+def list_tag_attached(conn, qs, params, src_group_tags, object_type_ids_dic):
     objects_tagged_map = {}
     tag_target_count_dict = {}
     objects_map = {}
     tag_annotation_link_dic = {}
-    # get all the container tags => most important
-
-    image_ids = ids
-
-    target = "Image"
-    roi_service = conn.getRoiService()
-
-    instrument_ids = []
-    fileset_ids = []
-    channel_ids = []
-    detector_ids = []
-    dichroic_ids = []
-    filter_ids = []
-    obj_ids = []
-    roi_ids = []
-    shape_ids = []
     tag_set = set()
 
     available_tags_src_group_ids = src_group_tags.keys()
     available_tags_src_group_ids = [str(img_id) for img_id in available_tags_src_group_ids]
 
-    # get the tags attached to the different entities
-    for image_id in image_ids:
-        image_obj = conn.getObject("Image", image_id)
-        instrument_obj = image_obj.getInstrument()
+    for object_type, ids_list in object_type_ids_dic.items():
+        if object_type == WELL_SAMPLE_CLASS:
+            continue
 
-        if instrument_obj is not None:
-            instrument_ids.append(str(instrument_obj.getId()))
-            detector_ids = detector_ids + [str(det.getId()) for det in instrument_obj.getDetectors() if det is not None]
-            dichroic_ids = dichroic_ids + [str(dic.getId()) for dic in instrument_obj.getDichroics() if dic is not None]
-            filter_ids = filter_ids + [str(flt.getId()) for flt in instrument_obj.getFilters() if flt is not None]
-            obj_ids = obj_ids + [str(obj.getId()) for obj in instrument_obj.getObjectives() if obj is not None]
-
-        if image_obj is not None:
-            fileset_ids.append(str(image_obj.getFileset().getId()))
-            channel_ids = channel_ids + [str(ch.getId()) for ch in image_obj.getChannels()]
-
-        # get roi & shape tags
-        result = roi_service.findByImage(image_id, None)
-        for roi in result.rois:
-            roi_ids.append(str(roi.getId().getValue()))
-            shape_ids = shape_ids + [str(s.getId().getValue()) for s in roi.copyShapes()]
-
-    print(f"Getting tags & object links for {len(set(image_ids))} images")
-    image_ids = [str(img_id) for img_id in image_ids]
-    tags_on_images, image_objects_ids, unique_image_tags, image_annotation_link_dic = get_tag_attached(conn, qs, params, "Image", set(image_ids), available_tags_src_group_ids)
-    objects_tagged_map = {**objects_tagged_map, **tags_on_images}
-    objects_map["Image"] = image_objects_ids
-    tag_annotation_link_dic = {**tag_annotation_link_dic, **image_annotation_link_dic}
-    tag_set = tag_set.union(unique_image_tags)
-    print(image_annotation_link_dic)
-
-    print(f"Getting tags & object links for {len(set(instrument_ids))} instruments")
-    tags_on_inst, inst_objects_ids, unique_inst_tags, inst_annotation_link_dic = get_tag_attached(conn, qs, params, "Instrument", set(instrument_ids), available_tags_src_group_ids)
-    objects_tagged_map = {**objects_tagged_map, **tags_on_inst}
-    objects_map["Instrument"] = inst_objects_ids
-    tag_annotation_link_dic = {**tag_annotation_link_dic, **inst_annotation_link_dic}
-    tag_set = tag_set.union(unique_inst_tags)
-
-    print(f"Getting tags & object links for {len(set(fileset_ids))} filesets")
-    tags_on_fs, fs_objects_ids, unique_fs_tags, fs_annotation_link_dic = get_tag_attached(conn, qs, params,"Fileset", set(fileset_ids), available_tags_src_group_ids)
-    objects_tagged_map = {**objects_tagged_map, **tags_on_fs}
-    objects_map["Fileset"] = fs_objects_ids
-    tag_annotation_link_dic = {**tag_annotation_link_dic, **fs_annotation_link_dic}
-    tag_set = tag_set.union(unique_fs_tags)
-
-    print(f"Getting tags & object links for {len(set(channel_ids))} channels")
-    tags_on_ch, ch_objects_ids, unique_ch_tags, ch_annotation_link_dic = get_tag_attached(conn, qs, params, "Channel", set(channel_ids), available_tags_src_group_ids)
-    objects_tagged_map = {**objects_tagged_map, **tags_on_ch}
-    objects_map["Channel"] = ch_objects_ids
-    tag_annotation_link_dic = {**tag_annotation_link_dic, **ch_annotation_link_dic}
-    tag_set = tag_set.union(unique_ch_tags)
-
-    print(f"Getting tags & object links for {len(set(detector_ids))} detectors")
-    tags_on_det, det_objects_ids, unique_det_tags, det_annotation_link_dic = get_tag_attached(conn, qs, params,"Detector", set(detector_ids), available_tags_src_group_ids)
-    objects_tagged_map = {**objects_tagged_map, **tags_on_det}
-    objects_map["Detector"] = det_objects_ids
-    tag_annotation_link_dic = {**tag_annotation_link_dic, **det_annotation_link_dic}
-    tag_set = tag_set.union(unique_det_tags)
-
-    print(f"Getting tags & object links for {len(set(dichroic_ids))} dichroics")
-    tags_on_dic, dic_objects_ids, unique_dic_tags, dic_annotation_link_dic = get_tag_attached(conn, qs, params,"Dichroic", set(dichroic_ids), available_tags_src_group_ids)
-    objects_tagged_map = {**objects_tagged_map, **tags_on_dic}
-    objects_map["Dichroic"] = dic_objects_ids
-    tag_annotation_link_dic = {**tag_annotation_link_dic, **dic_annotation_link_dic}
-    tag_set = tag_set.union(unique_dic_tags)
-
-    print(f"Getting tags & object links for {len(set(filter_ids))} filters")
-    tags_on_flt, flt_objects_ids, unique_flt_tags, flt_annotation_link_dic = get_tag_attached(conn, qs, params,"Filter", set(filter_ids), available_tags_src_group_ids)
-    objects_tagged_map = {**objects_tagged_map, **tags_on_flt}
-    objects_map["Filter"] = flt_objects_ids
-    tag_annotation_link_dic = {**tag_annotation_link_dic, **flt_annotation_link_dic}
-    tag_set = tag_set.union(unique_flt_tags)
-
-    print(f"Getting tags & object links for {len(set(obj_ids))} objectives")
-    tags_on_obj, obj_objects_ids, unique_obj_tags, obj_annotation_link_dic = get_tag_attached(conn, qs, params,"Objective", set(obj_ids), available_tags_src_group_ids)
-    objects_tagged_map = {**objects_tagged_map, **tags_on_obj}
-    objects_map["Objective"] = obj_objects_ids
-    tag_annotation_link_dic = {**tag_annotation_link_dic, **obj_annotation_link_dic}
-    tag_set = tag_set.union(unique_obj_tags)
-
-    print(f"Getting tags & object links for {len(set(roi_ids))} rois")
-    tags_on_rois, roi_objects_ids, unique_rois_tags, roi_annotation_link_dic = get_tag_attached(conn,  qs, params,"Roi", set(roi_ids), available_tags_src_group_ids)
-    objects_tagged_map = {**objects_tagged_map, **tags_on_rois}
-    objects_map["Roi"] = roi_objects_ids
-    tag_annotation_link_dic = {**tag_annotation_link_dic, **roi_annotation_link_dic}
-    tag_set = tag_set.union(unique_rois_tags)
-
-    print(f"Getting tags & object links for {len(set(shape_ids))} shapes")
-    tags_on_shp, shp_objects_ids, unique_shp_tags, shp_annotation_link_dic = get_tag_attached(conn,  qs, params,"Shape", set(shape_ids), available_tags_src_group_ids)
-    objects_tagged_map = {**objects_tagged_map, **tags_on_shp}
-    objects_map["Shape"] = shp_objects_ids
-    tag_annotation_link_dic = {**tag_annotation_link_dic, **shp_annotation_link_dic}
-    tag_set = tag_set.union(unique_shp_tags)
+        print(f"Getting tags & object links for {len(set(ids_list))} {object_type}")
+        tags_on_inst, inst_objects_ids, unique_inst_tags, inst_annotation_link_dic = get_tag_attached(conn, qs, params,
+                                                                                                      object_type,
+                                                                                                      set(ids_list),
+                                                                                                      available_tags_src_group_ids)
+        objects_tagged_map = {**objects_tagged_map, **tags_on_inst}
+        objects_map[object_type] = inst_objects_ids
+        tag_annotation_link_dic = {**tag_annotation_link_dic, **inst_annotation_link_dic}
+        tag_set = tag_set.union(unique_inst_tags)
 
     return objects_tagged_map, objects_map, tag_set, tag_target_count_dict, tag_annotation_link_dic
 
@@ -288,7 +312,9 @@ def duplicate_and_move_to_group(conn: BlitzGateway, script_params):
     """
 
     # Image ids
-    target_ids = script_params[P_IDS]
+    source_object_type = script_params[P_DATA_TYPE]
+    source_ids = script_params[P_IDS]
+    target_object_type = script_params[P_TARGET]
 
     # target group
     target_group_name = script_params[P_GROUP]
@@ -318,16 +344,23 @@ def duplicate_and_move_to_group(conn: BlitzGateway, script_params):
     # get all available tag from source group
     src_group_tags = get_all_tags(conn, current_group.getId())
 
+    # get all objects ids to scan
+    object_type_id_dic = {}
+    source_objects = conn.getObjects(source_object_type, source_ids)
+    for source_object in source_objects:
+        object_type_id_dic = get_children_recursive(conn, source_object, target_object_type, object_type_id_dic)
+
     # get all tags linked to objects
-    object_tag_dic, object_dic, tag_list, tag_objects_count_dic, tag_annotation_link_dic = list_tag_attached(conn, qs, params, script_params[P_DATA_TYPE], target_ids, src_group_tags)
+    object_tag_dic, object_dic, tag_list, tag_objects_count_dic, tag_annotation_link_dic = list_tag_attached(conn, qs, params, src_group_tags, object_type_id_dic)
 
     # remove current tag links to current objects
+    # may crash at some point due to https://forum.image.sc/t/how-to-delete-specific-omero-objects/119714
     for obj_type, ann_link_dic in tag_annotation_link_dic.items():
         conn.deleteObjects(f"{obj_type}AnnotationLink", ann_link_dic, wait=True)
 
     # move to the target group
-    target_ids = [str(img_id) for img_id in target_ids]
-    move_to_group(conn, script_params[P_DATA_TYPE], target_ids, current_group, target_group, target_group_name)
+    source_ids = [str(img_id) for img_id in source_ids]
+    move_to_group(conn, source_object_type, source_ids, current_group, target_group, target_group_name)
 
     # switch to target group
     conn.SERVICE_OPTS.setOmeroGroup(target_group.getId())
@@ -400,8 +433,8 @@ def link_tags_back(conn, qs, params, object_tag_dic, object_dic, tag_dic, tag_ne
 def move_to_group(conn, target, target_ids, current_group, target_group, target_group_name):
     import_args = ["chgrp",
                    "Group:%s" % target_group.getId(),
-                   f"Image:{','.join(target_ids)}",
-                   "--include", "Image", "Annotation"
+                   f"{target}:{','.join(target_ids)}",
+                   "--include", "Annotation"
                    ]
     # open cli connection
     with omero.cli.cli_login("-k", "%s" % conn.c.getSessionId(), "-s", OMERO_SERVER, "-p", PORT) as cli:
@@ -424,7 +457,11 @@ def move_to_group(conn, target, target_ids, current_group, target_group, target_
 
 
 def run_script():
-    data_types = [rstring('Image')]
+    # Cannot add fancy layout if we want auto fill and select of object ID
+    source_types = [
+        rstring(PROJECT_CLASS), rstring(DATASET_CLASS), rstring(IMAGE_CLASS),
+        rstring(SCREEN_CLASS), rstring(PLATE_CLASS)
+    ]
 
     client = scripts.client(
         'Share images across groups',
@@ -434,7 +471,7 @@ def run_script():
         scripts.String(
             P_DATA_TYPE, optional=False,grouping="1",
             description="Choose source of images (only Images supported)",
-            values=data_types, default="Image"),
+            values=source_types, default="Image"),
 
         scripts.List(
             P_IDS,  optional=False, grouping="2",
@@ -443,11 +480,6 @@ def run_script():
         scripts.String(
             P_GROUP, optional=False, grouping="3",
             description="Target group where to copy images"),
-
-        scripts.String(
-            P_DATASET, optional=True, grouping="4",
-            description="New dataset to create in the given group. Leave blank to copy images in orphaned folder.",
-            default=""),
 
         authors=["Rémy Dornier"],
         institutions=["EPFL - BIOP"],
@@ -461,6 +493,7 @@ def run_script():
         for key in client.getInputKeys():
             if client.getInput(key):
                 script_params[key] = client.getInput(key, unwrap=True)
+        script_params[P_TARGET] = IMAGE_CLASS
 
         # wrap client to use the Blitz Gateway
         conn = BlitzGateway(client_obj=client)
