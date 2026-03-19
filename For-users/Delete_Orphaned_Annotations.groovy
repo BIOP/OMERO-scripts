@@ -33,7 +33,7 @@
  * = AUTHOR INFORMATION =
  * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
  * 2024.06.14
- * version v1.0.1
+ * version v1.0.2
  * 
  * = COPYRIGHT =
  * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
@@ -59,6 +59,7 @@
  * - 2024.06.14: first release --v1.0.0
  * - 2025.09.10: Save Fiji log window --v1.0.1
  * - 2025.09.01: Adding host in UI --v1.0.1
+ * - 2026.03.19: Searching annotations linked to all annotatable objects --v1.0.2
  */
 
 
@@ -113,11 +114,21 @@ if (user_client.isConnected()){
 			throw e
 		}
 		
+		def linkedIds = []
+		try{
+			linkedIds = getLinkedAnnotationsIds(user_client)
+		}catch(Exception e){
+			hasFailed = true
+			message = "An error occurred when retrieving your account / group account"
+			IJLoggerError("OMERO", message)
+			throw e
+		}
+		
 		// retrieve group annotations
 		if(filesToDelete){
 			try{
 				IJLoggerInfo("OMERO", "Get all orphaned files from your group")
-				orphanedAnnotationWrapperList.addAll(getOrphanedFileAnnotations(user_client))
+				orphanedAnnotationWrapperList.addAll(getOrphanedFileAnnotations(user_client, linkedIds))
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Cannot retrieve orphaned files from your group"
@@ -127,7 +138,7 @@ if (user_client.isConnected()){
 		if(tagsToDelete){
 			try{
 				IJLoggerInfo("OMERO", "Get all orphaned tags from your group")
-				orphanedAnnotationWrapperList.addAll(getOrphanedTagAnnotations(user_client))
+				orphanedAnnotationWrapperList.addAll(getOrphanedTagAnnotations(user_client, linkedIds))
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Cannot retrieve orphaned tags from your group"
@@ -137,7 +148,7 @@ if (user_client.isConnected()){
 		if(kvpsToDelete){
 			try{
 				IJLoggerInfo("OMERO", "Get all orphaned key-values from your group")
-				orphanedAnnotationWrapperList.addAll(getOrphanedMapAnnotations(user_client))
+				orphanedAnnotationWrapperList.addAll(getOrphanedMapAnnotations(user_client, linkedIds))
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Cannot retrieve orphaned key-values from your group"
@@ -147,7 +158,7 @@ if (user_client.isConnected()){
 		if(commentsToDelete){
 			try{
 				IJLoggerInfo("OMERO", "Get all orphaned comments from your group")
-				orphanedAnnotationWrapperList.addAll(getOrphanedCommentAnnotations(user_client))
+				orphanedAnnotationWrapperList.addAll(getOrphanedCommentAnnotations(user_client, linkedIds))
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Cannot retrieve orphaned comments from your group"
@@ -157,7 +168,7 @@ if (user_client.isConnected()){
 		if(ratingsToDelete){
 			try{
 				IJLoggerInfo("OMERO", "Get all orphaned ratings from your group")
-				orphanedAnnotationWrapperList.addAll(getOrphanedRatingAnnotations(user_client))
+				orphanedAnnotationWrapperList.addAll(getOrphanedRatingAnnotations(user_client, linkedIds))
 			}catch(Exception e){
 				hasSilentlyFailed = true
 				message = "Cannot retrieve orphaned ratings from your group"
@@ -264,8 +275,8 @@ def deleteAnnotations(user_client, annList, transferSummary){
 /**
  * retrieve all attachments owner by the current logged in user
  */
-def getOrphanedTagAnnotations(user_client){
-	return user_client.findByQuery("select a from TagAnnotation a " + getCommonQueryPart())
+def getOrphanedTagAnnotations(user_client, linkedIds){
+	return user_client.findByQuery("select a from TagAnnotation a " + getCommonQueryPart(linkedIds))
 								.stream()
 								.map(TagAnnotationData::new)
 								.map(TagAnnotationWrapper::new)
@@ -275,8 +286,8 @@ def getOrphanedTagAnnotations(user_client){
 /**
  * retrieve all attachments owner by the current logged in user
  */
-def getOrphanedMapAnnotations(user_client){
-	return user_client.findByQuery("select a from MapAnnotation a " + getCommonQueryPart())
+def getOrphanedMapAnnotations(user_client, linkedIds){
+	return user_client.findByQuery("select a from MapAnnotation a " + getCommonQueryPart(linkedIds))
 								.stream()
 								.map(MapAnnotationData::new)
 								.map(MapAnnotationWrapper::new)
@@ -286,8 +297,8 @@ def getOrphanedMapAnnotations(user_client){
 /**
  * retrieve all attachments owner by the current logged in user
  */
-def getOrphanedCommentAnnotations(user_client){
-	return user_client.findByQuery("select a from CommentAnnotation a " + getCommonQueryPart())
+def getOrphanedCommentAnnotations(user_client, linkedIds){
+	return user_client.findByQuery("select a from CommentAnnotation a " + getCommonQueryPart(linkedIds))
 								.stream()
 								.map(TextualAnnotationData::new)
 								.map(TextualAnnotationWrapper::new)
@@ -297,8 +308,8 @@ def getOrphanedCommentAnnotations(user_client){
 /**
  * retrieve all attachments owner by the current logged in user
  */
-def getOrphanedRatingAnnotations(user_client){
-	return user_client.findByQuery("select a from LongAnnotation a " + getCommonQueryPart())
+def getOrphanedRatingAnnotations(user_client, linkedIds){
+	return user_client.findByQuery("select a from LongAnnotation a " + getCommonQueryPart(linkedIds))
 								.stream()
 								.map(RatingAnnotationData::new)
 								.map(RatingAnnotationWrapper::new)
@@ -308,8 +319,8 @@ def getOrphanedRatingAnnotations(user_client){
 /**
  * retrieve all attachments owner by the current logged in user
  */
-def getOrphanedFileAnnotations(user_client){
-	return user_client.findByQuery("select a from FileAnnotation a join fetch a.file " + getCommonQueryPart())
+def getOrphanedFileAnnotations(user_client, linkedIds){
+	return user_client.findByQuery("select a from FileAnnotation a join fetch a.file " + getCommonQueryPart(linkedIds))
 								.stream()
 								.map(FileAnnotationData::new)
 								.map(FileAnnotationWrapper::new)
@@ -317,16 +328,21 @@ def getOrphanedFileAnnotations(user_client){
 }
 
 
+/**
+ * get all annotation ids of any type, which are linked to any object
+ */
+def getLinkedAnnotationsIds(user_client){
+	return user_client.getGateway().getQueryService(user_client.getCtx()).projection("select link.child.id from ome.model.IAnnotationLink link", null)
+								.stream()
+								.flatMap(List::stream)
+								.map(RLongI::getValue)
+								.collect(Collectors.toList())
+}
 
-def getCommonQueryPart(){
-	return "where a.ns is Null "+
-			"and a.id not in (select l.child.id from ProjectAnnotationLink l) "+
-		    "and a.id not in (select l.child.id from DatasetAnnotationLink l) "+
-		    "and a.id not in (select l.child.id from ImageAnnotationLink l) "+
-		    "and a.id not in (select l.child.id from ScreenAnnotationLink l) "+
-		    "and a.id not in (select l.child.id from PlateAnnotationLink l) "+
-		    "and a.id not in (select l.child.id from PlateAcquisitionAnnotationLink l) "+
-		    "and a.id not in (select l.child.id from WellAnnotationLink l)"
+
+
+def getCommonQueryPart(linkedIds){
+	return "where a.ns is Null and a.id not in ("+linkedIds.join(",")+")"
 }
 
 /**
@@ -566,6 +582,7 @@ import omero.gateway.model.ROIData
 import omero.model.RoiAnnotationLink
 import omero.model.RoiAnnotationLinkI
 import omero.gateway.model.RatingAnnotationData
+import omero.rtypes.*
 
 import omero.model.IObject
 import java.util.stream.Collectors;
