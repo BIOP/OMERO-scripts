@@ -20,7 +20,7 @@ root = "/mnt/hrmshare"  # SV-OPEN folder
 tmp_path = f"{root}/tmpDownloads/"
 
 
-def prepare_download(conn, fs_path_dict, att_path_dict, fs_prefix_dict):
+def prepare_download(conn, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict):
     resources = conn.c.sf.sharedResources()
     repos = resources.repositories()
     managed_repo_dir = ""
@@ -33,27 +33,26 @@ def prepare_download(conn, fs_path_dict, att_path_dict, fs_prefix_dict):
             managed_repo_dir = desc.path.val + desc.name.val
 
     if managed_repo_dir != "":
+        # adding images
         for fs_id, fs_paths in fs_path_dict.items():
             fs_prefix = fs_prefix_dict[fs_id]
-
-            # adding images
             for fs_path in fs_paths:
                 fs_path_list.append(managed_repo_dir + "/" + fs_path)
                 fs_prefix_list.append(fs_prefix)
 
-            # adding attachments
-            if fs_id in att_path_dict.keys():
-                att_path_list = att_path_dict[fs_id]
-                for att_path in att_path_list:
-                    fs_path_list.append(att_path)
-                    fs_prefix_list.append(fs_prefix)
+        # adding attachments
+        for fs_id, att_paths in att_path_dict.items():
+            att_prefix = att_prefix_dict[fs_id]
+            for att_path in att_paths:
+                fs_path_list.append(att_path)
+                fs_prefix_list.append(att_prefix)
     else:
         print("No managed repository found. Cannot create the zip file.")
 
     return fs_path_list, fs_prefix_list
 
 
-def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, download_attachments):
+def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments):
     """
     Download the image
     return 1 if owner has been added, 0 otherwise
@@ -79,22 +78,11 @@ def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_d
 
         if download_attachments:
             att_path_dict[fs_id] = []
-
-            # create tmp folder
-            if not os.path.exists(tmp_path):
-                os.makedirs(tmp_path)
+            att_prefix_dict[fs_id] = "/".join(fileset_prefix)
 
             # get all attachments from the entire fileset i.e. all images linked to the current fileset
             for linked_image in fs.copyImages():
-                for ann in linked_image.listAnnotations():
-                    if ann.OMERO_TYPE == omero.model.FileAnnotationI:
-                        file_path = os.path.join(tmp_path, f"{ann.getFile().getId()}_{ann.getFile().getName()}")
-                        if not os.path.exists(file_path):
-                            try:
-                                copy_attachment(file_path, ann)
-                                att_path_dict[fs_id].append(file_path)
-                            except Exception as e:
-                                print(f"ERROR: cannot copy attachment for image {linked_image.getId()}: {e}")
+                process_attachment(linked_image, att_path_dict, fs_id)
 
 
 def copy_attachment(file_path, ann):
@@ -104,26 +92,52 @@ def copy_attachment(file_path, ann):
             f.write(chunk)
 
 
-def process_dataset(dataset, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, download_attachments):
+def process_attachment(container, att_path_dict, att_id):
+    for ann in container.listAnnotations():
+        if ann.OMERO_TYPE == omero.model.FileAnnotationI:
+            file_path = os.path.join(tmp_path, f"{ann.getFile().getId()}_{ann.getFile().getName()}")
+            if not os.path.exists(file_path):
+                try:
+                    copy_attachment(file_path, ann)
+                    att_path_dict[att_id].append(file_path)
+                except Exception as e:
+                    print(f"ERROR: cannot copy attachment for {container.OMERO_CLASS} {container.getId()}: {e}")
+
+
+def process_dataset(dataset, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments):
     """
     Download all images within the given dataset
     return the number of processed images
     """
     dataset_prefix = parent_prefix[:]
-    dataset_prefix = dataset_prefix.append(f"Dataset_{dataset.getName()}_{dataset.getId()}")
+    dataset_prefix.append(f"Dataset_{dataset.getName()}_{dataset.getId()}")
+
+    if download_attachments:
+        att_id = f"d{dataset.getId()}"
+        att_path_dict[att_id] = []
+        att_prefix_dict[att_id] = "/".join(dataset_prefix)
+        process_attachment(dataset, att_path_dict, att_id)
+
     for image in dataset.listChildren():
-       process_image(image, dataset_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, download_attachments)
+       process_image(image, dataset_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments)
 
 
-def process_project(project, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, download_attachments):
+def process_project(project, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments):
     """
     Download all images within the given project
     return the number of processed images & datasets
     """
     project_prefix = parent_prefix[:]
-    project_prefix = project_prefix.append(f"Project_{project.getName()}_{project.getId()}")
+    project_prefix.append(f"Project_{project.getName()}_{project.getId()}")
+
+    if download_attachments:
+        att_id = f"p{project.getId()}"
+        att_path_dict[att_id] = []
+        att_prefix_dict[att_id] = "/".join(project_prefix)
+        process_attachment(project, att_path_dict, att_id)
+
     for dataset in project.listChildren():
-        process_dataset(dataset, project_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, download_attachments)
+        process_dataset(dataset, project_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments)
 
 
 def download_and_zip_images(conn, script_params):
@@ -146,6 +160,7 @@ def download_and_zip_images(conn, script_params):
     fs_path_dict = {}
     fs_prefix_dict = {}
     att_path_dict = {}
+    att_prefix_dict = {}
     message = ""
     err = None
 
@@ -166,6 +181,10 @@ def download_and_zip_images(conn, script_params):
             i = i + 1
         zip_path = f"{zip_path}/{zip_name_tmp}.zip"
 
+        # create tmp folder
+        if not os.path.exists(tmp_path):
+            os.makedirs(tmp_path)
+
         # check if the user has an HRM account (a folder with his/her name should already exist)
         for object_id in object_id_list:
 
@@ -183,17 +202,17 @@ def download_and_zip_images(conn, script_params):
                 # select object type and add owner as key-value pair
                 parent_prefix = []
                 if object_type == 'Image':
-                    process_image(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, dwnld_atts)
+                    process_image(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
                 if object_type == 'Dataset':
-                    process_dataset(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, dwnld_atts)
+                    process_dataset(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
                 if object_type == 'Project':
-                    process_project(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, dwnld_atts)
+                    process_project(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
 
             else:
                 print(object_type, object_id, "does not exist or you do not have access to it")
 
         if len(fs_path_dict) > 0 and len(fs_prefix_dict) > 0:
-            fs_path_list, fs_prefix_list = prepare_download(conn, fs_path_dict, att_path_dict, fs_prefix_dict)
+            fs_path_list, fs_prefix_list = prepare_download(conn, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict)
             try:
                 pyminizip.compress_multiple(fs_path_list, fs_prefix_list, f"{zip_path}", password, 1)
                 message = f"Zip file created and accessible under https://sv-open.epfl.ch/ptbiop-public{zip_path.replace(root, '')}"
@@ -217,7 +236,7 @@ def run_script():
                   rstring("Screen"), rstring("Plate"), rstring("Well")]
 
     client = scripts.client(
-        'Duplicate images',
+        'Download images as zip',
         """
     This script duplicates n times all images under the selected container(s). If a container if selected, 
     the container itself, as well as its children, are also duplicated.
