@@ -1,23 +1,26 @@
+import shutil
 import pyminizip
 import omero.scripts as scripts
 from omero.gateway import BlitzGateway
 from omero.rtypes import rlong, rstring
 import os
+import omero
 
 P_DATA_TYPE = "Data_Type"
 P_IDS = "IDs"
 P_ZIP_NAME = "Zip name"
 P_PASSWORD = "Password"
-
-OMERO_SERVER = "omero-server.epfl.ch"
-OMERO_WEBSERVER = "omero.epfl.ch"
-PORT = "4064"
+P_ATT = "Download attachments for all images"
 
 # root HRM path
 root = "/mnt/hrmshare"  # SV-OPEN folder
 
+# temporary folder to add the attachments before zipping
+# need to be in the destination folder because permission denied
+tmp_path = f"{root}/tmpDownloads/"
 
-def prepare_download(conn, fs_path_dict, fs_prefix_dict):
+
+def prepare_download(conn, fs_path_dict, att_path_dict, fs_prefix_dict):
     resources = conn.c.sf.sharedResources()
     repos = resources.repositories()
     managed_repo_dir = ""
@@ -32,16 +35,25 @@ def prepare_download(conn, fs_path_dict, fs_prefix_dict):
     if managed_repo_dir != "":
         for fs_id, fs_paths in fs_path_dict.items():
             fs_prefix = fs_prefix_dict[fs_id]
+
+            # adding images
             for fs_path in fs_paths:
                 fs_path_list.append(managed_repo_dir + "/" + fs_path)
                 fs_prefix_list.append(fs_prefix)
+
+            # adding attachments
+            if fs_id in att_path_dict.keys():
+                att_path_list = att_path_dict[fs_id]
+                for att_path in att_path_list:
+                    fs_path_list.append(att_path)
+                    fs_prefix_list.append(fs_prefix)
     else:
         print("No managed repository found. Cannot create the zip file.")
 
     return fs_path_list, fs_prefix_list
 
 
-def process_image(image, parent_prefix, fs_path_dict, fs_prefix_dict):
+def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, download_attachments):
     """
     Download the image
     return 1 if owner has been added, 0 otherwise
@@ -65,8 +77,34 @@ def process_image(image, parent_prefix, fs_path_dict, fs_prefix_dict):
         for file_wrapper in fs.listFiles():
             fs_path_dict[fs_id].append(file_wrapper.getPath() + file_wrapper.getName())
 
+        if download_attachments:
+            att_path_dict[fs_id] = []
 
-def process_dataset(dataset, parent_prefix, fs_path_dict, fs_prefix_dict):
+            # create tmp folder
+            if not os.path.exists(tmp_path):
+                os.makedirs(tmp_path)
+
+            # get all attachments from the entire fileset i.e. all images linked to the current fileset
+            for linked_image in fs.copyImages():
+                for ann in linked_image.listAnnotations():
+                    if ann.OMERO_TYPE == omero.model.FileAnnotationI:
+                        file_path = os.path.join(tmp_path, f"{ann.getFile().getId()}_{ann.getFile().getName()}")
+                        if not os.path.exists(file_path):
+                            try:
+                                copy_attachment(file_path, ann)
+                                att_path_dict[fs_id].append(file_path)
+                            except Exception as e:
+                                print(f"ERROR: cannot copy attachment for image {linked_image.getId()}: {e}")
+
+
+def copy_attachment(file_path, ann):
+    with open(str(file_path), 'wb') as f:
+        print("Copying file to", file_path, "...")
+        for chunk in ann.getFileInChunks():
+            f.write(chunk)
+
+
+def process_dataset(dataset, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, download_attachments):
     """
     Download all images within the given dataset
     return the number of processed images
@@ -74,10 +112,10 @@ def process_dataset(dataset, parent_prefix, fs_path_dict, fs_prefix_dict):
     dataset_prefix = parent_prefix[:]
     dataset_prefix = dataset_prefix.append(f"Dataset_{dataset.getName()}_{dataset.getId()}")
     for image in dataset.listChildren():
-       process_image(image, dataset_prefix, fs_path_dict, fs_prefix_dict)
+       process_image(image, dataset_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, download_attachments)
 
 
-def process_project(project, parent_prefix, fs_path_dict, fs_prefix_dict):
+def process_project(project, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, download_attachments):
     """
     Download all images within the given project
     return the number of processed images & datasets
@@ -85,7 +123,7 @@ def process_project(project, parent_prefix, fs_path_dict, fs_prefix_dict):
     project_prefix = parent_prefix[:]
     project_prefix = project_prefix.append(f"Project_{project.getName()}_{project.getId()}")
     for dataset in project.listChildren():
-        process_dataset(dataset, project_prefix, fs_path_dict, fs_prefix_dict)
+        process_dataset(dataset, project_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, download_attachments)
 
 
 def download_and_zip_images(conn, script_params):
@@ -102,9 +140,12 @@ def download_and_zip_images(conn, script_params):
     zip_name = script_params[P_ZIP_NAME]
     # password
     password = script_params[P_PASSWORD]
+    # download attachments for all images
+    dwnld_atts = script_params[P_ATT]
 
     fs_path_dict = {}
     fs_prefix_dict = {}
+    att_path_dict = {}
     message = ""
     err = None
 
@@ -113,6 +154,7 @@ def download_and_zip_images(conn, script_params):
         default_group_id = conn.getEventContext().groupId
         group = conn.getObject("ExperimenterGroup", default_group_id)
 
+        # create the destination folder
         zip_path = f"{root}/omero/{group.getName()}"
         if not os.path.exists(zip_path):
             os.makedirs(zip_path)
@@ -141,30 +183,33 @@ def download_and_zip_images(conn, script_params):
                 # select object type and add owner as key-value pair
                 parent_prefix = []
                 if object_type == 'Image':
-                    process_image(omero_object, parent_prefix, fs_path_dict, fs_prefix_dict)
+                    process_image(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, dwnld_atts)
                 if object_type == 'Dataset':
-                    process_dataset(omero_object, parent_prefix, fs_path_dict, fs_prefix_dict)
+                    process_dataset(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, dwnld_atts)
                 if object_type == 'Project':
-                    process_project(omero_object, parent_prefix, fs_path_dict, fs_prefix_dict)
+                    process_project(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, dwnld_atts)
 
             else:
                 print(object_type, object_id, "does not exist or you do not have access to it")
 
-
         if len(fs_path_dict) > 0 and len(fs_prefix_dict) > 0:
-            fs_path_list, fs_prefix_list = prepare_download(conn, fs_path_dict, fs_prefix_dict)
-            pyminizip.compress_multiple(fs_path_list, fs_prefix_list, f"{zip_path}", password, 1)
-            message = f"Zip file created and accessible under //sv-nas1.rcp.epfl.ch/ptbiop-raw/SV-OPEN/ptbiop-public{zip_path.replace(root, '')}"
-
+            fs_path_list, fs_prefix_list = prepare_download(conn, fs_path_dict, att_path_dict, fs_prefix_dict)
+            try:
+                pyminizip.compress_multiple(fs_path_list, fs_prefix_list, f"{zip_path}", password, 1)
+                message = f"Zip file created and accessible under https://sv-open.epfl.ch/ptbiop-public{zip_path.replace(root, '')}"
+            except Exception as e:
+                message = "ERROR: cannot zip the files"
+                err = message
+                print(f"{message}: {e}")
+            finally:
+                if os.path.exists(tmp_path):
+                    shutil.rmtree(tmp_path)
     else:
-        message = "The folder '\\sv-nas1.rcp.epfl.ch\ptbiop-raw\SV-OPEN\ptbiop-public' doesn't exist. Cannot download objects."
+        message = "The folder 'https://sv-open.epfl.ch/ptbiop-public' doesn't exist. Cannot download objects."
         err = message
         print(message)
 
     return message, err
-
-
-
 
 
 def run_script():
@@ -190,6 +235,10 @@ def run_script():
         scripts.String(
             P_PASSWORD, optional=False, grouping="4",
             description="Password to secure the zip file"),
+        scripts.Bool(
+            P_ATT, optional=True, grouping="5",
+            description="Download all attachments linked to selected images",
+            default=False),
 
         authors=["Rémy Dornier"],
         institutions=["EPFL - BIOP"],
