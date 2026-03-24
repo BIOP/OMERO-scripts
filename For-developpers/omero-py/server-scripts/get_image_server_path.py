@@ -193,8 +193,9 @@ def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_d
     # only get image paths if the fileset has not been processed yet
     fs_id = fs.getId()
     if fs_id in fs_path_dict:
-        print("WARNING", f"Image part of the same fileset %s! Skipping..." % fs_id)
+        print("WARNING", f"Image {image.getId()} part of the same fileset {fs_id}! Skipping...")
     else:
+        print(f"Getting server path(s) for fileset {fs_id}...")
         fs_path_dict[fs_id] = []
         fileset_prefix = parent_prefix[:]
         fileset_prefix.append(f"Fileset_{fs_id}")
@@ -352,6 +353,7 @@ def download_and_zip_images(conn, script_params):
             zip_name_tmp = f"{zip_name}_{i}"
             i = i + 1
         zip_path = f"{zip_path}/{zip_name_tmp}.zip"
+        print(f"Zip file will be created under '{zip_path}'")
 
         # create tmp folder
         if not os.path.exists(tmp_path):
@@ -384,12 +386,15 @@ def download_and_zip_images(conn, script_params):
         # only creates zip if there is at least one image
         if len(fs_path_dict) > 0 and len(fs_prefix_dict) > 0:
             # get the full list of file (images + attachments) path
+            print("Preparing download...")
             fs_path_list, fs_prefix_list = prepare_download(conn, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict)
 
             try:
                 # zip it
+                print("Creating zip...")
                 pyminizip.compress_multiple(fs_path_list, fs_prefix_list, f"{zip_path}", password, 1)
                 message = f"Zip file created and accessible under https://sv-open.epfl.ch/ptbiop-public{zip_path.replace(root, '')}"
+                print(message)
             except Exception as e:
                 message = "ERROR: cannot zip the files"
                 err = message
