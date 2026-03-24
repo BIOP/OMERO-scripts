@@ -137,7 +137,7 @@ def process_attachment(container, att_path_dict, att_id):
         The object to get attachments from
     att_path_dict: dict
         Dictionary of [att_id]:[attachment_path]
-    att_id: int
+    att_id: int or str
         attachment id linked to the current fileset
 
     Returns
@@ -292,6 +292,86 @@ def process_project(project, parent_prefix, fs_path_dict, att_path_dict, fs_pref
         process_dataset(dataset, project_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments)
 
 
+def process_screen(screen, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments):
+    """
+    Loop over all screens within the current project and get their server path, including attachments
+
+    Parameters
+    ----------
+    screen: omero.model.Screen object
+        The screen to process
+    parent_prefix: list
+        folder names under which the images will be downloaded (inner zip hierarchy)
+    fs_path_dict: dict
+        Dictionary of [fileset_id]:[fileset_server_path]
+    att_path_dict: dict
+        Dictionary of [att_id]:[attachment_path]
+    fs_prefix_dict: dict
+        Dictionary of [fileset_id]:[inner_zip_hierarchy_path]
+    att_prefix_dict: dict
+        Dictionary of [att_id]:[inner_zip_hierarchy_path]
+    download_attachments: bool
+        True to download attachments
+
+    Returns
+    -------
+
+    """
+    screen_prefix = parent_prefix[:]
+    screen_prefix.append(f"Screen_{screen.getName()}_{screen.getId()}")
+
+    # get attachments paths
+    if download_attachments:
+        att_id = f"s{screen.getId()}"
+        att_path_dict[att_id] = []
+        att_prefix_dict[att_id] = "/".join(screen_prefix)
+        process_attachment(screen, att_path_dict, att_id)
+
+    for plate in screen.listChildren():
+        process_plate(plate, screen_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments)
+
+
+def process_plate(plate, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments):
+    """
+    Loop over all plates within the current project and get their server path, including attachments
+
+    Parameters
+    ----------
+    plate: omero.model.Plate object
+        The plate to process
+    parent_prefix: list
+        folder names under which the images will be downloaded (inner zip hierarchy)
+    fs_path_dict: dict
+        Dictionary of [fileset_id]:[fileset_server_path]
+    att_path_dict: dict
+        Dictionary of [att_id]:[attachment_path]
+    fs_prefix_dict: dict
+        Dictionary of [fileset_id]:[inner_zip_hierarchy_path]
+    att_prefix_dict: dict
+        Dictionary of [att_id]:[inner_zip_hierarchy_path]
+    download_attachments: bool
+        True to download attachments
+
+    Returns
+    -------
+
+    """
+    plate_prefix = parent_prefix[:]
+    plate_prefix.append(f"Plate_{plate.getName()}_{plate.getId()}")
+
+    # get attachments paths
+    if download_attachments:
+        att_id = f"pl{plate.getId()}"
+        att_path_dict[att_id] = []
+        att_prefix_dict[att_id] = "/".join(plate_prefix)
+        process_attachment(plate, att_path_dict, att_id)
+
+    for well in plate.listChildren():
+        index = well.countWellSample()
+        for idx in range(0, index):
+            process_image(well.getImage(idx), plate_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments)
+
+
 def download_and_zip_images(conn, script_params):
     """
     main loop to create the zip file, with project/dataset hierarchy, of images and attachments
@@ -379,7 +459,10 @@ def download_and_zip_images(conn, script_params):
                     process_dataset(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
                 if object_type == 'Project':
                     process_project(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
-
+                if object_type == 'Screen':
+                    process_screen(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
+                if object_type == 'Plate':
+                    process_plate(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
             else:
                 print(object_type, object_id, "does not exist or you do not have access to it")
 
@@ -412,7 +495,7 @@ def download_and_zip_images(conn, script_params):
 
 
 def run_script():
-    data_types = [rstring("Project"), rstring("Dataset"), rstring("Image")]
+    data_types = [rstring("Project"), rstring("Dataset"), rstring("Image"), rstring("Screen"), rstring("Plate")]
 
     client = scripts.client(
         'Download object(s) as zip',
