@@ -41,7 +41,7 @@ P_DATA_TYPE = "Data_Type"
 P_IDS = "IDs"
 P_ZIP_NAME = "Zip name"
 P_PASSWORD = "Password"
-P_ATT = "Download attachments for all images"
+P_ATT = "Download attachments for all objects"
 
 # root SV-OPEN path
 root = "/mnt/svopen"
@@ -415,7 +415,7 @@ def run_script():
     data_types = [rstring("Project"), rstring("Dataset"), rstring("Image")]
 
     client = scripts.client(
-        'Download images as zip',
+        'Download object(s) as zip',
         """
     This script creates a password-protected zip file with the selected objects, and optionally, the attachments links 
     to the selected objects. The zip is saved under the default location 'https://sv-open.epfl.ch/ptbiop-public/omero', 
