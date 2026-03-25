@@ -506,7 +506,7 @@ def run_script():
     \t 
     WARNING: the location on 'https://sv-open.epfl.ch/' is FULLY PUBLIC, which means that the zip file can be
     downloaded by anyone who has the link. It's therefore important that you provide a strong password to avoid
-    any data leak issues.
+    any data leak issues. Downloaded data are kept during one week before being automatically deleted.
     \t
     If downloading attachments is selected, all attachments will be downloaded, whatever their extension.
         """,
