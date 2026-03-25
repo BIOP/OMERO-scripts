@@ -4,6 +4,7 @@ This script can be used to delete all annotations that are orphaned on the datab
 Author & copyright: Emily Yunha Shin @eyshin05 - 2024
 URL : https://forum.image.sc/t/how-to-handle-orphaned-annotations-in-omero/96883/3
 """
+import omero
 from omero.gateway import BlitzGateway
 import traceback
 
@@ -109,21 +110,15 @@ def run_script(host, username, password):
         try:
             # search in all the user's group
             conn.SERVICE_OPTS.setOmeroGroup('-1')
-
-            query = """
-                select a from Annotation a
-                where a.ns is Null
-                and a.id not in (select l.child.id from ProjectAnnotationLink l)
-                and a.id not in (select l.child.id from DatasetAnnotationLink l)
-                and a.id not in (select l.child.id from ImageAnnotationLink l)
-                and a.id not in (select l.child.id from ScreenAnnotationLink l)
-                and a.id not in (select l.child.id from PlateAnnotationLink l)
-                and a.id not in (select l.child.id from WellAnnotationLink l)
-            """
+            params = omero.sys.ParametersI()
+            query = "select link.child.id from ome.model.IAnnotationLink link"
 
             svc = conn.getQueryService()
-            annotations = svc.findAllByQuery(query, None)
+            results = svc.projection(query, params, conn.SERVICE_OPTS)
+            linked_ids = [result[0].val for result in results]
 
+            query = f"select a from Annotation a where a.ns is Null and a.id not in ({','.join(linked_ids)})"
+            annotations = svc.findAllByQuery(query, params, conn.SERVICE_OPTS)
             ids_to_delete = [ann.id.val for ann in annotations]
 
             if ids_to_delete:
