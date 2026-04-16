@@ -4,10 +4,13 @@
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 #@Long(label="ONLY FOR PLATES, Run ID to process (-1 for all)", value = -1) runId
+#@String(label="Key", value = "Key") key
+#@String(label="Value", value = "Value") value
+#@String(label="Namespace", required=false) namespace
 #@String (choices={"Images", "ROIs"}, style="radioButtonHorizontal", label="Target object", value="Images") processRois
 
 /* 
- * Deletes all KVPs attached to the target objects, under the select parent container.
+ * Adds new KVPs to the select object, in a given namespace
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
@@ -15,7 +18,7 @@
  * 
  * = AUTHOR INFORMATION =
  * Rémy Dornier, EPFL - PTBIOP 
- * 05.10.2022
+ * 01.09.2022
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -40,153 +43,147 @@
  * -----------------------------------------------------------------------------
  * 
  * == HISTORY ==
- * 	- 2023.06.16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports.
- * 	- 2026.04.01 : Update licence, handle ROIs and fix typos
+ * - 2023.06.19 : Remove unnecessary imports
  */
-
 
 /**
- * Main. Connect to OMERO, delete key-values for the current object and disconnect from OMERO
+ * Main. Connect to OMERO, add a key-value and disconnect from OMERO
  * 
  */
+ 
+// select right namespace
+NAMESPACE = namespace
+if(namespace == null || namespace.isEmpty() || namespace.trim().isEmpty()){
+	NAMESPACE = "openmicroscopy.org/omero/client/mapAnnotation"
+}
+ 
 // Connection to server
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
+
 if (user_client.isConnected()){
 	println "\nConnected to "+host
-
+	
 	try{
-		def n = 0
-
 		switch (object_type){
 			case "image":	
-				n = processImage(user_client, user_client.getImage(id))
+				processImage(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
-				n = processDataset(user_client, user_client.getDataset(id))
+				processDataset(user_client, user_client.getDataset(id))
 				break
 			case "project":
-				n = processProject(user_client, user_client.getProject(id))
+				processProject(user_client, user_client.getProject(id))
 				break
 			case "well":
-				n = processWell(user_client, user_client.getWell(id))
+				processWell(user_client, user_client.getWells(id))
 				break
 			case "plate":
 				if(runId > 0){
 					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
 					if(!listRuns.isEmpty()){
-						n = processRun(user_client, listRuns.get(0))
+						processRun(user_client, listRuns.get(0))
 					}else{
 						println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
 					}
 				}else{
-					n = processPlate(user_client, user_client.getPlate(id))
+					processPlate(user_client, user_client.getPlate(id))
 				}
 				break
 			case "screen":
-				n = processScreen(user_client, user_client.getScreen(id))
+				processScreen(user_client, user_client.getScreens(id))
 				break
 		}
-		println n + " key-value pairs deleted for "+processRois+" under "+object_type+ " "+id + (runId > 0 && object_type.equals("plate") ? ", run " + runId : "")
+		println "Adding key-value pairs for "+processRois+" under "+object_type+ " "+id + (runId > 0 && object_type.equals("plate") ? ", run " + runId : "")
 		
-	} finally {
+	} finally{
 		user_client.disconnect()
 		println "Disconnected from "+host
 	}
-} else {
+}else{
 	println "Not able to connect to "+host
 }
-return 
+return
 
-/**
- * Delete key-values
- * 
- * inputs
- * 		user_client : OMERO client
- * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
- * 
- * */
+
 def processImage(user_client, image_wpr) {
+	// create a map of kvp
+	def kvpMap = new HashMap<>()
+	kvpMap.put(key, value)
+	def listOfEntry = new ArrayList<>(kvpMap.entrySet())
+	
 	// delete kvp on ROIs attached to image
 	if(processRois.equals("ROIs")){
 		// load OMERO rois
 		println "Loading ROIs for image " + image_wpr.getId() + " : " + image_wpr.getName()
 		def omeroRois = image_wpr.getROIs(user_client)
 		
-		def kvpToDelete = []
+		println "Adding key-values on ROIs from image " + image_wpr.getId() + " : " + image_wpr.getName()
 		omeroRois.eachWithIndex{roiWrapper, idx ->
-			kvpToDelete.addAll(roiWrapper.getMapAnnotations(user_client))
+			def kvpList = []
+			MapAnnotationWrapper mapAnnWrapper = new MapAnnotationWrapper((Collection<? extends Entry<String, String>>)listOfEntry)
+			mapAnnWrapper.setNameSpace(NAMESPACE)
+			kvpList.add(mapAnnWrapper)
+			roiWrapper.link(user_client, (MapAnnotationWrapper[])kvpList.toArray())
 		}
-		println "Deleting key-values on ROIs attached to image " + image_wpr.getId() + " : " + image_wpr.getName()
-		user_client.delete((Collection<GenericObjectWrapper<?>>)kvpToDelete)
-		return kvpToDelete.size()
 	}else{
-		// delete kvp on image only
-		println "Deleting key-values on image " + image_wpr.getId() + " : " + image_wpr.getName()
-		List<MapAnnotationWrapper> kvpToDelete = image_wpr.getMapAnnotations(user_client)		
-		user_client.delete((Collection<GenericObjectWrapper<?>>)kvpToDelete)
-		return kvpToDelete.size()
+		println "Adding key-values on image " + image_wpr.getId() + " : " + image_wpr.getName()
+		def kvpList = []
+		MapAnnotationWrapper mapAnnWrapper = new MapAnnotationWrapper((Collection<? extends Entry<String, String>>)listOfEntry)
+		mapAnnWrapper.setNameSpace(NAMESPACE)
+		kvpList.add(mapAnnWrapper)
+		image_wpr.link(user_client, (MapAnnotationWrapper[])kvpList.toArray())
 	}	
 }
 
 
 /**
- * get all images within a dataset
+ * Import all images from a dataset in Fiji
  * 
  * inputs
- * 	 	user_client : OMERO client
+ * 		user_client : OMERO client
  * 		dataset_wpr : OMERO dataset
  * 
  * */
 def processDataset( user_client, dataset_wpr ){
-	def dataset_table = null;
-	def sizeKVP = 0
 	dataset_wpr.getImages(user_client).each{ image_wpr ->
-		sizeKVP += processImage(user_client , image_wpr)
+		processImage(user_client , image_wpr)
 	}
-	
-	return sizeKVP
 }
 
 
 /**
- * get all datasets within a project
+ * Import all images from a dataset in Fiji
  * 
  * inputs
- * 	 	user_client : OMERO client
- * 		project_wpr : OMERO project
+ * 		user_client : OMERO client
+ * 		dataset_wpr : OMERO dataset
  * 
  * */
 def processProject( user_client, project_wpr ){
-	def sizeKVP = 0
 	project_wpr.getDatasets().each{ dataset_wpr ->
-		sizeKVP += processDataset(user_client , dataset_wpr)
+		processDataset(user_client , dataset_wpr)
 	}
-	
-	return sizeKVP
 }
 
 
 /**
- * get all images within a well
+ * Import all images from a well in Fiji
  * 
  * inputs
- * 	 	user_client : OMERO client
- * 		well_wpr_listet_wpr : OMERO list of wells
+ * 		user_client : OMERO client
+ * 		well_wpr_list : OMERO wells
  * 
  * */
-def processWell(user_client, well_wpr_list){	
-	def sizeKVP = 0	
+def processWell(user_client, well_wpr_list){		
 	well_wpr_list.each{ well_wpr ->				
 		well_wpr.getWellSamples().each{			
-			sizeKVP += processImage(user_client, it.getImage())		
+			processImage(user_client, it.getImage())		
 		}
 	}	
-	return sizeKVP
 }
-
 
 
 /**
@@ -198,11 +195,9 @@ def processWell(user_client, well_wpr_list){
  * 
  * */
 def processRun(user_client, pa_wpr){
-	def sizeKVP = 0
 	pa_wpr.getImages(user_client).each{ image_wpr ->	
-		sizeKVP += processImage(user_client, image_wpr)
+		processImage(user_client, image_wpr)
 	} 
-	return sizeKVP
 }
 
 
@@ -215,35 +210,35 @@ def processRun(user_client, pa_wpr){
  * 
  * */
 def processPlate(user_client, plate_wpr_list){
-	def sizeKVP = 0
 	plate_wpr_list.each{ plate_wpr ->	
-		sizeKVP += processWell(user_client, plate_wpr.getWells(user_client))
+		processWell(user_client, plate_wpr.getWells(user_client))
 	} 
-	return sizeKVP
 }
+
 
 
 /**
- * get all plates within a screen
+ * Import all images from a screen in Fiji
  * 
  * inputs
- * 	 	user_client : OMERO client
- * 		screen_wpr_list : OMERO list of screens
+ * 		user_client : OMERO client
+ * 		screen_wpr_List : OMERO screens
  * 
  * */
 def processScreen(user_client, screen_wpr_list){
-	def sizeKVP = 0
 	screen_wpr_list.each{ screen_wpr ->	
-		sizeKVP += processPlate(user_client, screen_wpr.getPlates())
+		processPlate(user_client, screen_wpr.getPlates())
 	} 
-	return sizeKVP
 }
+
 
 
 /*
  * imports  
  */
 import fr.igred.omero.*
-import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
-import java.util.stream.Collectors
+import omero.model.NamedValue
+import java.io.*;
+import java.util.Collection
+import java.util.Map.Entry

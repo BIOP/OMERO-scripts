@@ -1,7 +1,9 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
+#@Long(label="ONLY FOR PLATES, Run ID to process (-1 for all)", value = -1) runId
 #@Long(label="Resolution level", value=2) level
 #@Boolean(label="Show images") showImages
 
@@ -12,8 +14,6 @@
  * The selected object is then imported in FIJI, with the specified resolution level
  * 
  * == INPUTS ==
- *  - host
- *  - port
  *  - credentials 
  *  - id
  *  - object type
@@ -22,7 +22,7 @@
  * == OUTPUTS ==
  *  - open the image defined by id (or all images one after another from the dataset/project/... defined by id)
  * 
- * = DEPENDEsizeCIES =
+ * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
  *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
@@ -30,11 +30,12 @@
  *  Open Script and Run
  * 
  * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
+ * Code written by Rémy Dornier, EPFL - PTBIOP 
  * 30.04.2025
  * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -45,14 +46,14 @@
  * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products 
  *     derived from this software without specific prior written permission.
  * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, IsizeCLUDING, 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, 
  * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, IsizeCIDENTAL, SPECIAL, 
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (IsizeCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
- * STRICT LIABILITY, OR TORT (IsizeCLUDING NEGLIGEsizeCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ * -----------------------------------------------------------------------------
  */
 
 /**
@@ -61,12 +62,9 @@
  */
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
-
 
 if (user_client.isConnected()){
 	println "Connected to "+host
@@ -87,7 +85,16 @@ if (user_client.isConnected()){
 				processWell(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				processPlate(user_client, user_client.getPlates(id))
+				if(runId > 0){
+					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
+					if(!listRuns.isEmpty()){
+						n = processRun(user_client, listRuns.get(0))
+					}else{
+						println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
+					}
+				}else{
+					n = processPlate(user_client, user_client.getPlate(id))
+				}
 				break
 			case "screen":
 				processScreen(user_client, user_client.getScreens(id))
@@ -97,13 +104,13 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host+"\n"
 	}
-		
 }else{
-	println "Not able to connect to "+host
+	println "Not able to connect to "+host+"\n"
 }
 
+return
 
 /**
  * Display image metadata and import the image in Fiji
@@ -247,6 +254,19 @@ def processWell(user_client, well_wpr_list){
 	}	
 }
 
+/**
+ * get all images within a run
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		pa_wpr : OMERO plate acquisition wrapper
+ * 
+ * */
+def processRun(user_client, pa_wpr){
+	pa_wpr.getImages(user_client).each{ image_wpr ->	
+		processImage(user_client, image_wpr)
+	} 
+}
 
 /**
  * Import all images from a plate in Fiji

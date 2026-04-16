@@ -1,8 +1,8 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Image ID", value=119273) id
 #@File(label="Choose the destination folder", style='directory') dir
-
 
 
 /* = CODE DESCRIPTION =
@@ -26,11 +26,13 @@
  *  Open Script and Run
  * 
  * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
+ * Code written by Rémy Dornier, EPFL - PTBIOP 
+ 
  * 2023.07.07
  * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -48,7 +50,7 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+ * -----------------------------------------------------------------------------
 
 /**
  * Main. Connect to OMERO, process images and disconnect from OMERO
@@ -56,15 +58,12 @@
  */
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
-
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	println "Connected to "+host
 	
 	try{
 	
@@ -72,12 +71,13 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host+"\n"
 	}
 		
 }else{
-	println "Not able to connect to "+host
+	println "Not able to connect to "+host+"\n"
 }
+return
 
 
 /**

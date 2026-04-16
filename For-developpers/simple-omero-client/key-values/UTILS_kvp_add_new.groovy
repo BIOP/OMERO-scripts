@@ -1,33 +1,26 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 #@String(label="Key", value = "Key") key
 #@String(label="Value", value = "Value") value
+#@String(label="Namespace", required=false) namespace
 
 /* 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- *  - key and value to add to OMERO object
- * 
- * == OUTPUTS ==
- *  - key-value on OMERO
+ * Adds new KVPs to the select object, in a given namespace
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
- * 
- * = INSTALLATION = 
- *  Open Script and Run
+ *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
+ * Rémy Dornier, EPFL - PTBIOP 
  * 01.09.2022
  * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -45,6 +38,7 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
  * == HISTORY ==
  * - 2023.06.19 : Remove unnecessary imports
@@ -55,12 +49,17 @@
  * 
  */
  
+// select right namespace
+NAMESPACE = namespace
+if(namespace == null || namespace.isEmpty() || namespace.trim().isEmpty()){
+	NAMESPACE = "openmicroscopy.org/omero/client/mapAnnotation"
+}
+ 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
@@ -68,67 +67,51 @@ if (user_client.isConnected()){
 	try{
 		switch (object_type){
 			case "image":	
-				processKVP( user_client, user_client.getImage(id) )
+				saveKvpsOnOmero( user_client, user_client.getImage(id), key, value, namespace )
 				break	
 			case "dataset":
-				processKVP( user_client, user_client.getDataset(id) )
+				saveKvpsOnOmero( user_client, user_client.getDataset(id), key, value, namespace )
 				break
 			case "project":
-				processKVP( user_client, user_client.getProject(id) )
+				saveKvpsOnOmero( user_client, user_client.getProject(id), key, value, namespace )
 				break
 			case "well":
-				processKVP( user_client, user_client.getWells(id) )
+				saveKvpsOnOmero( user_client, user_client.getWells(id), key, value, namespace )
 				break
 			case "plate":
-				processKVP( user_client, user_client.getPlates(id))
+				saveKvpsOnOmero( user_client, user_client.getPlates(id), key, value, namespace )
 				break
 			case "screen":
-				processKVP( user_client, user_client.getScreens(id))
+				saveKvpsOnOmero( user_client, user_client.getScreens(id), key, value, namespace )
 				break
 		}
 		println "Adding a Key-value pairs for "+object_type+ " "+id+" : DONE !"
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
 	}
-	
 }else{
 	println "Not able to connect to "+host
 }
+return
 
 
-/**
- *Add a new one to the last key-values
- * 
- * inputs
- * 		user_client : OMERO client
- * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
- * 
- * */
-def processKVP(user_client, repository_wpr){
+def saveKvpsOnOmero(user_client, annotatableWrapper, key, value, namespace){
+	// create a map of kvp
+	def kvpMap = new HashMap<>()
+	kvpMap.put(key, value)
 	
-	// add the new key values
-	List<NamedValue> keyValues = new ArrayList()
-   	keyValues.add(new NamedValue(key, value)) 
-	addKeyValuetoOMERO(user_client, repository_wpr, keyValues)
+	// generate a MapAnnotationWrapper
+	def kvpList = []
+	def listOfEntry = new ArrayList<>(kvpMap.entrySet())
+	MapAnnotationWrapper mapAnnWrapper = new MapAnnotationWrapper((Collection<? extends Entry<String, String>>)listOfEntry)
+	mapAnnWrapper.setNameSpace(NAMESPACE)
+	kvpList.add(mapAnnWrapper)
+	
+	// link kvp to the object
+	annotatableWrapper.link(user_client, (MapAnnotationWrapper[])kvpList.toArray())
 }
-
-
-/**
- * Add the key value to OMERO attach to the current repository wrapper
- * 
- * inputs
- * 		user_client : OMERO client
- * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
- * 
- * */
-def addKeyValuetoOMERO(user_client, repository_wpr, keyValues){
-	MapAnnotationWrapper newKeyValues = new MapAnnotationWrapper(keyValues)
-	newKeyValues.setNameSpace("openmicroscopy.org/omero/client/mapAnnotation")
-	repository_wpr.addMapAnnotation(user_client, newKeyValues)
-}
-
 
 
 /*
@@ -138,3 +121,5 @@ import fr.igred.omero.*
 import fr.igred.omero.annotations.*
 import omero.model.NamedValue
 import java.io.*;
+import java.util.Collection
+import java.util.Map.Entry

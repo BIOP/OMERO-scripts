@@ -1,7 +1,9 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
+#@Long(label="ONLY FOR PLATES, Run ID to process (-1 for all)", value = -1) runId
 #@Boolean(label="Show images") showImages
 
 
@@ -11,8 +13,6 @@
  * The selected object is then imported in FIJI
  * 
  * == INPUTS ==
- *  - host
- *  - port
  *  - credentials 
  *  - id
  *  - object type
@@ -29,11 +29,12 @@
  *  Open Script and Run
  * 
  * = AUTHOR INFORMATION =
- * Code written by romain guiet & Rémy Dornier, EPFL - SV -PTECH - BIOP 
+ * Code written by romain guiet & Rémy Dornier - EPFL - PTBIOP 
  * 04.07.2022
  * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -51,6 +52,7 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
  * == HISTORY ==
  * - 2023.06.19 : Remove unnecessary imports
@@ -62,15 +64,13 @@
  */
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	println "Connected to "+host
 	
 	try{
 		
@@ -88,22 +88,31 @@ if (user_client.isConnected()){
 				processWell(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				processPlate(user_client, user_client.getPlates(id))
+				if(runId > 0){
+					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
+					if(!listRuns.isEmpty()){
+						n = processRun(user_client, listRuns.get(0))
+					}else{
+						println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
+					}
+				}else{
+					n = processPlate(user_client, user_client.getPlate(id))
+				}
 				break
 			case "screen":
 				processScreen(user_client, user_client.getScreens(id))
 				break
 		}
-		println "Importation in FIJI of "+object_type+", id "+id+": DONE !"
+		println "Importation in FIJI of "+object_type+", id "+id + (runId > 0 && object_type.equals("plate") ? ", run " + runId : "")+": DONE !"
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
-	}
-		
+		println "Disconnected from "+host+"\n"
+	}
 }else{
-	println "Not able to connect to "+host
+	println "Not able to connect to "+host+"\n"
 }
+return
 
 
 /**
@@ -195,6 +204,21 @@ def processWell(user_client, well_wpr_list){
 
 
 /**
+ * get all images within a run
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		pa_wpr : OMERO plate acquisition wrapper
+ * 
+ * */
+def processRun(user_client, pa_wpr){
+	pa_wpr.getImages(user_client).each{ image_wpr ->	
+		processImage(user_client, image_wpr)
+	} 
+}
+
+
+/**
  * Import all images from a plate in Fiji
  * 
  * inputs
@@ -229,4 +253,4 @@ def processScreen(user_client, screen_wpr_list){
  * imports  
  */
 import fr.igred.omero.*
-import ij.*
+import ij.*

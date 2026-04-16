@@ -1,3 +1,4 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
@@ -6,29 +7,19 @@
 #@String(label="New namespace", value = "my new namespace") newNS
 
 /* 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- *  - old namespace to replace
- *  - new namespace
- * 
- * == OUTPUTS ==
- *  - namespace update
+ * Change the namespace for all KVPs attached to the select object.
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.18.0 or later : https://github.com/GReD-Clermont/simple-omero-client
- * 
- * = INSTALLATION = 
- *  Open Script and Run
+ *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
+ * Rémy Dornier, EPFL - PTBIOP 
  * 2024.04.23
  * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -46,9 +37,11 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
  * == HISTORY ==
- * - 2024.04.23 : First release
+ * 	- 2024.04.23 : First release
+ * 	- 2026.04.01 : Update Licence and fix typos
  */
 
 /**
@@ -57,9 +50,7 @@
  */
  
 // Connection to server
-host = "omero-server-poc.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
@@ -81,34 +72,25 @@ if (user_client.isConnected()){
 				processKVP( user_client, user_client.getWells(id) )
 				break
 			case "plate":
-				processKVP( user_client, user_client.getPlates(id))
+				processKVP( user_client, user_client.getPlates(id) )
 				break
 			case "screen":
-				processKVP( user_client, user_client.getScreens(id))
+				processKVP( user_client, user_client.getScreens(id) )
 				break
 		}
 		println "Updating Key-value pairs namespace for "+object_type+ " "+id+" : DONE !"
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
 	}
-	
 }else{
 	println "Not able to connect to "+host
 }
+return
 
 
-/**
- *Add a new one to the last key-values
- * 
- * inputs
- * 		user_client : OMERO client
- * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
- * 
- * */
 def processKVP(user_client, repository_wpr){
-	
 	// get the current key-value pairs
 	List<MapAnnotationWrapper> keyValues = repository_wpr.getMapAnnotations(user_client).stream().filter(e->e.getNameSpace().equals(oldNS)).toList()
 	
@@ -118,7 +100,6 @@ def processKVP(user_client, repository_wpr){
 		
 		// update objects
 	    List<IObject> objects = keyValues.stream().map(MapAnnotationWrapper::asDataObject).map(MapAnnotationData::asIObject).collect(Collectors.toList())
-	    
 	    user_client.getDm().updateObjects(user_client.getCtx(), objects, null);
 	}else{
 		println "No kvps in this namespace : "+oldNS

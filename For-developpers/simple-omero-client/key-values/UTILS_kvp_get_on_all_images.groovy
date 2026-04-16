@@ -1,31 +1,25 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
+#@Long(label="ONLY FOR PLATES, Run ID to process (-1 for all)", value = -1) runId
+#@String (choices={"Images", "ROIs"}, style="radioButtonHorizontal", label="Target object", value="Images") processRois
 
-/* 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- *  - key and value to add to OMERO object
- * 
- * == OUTPUTS ==
- *  - key-value on OMERO
+/* 
+ * Gets all KVPs attached to the target objects, under the select parent container.
  * 
  * = DEPENDENCIES =
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.12.3 or later : https://github.com/GReD-Clermont/simple-omero-client
- * 
- * = INSTALLATION = 
- *  Open Script and Run
+ *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
  * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 05.10.2022
+ * Rémy Dornier, EPFL - PTBIOP 
+ * 01.04.2026
  * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -43,28 +37,25 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- * == HISTORY ==
- * - 2023-06-16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports.
+ * -----------------------------------------------------------------------------
  */
 
 /**
- * Main. Connect to OMERO, delete key-values for the current object and disconnect from OMERO
+ * Main. Connect to OMERO, process tags and disconnect from OMERO
  * 
  */
  
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
-	
+
 	try{
-		def n
+		def n = 0
+
 		switch (object_type){
 			case "image":	
 				n = processImage(user_client, user_client.getImage(id))
@@ -79,38 +70,68 @@ if (user_client.isConnected()){
 				n = processWell(user_client, user_client.getWell(id))
 				break
 			case "plate":
-				n = processPlate(user_client, user_client.getPlate(id))
+				if(runId > 0){
+					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
+					if(!listRuns.isEmpty()){
+						n = processRun(user_client, listRuns.get(0))
+					}else{
+						println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
+					}
+				}else{
+					n = processPlate(user_client, user_client.getPlate(id))
+				}
 				break
 			case "screen":
 				n = processScreen(user_client, user_client.getScreen(id))
 				break
 		}
-		println n + " key-value pairs deleted for "+object_type+ " "+id + " and its childs"
+		println "Got " + n + " key-value pairs for "+processRois+" under "+object_type+ " "+id + (runId > 0 && object_type.equals("plate") ? ", run " + runId : "")
 		
 	} finally {
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
 	}
-
 } else {
 	println "Not able to connect to "+host
 }
+return 
 
 
-/**
- * Delete key-values
- * 
- * inputs
- * 		user_client : OMERO client
- * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
- * 
- * */
 def processImage(user_client, image_wpr) {
-	println "Deleting key-values on image " + image_wpr.getId() + " : " + image_wpr.getName()
-	List<MapAnnotationWrapper> keyValues = image_wpr.getMapAnnotations(user_client)										   
-	user_client.delete((Collection<GenericObjectWrapper<?>>)keyValues)
-	
-	return keyValues.size()
+	// delete kvp on ROIs attached to image
+	if(processRois.equals("ROIs")){
+		// load OMERO rois
+		println "Loading ROIs for image " + image_wpr.getId() + " : " + image_wpr.getName()
+		def omeroRois = image_wpr.getROIs(user_client)
+		
+		def keyValues = []
+		omeroRois.eachWithIndex{roiWrapper, idx ->
+			keyValues.addAll(roiWrapper.getMapAnnotations(user_client).stream()
+																		.map(MapAnnotationWrapper::getContentAsMap)
+																		.toList())
+		}
+		for(int i = 0; i< keyValues.size();i++){
+			println "KeyValue group n° "+(i+1)
+			keyValues.get(i).each{key, value ->
+				println "Key : "+key+" ; Value : "+value
+			}
+			println ""
+		}
+		return keyValues.size()
+	}else{
+		// get the current key-value pairs
+		List<Map<String, List<String>>> keyValues = image_wpr.getMapAnnotations(user_client).stream()
+																		   .map(MapAnnotationWrapper::getContentAsMap)
+																		   .toList()
+		for(int i = 0; i< keyValues.size();i++){
+			println "KeyValue group n° "+(i+1)
+			keyValues.get(i).each{key, value ->
+				println "Key : "+key+" ; Value : "+value
+			}
+			println ""
+		}
+		return keyValues.size()
+	}	
 }
 
 
@@ -170,6 +191,24 @@ def processWell(user_client, well_wpr_list){
 }
 
 
+
+/**
+ * get all images within a run
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		pa_wpr : OMERO plate acquisition wrapper
+ * 
+ * */
+def processRun(user_client, pa_wpr){
+	def sizeKVP = 0
+	pa_wpr.getImages(user_client).each{ image_wpr ->	
+		sizeKVP += processImage(user_client, image_wpr)
+	} 
+	return sizeKVP
+}
+
+
 /**
  * get all wells within a plate
  * 
@@ -208,5 +247,4 @@ def processScreen(user_client, screen_wpr_list){
  * imports  
  */
 import fr.igred.omero.*
-import fr.igred.omero.repository.*
-import fr.igred.omero.annotations.*
+import fr.igred.omero.annotations.*
