@@ -5,6 +5,7 @@
 #@Long(label="Object ID", value=119273) id
 #@Long(label="ONLY FOR PLATES, Run ID to process (-1 for all)", value = -1) runId
 #@String(label="New Tag(s)", value = "new_tag1,new_tag2") USER_TAGS
+#@String (choices={"Images", "ROIs"}, style="radioButtonHorizontal", label="Target object", value="Images") processRois
 
 
 /* Code description 
@@ -47,7 +48,7 @@
  * History
  * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running.
  * - 2023.11.06 : Remove popup messages from template
- * - 2026.04.23 : Update add tag method + run support -v1.0.3
+ * - 2026.04.23 : Update add tag method + run & Rois support -v1.0.3
  * 
  */
 
@@ -145,7 +146,20 @@ def saveTagsOnOmero(user_client, imageWrapper, tags){
  * */
 def processImage(user_client, image_wpr){
 	def userTags = USER_TAGS.split(",")
-	saveTagsOnOmero(user_client, image_wpr, userTags)
+		
+	if(processRois.equals("ROIs")){
+		// load OMERO rois
+		println "Loading ROIs for image " + image_wpr.getId() + " : " + image_wpr.getName()
+		def omeroRois = image_wpr.getROIs(user_client)
+
+		println "Linking tags to ROIs..."
+		omeroRois.each{roiWrapper ->
+			saveTagsOnOmero(user_client, roiWrapper, userTags)
+		}
+	}else{	
+		println "Linking tags to image..."
+		saveTagsOnOmero(user_client, image_wpr, userTags)
+	}
 }
 
 
@@ -239,8 +253,6 @@ def processScreen(user_client, screen_wpr_list){
 		processPlate(user_client, screen_wpr.getPlates())
 	} 
 }
-
-
 
 
 /*
