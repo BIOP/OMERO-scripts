@@ -6,31 +6,19 @@
 #@Boolean(label="Show images") showImages
 
 
-/* = CODE DESCRIPTION =
- * This is a template to interact with OMERO. 
- * User can specify the image to be imported (must be stored in a local environnement) and the ID of the dataset where to import the image.
+/* Code description
+ *  
+ * Send the given image to OMERO.
+ * Can only import the image in a dataset, not a plate
  * 
- * == INPUTS ==
- *  - credentials 
- *  - image 
- *  - dataset id
- *  - display imported image or not
  * 
- * == OUTPUTS ==
- *  - Import the specified image on OMERO
- *  - open the image defined by id (or all images one after another from the dataset/project/... defined by id)
- *  - 
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by romain guiet & Rémy Dornier, EPFL - PTBIOP 
- * 18.05.2022
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.05.18
+ * Version: 1.0.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -54,11 +42,11 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - 2023.06.19 : Remove unnecessary imports
  */
 
-// Only works with project/dataset/image => not with screen/plate/well
+// 
 
 
 /**
@@ -80,12 +68,11 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "Disconnected from "+host+"\n"
+		println "Disconnected from "+host
 	}
 }else{
-	println "Not able to connect to "+host+"\n"
+	println "Not able to connect to "+host
 }
-
 return
 
 

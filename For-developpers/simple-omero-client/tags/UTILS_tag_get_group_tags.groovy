@@ -1,28 +1,23 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 
-/* 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- * 
- * == OUTPUTS ==
- *  - print tags
- * 
- * = DEPENDENCIES =
- *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
- * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 2025.11.18
+/* Code description 
  *
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * Retrieve all tags from the default group of the connected user
+ * 
+ * 
+ * Dependencies
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - Fiji update site PTBIOP, with simple-omero-client
+ * 
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2025.11.18
+ * Version: 1.0.0
+ * 
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -40,6 +35,7 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  */
 
 
@@ -49,14 +45,12 @@
  */
  
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	println "Connected to "+host
 	
 	try{
 		processTag(user_client)
@@ -65,12 +59,9 @@ if (user_client.isConnected()){
 		user_client.disconnect()
 		println "Disconnected from "+host
 	}
-	
 }else{
 	println "Not able to connect to "+host
-
 }
-
 return
 
 
@@ -87,14 +78,6 @@ def processTag(user_client){
 	all_users = group_tags.collect{e->e.getOwner().getId()}
 	println "Number of tags: "+group_tags.size()
 	println "Owners of the tags: "+all_users.unique()
-}
-
-
-/**
- * Return a formatted string of the exception
- */
-def getErrorStackTraceAsString(Exception e){
-    return Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString).reduce("",(a, b)->a + "     at "+b+"\n");
 }
 
 

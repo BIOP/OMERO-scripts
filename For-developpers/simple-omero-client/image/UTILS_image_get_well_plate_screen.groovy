@@ -4,25 +4,19 @@
 #@Long(label="Image ID", value=119273) id
 
 
-/* 
- * == INPUTS ==
- *  - credentials 
- *  - image id
- * 
- * == OUTPUTS ==
- *  - image hierarchy on OMERO
- * 
- * = DEPENDENCIES =
+/* Code description
+ *  
+ * This script gets the parent screen / plate / well from an given image
+ *  
+ *
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.2 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - PTBIOP 
- * 01.09.2022
- * 
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.09.01
+ * Version: 1.0.0
+ *
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
  * All rights reserved.
@@ -45,6 +39,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  */
+
 
 // Connection to server
 port = 4064
@@ -81,10 +76,10 @@ if (user_client.isConnected()){
 		
 	} finally {
 		user_client.disconnect()
-		println "Disconnected from "+host+"\n"
+		println "Disconnected from "+host
 	}
 } else {
-	println "Not able to connect to "+host+"\n"
+	println "Not able to connect to "+host
 }
 
 return

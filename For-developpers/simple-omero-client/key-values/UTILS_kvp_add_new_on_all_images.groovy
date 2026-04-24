@@ -9,16 +9,19 @@
 #@String(label="Namespace", required=false) namespace
 #@String (choices={"Images", "ROIs"}, style="radioButtonHorizontal", label="Target object", value="Images") processRois
 
-/* 
- * Adds new KVPs to the select object, in a given namespace
+/* Code description 
+ *
+ * Adds new KVPs to all images, children of the select object, in a given namespace
  * 
- * = DEPENDENCIES =
+ * 
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = AUTHOR INFORMATION =
- * Rémy Dornier, EPFL - PTBIOP 
- * 01.09.2022
+ * 
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 01.09.2022
+ * Version: 1.0.1
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -42,7 +45,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - 2023.06.19 : Remove unnecessary imports
  */
 

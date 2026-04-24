@@ -2,35 +2,23 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
-#@Long(label="Object ID", value=119273) id
+#@String(label="Object ID or object(s) URL", value=119273) ids
 #@Long(label="ONLY FOR PLATES, Run ID to process (-1 for all)", value = -1) runId
-#@Boolean(label="Show images") showImages
+#@Boolean(label="Show images", value=true) showImages
 
 
-/* = CODE DESCRIPTION =
- * This is a template to interact with OMERO. 
- * User can specify the ID of an "image","dataset","project","well","plate","screen"
- * The selected object is then imported in FIJI
+/* Code description
+ *  
+ * Imports all children images from the select object in Fiji
  * 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- *  - display imported image or not
  * 
- * == OUTPUTS ==
- *  - open the image defined by id (or all images one after another from the dataset/project/... defined by id)
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.2 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by romain guiet & Rémy Dornier - EPFL - PTBIOP 
- * 04.07.2022
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.07.04
+ * Version: 1.1.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -54,8 +42,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - 2023.06.19 : Remove unnecessary imports
+ * - 2026.04.23 : Support parsing of URL instead of just an ID -v1.1.0
  */
 
 /**
@@ -73,44 +62,52 @@ if (user_client.isConnected()){
 	println "Connected to "+host
 	
 	try{
-		
-		switch (object_type){
-			case "image":	
-				processImage(user_client, user_client.getImage(id))
-				break	
-			case "dataset":
-				processDataset(user_client, user_client.getDataset(id))
-				break
-			case "project":
-				processProject(user_client, user_client.getProject(id))
-				break
-			case "well":
-				processWell(user_client, user_client.getWells(id))
-				break
-			case "plate":
-				if(runId > 0){
-					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
-					if(!listRuns.isEmpty()){
-						n = processRun(user_client, listRuns.get(0))
-					}else{
-						println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
-					}
-				}else{
-					n = processPlate(user_client, user_client.getPlate(id))
-				}
-				break
-			case "screen":
-				processScreen(user_client, user_client.getScreens(id))
-				break
+		def idList = []
+		try{
+			Long.parseLong(ids)
+			idList.add(id)
+		}catch (Exception e){
+			idList = parseURL(ids)
 		}
-		println "Importation in FIJI of "+object_type+", id "+id + (runId > 0 && object_type.equals("plate") ? ", run " + runId : "")+": DONE !"
 		
+		idList.each{id ->
+			switch (object_type){
+				case "image":	
+					processImage(user_client, user_client.getImage(id))
+					break	
+				case "dataset":
+					processDataset(user_client, user_client.getDataset(id))
+					break
+				case "project":
+					processProject(user_client, user_client.getProject(id))
+					break
+				case "well":
+					processWell(user_client, user_client.getWells(id))
+					break
+				case "plate":
+					if(runId > 0){
+						def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
+						if(!listRuns.isEmpty()){
+							n = processRun(user_client, listRuns.get(0))
+						}else{
+							println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
+						}
+					}else{
+						n = processPlate(user_client, user_client.getPlate(id))
+					}
+					break
+				case "screen":
+					processScreen(user_client, user_client.getScreens(id))
+					break
+			}
+			println "Successfull importation in FIJI of "+object_type+", id "+id + (runId > 0 && object_type.equals("plate") ? ", run " + runId : "")
+		}
 	} finally{
 		user_client.disconnect()
-		println "Disconnected from "+host+"\n"
+		println "Disconnected from "+host
 	}
 }else{
-	println "Not able to connect to "+host+"\n"
+	println "Not able to connect to "+host
 }
 return
 
@@ -125,7 +122,7 @@ return
  * */
 def processImage(user_client, image_wpr){
 	// clear Fiji env
-	IJ.run("Close All", "");
+	if (!showImages) IJ.run("Close All", "");
 	
 	// Print image information
 	println "\n Image infos"
@@ -153,6 +150,45 @@ def processImage(user_client, image_wpr){
 	// Show the imported image
 	ImagePlus imp = image_wpr.toImagePlus(user_client);
 	if (showImages) imp.show()
+}
+
+
+def parseURL(url){
+	def idList = []
+	
+	// Check that URL is correct
+	if (url.contains("?show=")) {
+	    def showPart = url.split("\\?show=")[1]
+	    
+	    // get everything after the |
+	    def items = showPart.split("\\|")
+	    
+	    def results = []
+	    
+	    // Parse each element
+	    items.each { item ->
+	        def matcher = (item =~ /^([a-zA-Z]+)-(\d+)$/)
+	        if (matcher.matches()) {
+	            results << [
+	                type: matcher.group(1),
+	                id: matcher.group(2).toInteger()
+	            ]
+	        }
+	    }
+
+	    // Exemple d'accès direct aux IDs si besoin
+	    
+	    def type = results.collect { it.type }.unique()
+	    if(type.size() == 1 && type.get(0).equalsIgnoreCase(object_type)){
+	    	idList = results.collect { it.id }
+	    } else {
+	    	 println "The type of objects in the URL "+type+" does not match with the selected object type "+object_type
+	    }
+	
+	} else {
+	    println "The URL doesn't contain '?show='; it's not coming from OMERO."
+	}
+	return idList
 }
 
 

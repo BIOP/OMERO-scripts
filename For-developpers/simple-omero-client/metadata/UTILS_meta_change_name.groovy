@@ -1,37 +1,29 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Channel names", value="ch1,ch2,ch3") channelNames
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
+#@Long(label="ONLY FOR PLATES, Run ID to process (-1 for all)", value = -1) runId
 
-/* = CODE DESCRIPTION =
- * This is a template to interact with OMERO. 
- * User can specify the ID of an "image","dataset","project","well","plate","screen"
- * The selected object is then imported in FIJI
+
+/* Code description
+ *  
+ * Change the names of the channels for all images within the selected container
+ * Names have to be comma-separated, and the number of names should match the number of channels.
  * 
- * == INPUTS ==
- *  - host
- *  - port
- *  - credentials 
- *  - list of names separated by a comma
- *  - object type to process
- *  - id
+ *  
+ * Dependencies
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * == OUTPUTS ==
- *  - update channel names on OMERO
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.10.24
+ * Version: 1.0.0
  * 
- * = DEPENDENCIES =
- *  - simple-omero-client v5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
- * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 24.10.2022
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -49,16 +41,15 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - 2023.06.19 : Remove unnecessary imports
  */
 
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
@@ -81,23 +72,31 @@ if (user_client.isConnected()){
 				processWell(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				processPlate(user_client, user_client.getPlates(id))
+				if(runId > 0){
+					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
+					if(!listRuns.isEmpty()){
+						processRun(user_client, listRuns.get(0))
+					}else{
+						println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
+					}
+				}else{
+					processPlate(user_client, user_client.getPlate(id))
+				}
 				break
 			case "screen":
 				processScreen(user_client, user_client.getScreens(id))
 				break
 		}
-		println "Updating metadata on image, id "+id+": DONE !"
+		println "End of metadata updatating for images under "+object_type+ " "+id + (runId > 0 && object_type.equals("plate") ? ", run " + runId : "")
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
 	}
-	
 }else{
 	println "Not able to connect to "+host
 }
-
+return
 
 
 /**
@@ -181,6 +180,21 @@ def processWell(user_client, well_wpr_list){
 			processImage(user_client, it.getImage())		
 		}
 	}	
+}
+
+
+/**
+ * get all images within a run
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		pa_wpr : OMERO plate acquisition wrapper
+ * 
+ * */
+def processRun(user_client, pa_wpr){
+	pa_wpr.getImages(user_client).each{ image_wpr ->	
+		processImage(user_client, image_wpr)
+	} 
 }
 
 

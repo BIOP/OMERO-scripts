@@ -1,35 +1,29 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Image ID", value=119273) id
 
+
 #@RoiManager rm
 
 
-/* = CODE DESCRIPTION =
- * - This is a template to interact with OMERO. 
- * - The user enter the image ID and 
- * - The code reads ROIs attached to the image on OMERO and show the image
+/* Code description
+ *  
+ * Reads ROIs from OMERO, attached to the given image, and convert them to proper Fiji ROI according to the nested
+ * convention, written in the 'UTILS_rois_add_custom_nested' script.
  * 
- * == INPUTS ==
- *  - credentials 
- *  - image id
- * 
- * == OUTPUTS ==
- *  - rois on OMERO
- * 
- * = DEPENDENCIES =
+ *  
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.09.23
+ * Version: 1.0.1
  * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 23.09.2022
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -47,9 +41,12 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
- * - 2023-06-16 : Remove unnecessary calls to OMERO server and imports
+ * History
+ * - 2023-06-16 : Limit the number of server calls + update simple-omero-client to 5.12.3
+ */
+
  */
 
 /**
@@ -62,26 +59,24 @@
  */
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	println "Connected to "+host
 	
 	try{
 		processRois(user_client, user_client.getImage(id))
 		println "ROIs importation in FIJI from the image, id "+id+": DONE !\n"
 	} finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
 	}
-	
 }else{
 	println "Not able to connect to "+host
 }
+return
 
 
 /**

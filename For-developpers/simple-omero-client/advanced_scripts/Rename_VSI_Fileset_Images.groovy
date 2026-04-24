@@ -1,33 +1,26 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Dataset ID", value=119273) id
 
 
-/* = CODE DESCRIPTION =
- * This is a template to interact with OMERO. 
+/* Code description
+ *  
  * User can specify the ID of a dataset
  * Macro, Overview and label .vsi images within the dataset will be renamed like "_Overview_imageName.vsi"
  * 
- * == INPUTS ==
- *  - credentials 
- *  - id
  * 
- * == OUTPUTS ==
- *  - Image renaming and new tags on OMERO.
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.2 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2023.03.20
+ * Version: 1.1.0
  * 
- * = AUTHOR INFORMATION =
- * Code written Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 20.03.2023
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -45,11 +38,11 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * Last modifed : 2023-03-27
- * 
- * History : 
- * 	- 2023-03-27 : add "_" before the name
+ * History
+ * 	- 2023.03.27 : add "_" before the name
+ * 	- 2026.04.23 : Update UI and properly link tags -v1.1.0
  * 
  */
 
@@ -59,15 +52,13 @@
  */
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	println "Connected to "+host
 	
 	try{	
 		// get the dataset
@@ -78,16 +69,16 @@ if (user_client.isConnected()){
 			processImage(user_client , image_wpr)	
 		}
 		
+		println "Process : DONE !"
+
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disconnected "+host
 	}
-	
-	println "Process : DONE !"
-	
 }else{
 	println "Not able to connect to "+host
 }
+return
 
 
 /**
@@ -102,40 +93,63 @@ if (user_client.isConnected()){
 def processImage(user_client, image_wpr){
 	def name = image_wpr.getName()
 	def newName = name
-	def tag = null
-	def existingTags = user_client.getTags();
+	def tag = []
 	def updateImage = true
 	
 	if(name.contains(".vsi")){
 		// find label, macro or overview text and create the corresponding tag
 		if(name.contains("label")){
 			newName = "Label_" + name.substring(0, name.indexOf(".vsi") + 4)
-			tag = existingTags.find{ it.getName().equals("Label") } ?: new TagAnnotationWrapper(new TagAnnotationData("Label"))
-		}
-		else if(name.contains("macro")){
+			tag.add("Label")
+		}else if(name.contains("macro")){
 			newName = "Macro image_"+name.substring(0,name.indexOf(".vsi") + 4)
-			tag = existingTags.find{ it.getName().equals("Macro image") } ?: new TagAnnotationWrapper(new TagAnnotationData("Macro image"))
-		}
-		else if(name.contains("overview")){
+			tag.add("Macro image")
+		}else if(name.contains("overview")){
 			newName = "Overview_"+name.substring(0,name.indexOf(".vsi") + 4)
-			tag = existingTags.find{ it.getName().equals("Overview") } ?: new TagAnnotationWrapper(new TagAnnotationData("Overview"))
-		}
-		else if(!name.startsWith("_"))
+			tag.add("Overview")
+		}else if(!name.startsWith("_")){
 			newName = "_" + name
-		else
+		} else{
 			updateImage = false
+		}
 		
 		if(updateImage){
 			// update image name
 			image_wpr.setName(newName)
 			image_wpr.saveAndUpdate(user_client)
 			
-			if(tag != null){			
+			if(!tag.isEmpty()){			
 				// add corresponding tag
-				image_wpr.getTags(user_client).find{ it.getName().equals(tag.getName()) } ?: image_wpr.addTag(user_client, tag)
+				saveTagsOnOmero(user_client, image_wpr, tag)
 			}
 		}
-	}	
+	}
+}
+
+
+
+/**
+ * Add a list of tags to the specified image
+ * 
+ */
+def saveTagsOnOmero(user_client, imageWrapper, tags){
+	def tagsToAdd = []
+	
+	// get existing tags
+	def groupTags = user_client.getTags()
+	def imageTags = imageWrapper.getTags(user_client)
+	
+	// find if the tag to add already exists on OMERO. If yes, they are not added twice
+	tags.each{tag->
+		if(tagsToAdd.find{ it.getName().toLowerCase().equals(tag.toLowerCase()) } == null){
+			// find if the requested tag already exists
+			new_tag = groupTags.find{ it.getName().toLowerCase().equals(tag.toLowerCase()) } ?: new TagAnnotationWrapper(new TagAnnotationData(tag))
+			
+			// add the tag if it is not already the case
+			imageTags.find{ it.getName().toLowerCase().equals(new_tag.getName().toLowerCase()) } ?: tagsToAdd.add(new_tag)
+		}
+	}
+	imageWrapper.addTags(user_client, (TagAnnotationWrapper[])tagsToAdd.toArray())
 }
 
 
@@ -145,5 +159,4 @@ def processImage(user_client, image_wpr){
 import fr.igred.omero.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
-
-import omero.gateway.model.*
+import omero.gateway.model.*

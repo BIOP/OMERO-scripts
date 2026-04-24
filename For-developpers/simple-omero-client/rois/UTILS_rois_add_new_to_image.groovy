@@ -1,3 +1,4 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Image ID", value=119273) id
@@ -6,29 +7,23 @@
 #@RoiManager rm
 
 
-/* = CODE DESCRIPTION =
- * This is a template to interact with OMERO. It reads ImageJ ROIs from the RoiManager and send them to OMERO 
+/* Code description
+ *  
+ * Create 4 Rectangles in FIJI, convert them to OMERO shape, and send them to OMERO, linked to the 
+ * given image
  * 
- * == INPUTS ==
- *  - credentials 
- *  - id 
+ *  
+ * Dependencies
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * == OUTPUTS ==
- *  - OMERO ROIs
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.04.06
+ * Version: 1.1.0
  * 
- * = DEPENDENCIES =
- *  - OMERO 5.5-5.6 update site on Fiji
- *  - simple-omero-client 5.14.0 : https://github.com/GReD-Clermont/simple-omero-client
- * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by romain guiet, EPFL - SV -PTECH - BIOP 
- * 06.04.2022
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -46,8 +41,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - 2023-06-16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3
  * - 2023.06.30 : Refactor the script and move to simple-omero-client 5.14.0
  */
@@ -57,27 +53,24 @@ IJ.run("Close All", "");
 rm.reset()
 
 // Connection to server
-host = "omero-poc.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	println "Connected to "+host
 
 	try{
 		processImage(user_client, user_client.getImage(id))
 		println "Processing of image, id "+id+": DONE !"
 	} finally {
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
 	}
-	
 } else {
 	println "Not able to connect to "+host
 }
-
+return
 
 
 def processImage(user_client, image_wpr){

@@ -5,30 +5,19 @@
 #@File(label="Choose the destination folder", style='directory') dir
 
 
-/* = CODE DESCRIPTION =
- * This is a template to interact with OMERO. 
- * This script download an image from OMERO. If the selected image is a serie (i.e. part of the fileset), 
+/* Code description
+ *  
+ * This script downloads an image from OMERO. If the selected image is a serie (i.e. part of the fileset), 
  * then the entire fileset is downloaded.
- * 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - output folder
- * 
- * == OUTPUTS ==
- *  - original image downloaded from OMERO
- * 
- * = DEPENDENCIES =
+ *  
+ *
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.14.0 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - PTBIOP 
- 
- * 2023.07.07
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2023.07.07
+ * Version: 1.0.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -51,6 +40,7 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
+*/
 
 /**
  * Main. Connect to OMERO, process images and disconnect from OMERO
@@ -66,16 +56,13 @@ if (user_client.isConnected()){
 	println "Connected to "+host
 	
 	try{
-	
 		processImage(user_client, user_client.getImage(id), dir)
-		
 	} finally{
 		user_client.disconnect()
-		println "Disconnected from "+host+"\n"
+		println "Disconnected from "+host
 	}
-		
 }else{
-	println "Not able to connect to "+host+"\n"
+	println "Not able to connect to "+host
 }
 return
 

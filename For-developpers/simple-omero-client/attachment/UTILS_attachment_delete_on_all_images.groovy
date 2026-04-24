@@ -1,31 +1,30 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
+#@Long(label="ONLY FOR PLATES, Run ID to process (-1 for all)", value = -1) runId
+#@Boolean(label="Also delete attachments from colleagues", value = false) deleteDataYouDoNotOwn
+#@Boolean(label="Dry Run", value = false) dryRun
 
 
 /* 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
+ * Code description
  * 
- * == OUTPUTS ==
- *  - deletion of the attachment on OMERO
- * 
- * = DEPENDENCIES =
+ * Deletes all attachements from all images, children of the select object.
+ *  
+ *  
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.14.2 : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 01.09.2023
+ * Version: 1.1.0
  * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 01.09.2023
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -43,9 +42,11 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
- * - 2023-09-01 : First version -- v1
+ * History
+ * - 2023-09-01 : First version -- v1.0.0
+ * - 2026-04-23 : Remove popup window -v1.1.0
  */
 
 /**
@@ -54,17 +55,13 @@
  */
  
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
-deleteDataYouDoNotOwn = false
-alreadyAskConfirmation = false
 
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	println "Connected to "+host
 	
 	try{
 		switch (object_type){
@@ -81,7 +78,16 @@ if (user_client.isConnected()){
 				n = processWell(user_client, user_client.getWell(id))
 				break
 			case "plate":
-				n = processPlate(user_client, user_client.getPlate(id))
+				if(runId > 0){
+					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
+					if(!listRuns.isEmpty()){
+						processRun(user_client, listRuns.get(0))
+					}else{
+						println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
+					}
+				}else{
+					processPlate(user_client, user_client.getPlate(id))
+				}
 				break
 			case "screen":
 				n = processScreen(user_client, user_client.getScreen(id))
@@ -97,6 +103,7 @@ if (user_client.isConnected()){
 } else {
 	println "Not able to connect to "+host
 }
+return
 
 
 /**
@@ -109,6 +116,8 @@ if (user_client.isConnected()){
  * 
  * */
 def processAttachment(user_client, repository_wpr){
+	println "Working on image "+repository_wpr.getName()+":"+repository_wpr.getId()
+	
 	// get the list of attachments
 	def file_wpr_list = repository_wpr.getFileAnnotations(user_client)
 	
@@ -120,8 +129,6 @@ def processAttachment(user_client, repository_wpr){
 	
 	// get admin user info
 	def userId = user_client.getUser().getId()
-	def ownerRepoId = repository_wpr.getOwner().getId()
-	def groupId = repository_wpr.asDataObject().getGroupId()
 	def exp = user_client.getGateway().getAdminService(user_client.getCtx()).getExperimenter(ownerRepoId);
 	
 	List<FileAnnotationWrapper> attachments_to_delete = []
@@ -132,49 +139,22 @@ def processAttachment(user_client, repository_wpr){
 				println file_wpr.getFileName() + " will be deleted"
 				attachments_to_delete.add(file_wpr)
 		} else {
-			def fileOwner = user_client.getGateway().getAdminService(user_client.getCtx()).getExperimenter(file_wpr.getOwner().getId());
-			if(alreadyAskConfirmation){			
-				if(deleteDataYouDoNotOwn){
-					// check if the file can be deleted
-					if(file_wpr.canDelete()){
-						println "File '"+file_wpr.getFileName() + "' is owned by '"+fileOwner.getOmeName().getValue()+"'. You choose to delete it"
-						println "File '"+file_wpr.getFileName() + " will be deleted"
-						attachments_to_delete.add(file_wpr)
-					}else{
-						println "File '"+file_wpr.getFileName() + "' will NOT be deleted because you don't have the right to delete it"
-					}
+			if(deleteDataYouDoNotOwn){
+				if(file_wpr.canDelete()){
+					println "File '"+file_wpr.getFileName() + "' is owned by '"+fileOwner.getOmeName().getValue()+"' and will be deleted"
+					attachments_to_delete.add(file_wpr)
 				}else{
-					println "File '"+file_wpr.getFileName() + "' will NOT be deleted because you choose to not delete data from '"+fileOwner.getOmeName().getValue()+"'"
+					println "File '"+file_wpr.getFileName() + "' will NOT be deleted because you don't have the right to delete it"
 				}
-			}else{
-				// ask the users if they want to delete data that are not owned by him, under the restriction that is allowed to do so
-				def content = "Some files are owned by '"+fileOwner.getOmeName().getValue()+"'. Do you want to DEFINITIVELY delete all the files linked"+
-				" to the "+object_type+":"+id+" (and its child) and owned by '"+fileOwner.getOmeName().getValue()+"' ? This action is irreversible"
-				def title = "WARNING : delete data that you don't own"
-				def choice = JOptionPane.showConfirmDialog(new JFrame(), content, title, JOptionPane.YES_NO_OPTION);
-				alreadyAskConfirmation = true
-				
-				if(choice == JOptionPane.YES_OPTION){
-					deleteDataYouDoNotOwn = true
-					// check if the file can be deleted
-					if(file_wpr.canDelete()){
-						println "File '"+file_wpr.getFileName() + "' is owned by '"+fileOwner.getOmeName().getValue()+"'. You choose to delete it"
-						println "File '"+file_wpr.getFileName() + " will be deleted"
-						attachments_to_delete.add(file_wpr)
-					}else{
-						println "File '"+file_wpr.getFileName() + "' will NOT be deleted because you don't have the right to delete it"
-					}
-				}else{
-					println "File '"+file_wpr.getFileName() + "' will NOT be deleted because you choose to not delete data from '"+fileOwner.getOmeName().getValue()+"'"
-				}
-			}			
+			}
 		}
 	}
 	
 	// delete attachments
-	if(!attachments_to_delete.isEmpty())
+	if(!dryRun && !attachments_to_delete.isEmpty()){
+		println "Delete files..."
 		user_client.delete((Collection<GenericObjectWrapper<?>>)attachments_to_delete)
-	
+	}
 	return attachments_to_delete.size()
 }
 
@@ -188,7 +168,6 @@ def processAttachment(user_client, repository_wpr){
  * 
  * */
 def processImage(user_client, image_wpr) {
-	
 	return processAttachment(user_client , image_wpr)
 }
 
@@ -202,7 +181,6 @@ def processImage(user_client, image_wpr) {
  * 
  * */
 def processDataset( user_client, dataset_wpr ){
-	def dataset_table = null;
 	def sizeDelAtt = 0
 	dataset_wpr.getImages(user_client).each{ image_wpr ->
 		sizeDelAtt += processImage(user_client , image_wpr)
@@ -223,7 +201,7 @@ def processDataset( user_client, dataset_wpr ){
 def processProject(user_client, project_wpr){
 	def sizeDelAtt = 0
 	project_wpr.getDatasets().each{ dataset_wpr ->
-		sizeDelAtt += processDataset(user_client , dataset_wpr)
+		sizeDelAtt += processDataset(user_client, dataset_wpr)
 	}
 	
 	return sizeDelAtt
@@ -245,6 +223,24 @@ def processWell(user_client, well_wpr_list){
 			sizeDelAtt += processImage(user_client, it.getImage())		
 		}
 	}	
+	return sizeDelAtt
+}
+
+
+/**
+ * get all images within a run
+ * 
+ * inputs
+ * 	 	user_client : OMERO client
+ * 		pa_wpr : OMERO plate acquisition wrapper
+ * 
+ * */
+def processRun(user_client, pa_wpr){
+	def sizeDelAtt = 0
+	pa_wpr.getImages(user_client).each{ image_wpr ->
+		sizeDelAtt += processImage(user_client, image_wpr)
+	}
+	
 	return sizeDelAtt
 }
 
@@ -290,4 +286,4 @@ import fr.igred.omero.*
 import fr.igred.omero.repository.*
 import fr.igred.omero.annotations.*
 import javax.swing.JFrame;
-import javax.swing.JOptionPane;
+import javax.swing.JOptionPane;

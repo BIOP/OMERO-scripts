@@ -1,3 +1,4 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Image ID", value=119273) id
@@ -5,31 +6,25 @@
 #@RoiManager rm
 
 
-/* = CODE DESCRIPTION =
- * - This is a template to interact with OMERO. 
- * - The user enter the image ID and 
- * - The code reads the roi manager and save roi to OMERO in a nested way
+/* Code description
+ *  
+ * Send ROIs to OMERO, attached to the given image. Each ROI is actually converted into an OMERO shape
+ * to appear nested in the viewer. The tree is made according a certain logic
  * 
- * == INPUTS ==
- *  - credentials 
- *  - image id
+ * WARNING: The implemented nested tree doesn't follow any global convention!
  * 
- * == OUTPUTS ==
- *  - rois on OMERO
- * 
- * = DEPENDENCIES =
+ *  
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.12.3 : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.08.31
+ * Version: 1.0.1
  * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 31.08.2022
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -47,8 +42,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - 2023-06-19 : Limit the number of server calls + update simple-omero-client to 5.12.3
  */
 
@@ -63,28 +59,25 @@
  */
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	println "Connected to "+host
 	
 	try{
 		processRois(user_client, user_client.getImage(id))
+		println "Import nested ROIs on image, id "+id+": DONE !"
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected "+host
+		println "Disconnected "+host
 	}
-	
-	println "Import nested ROIs on image, id "+id+": DONE !\n"
-	
 }else{
 	println "Not able to connect to "+host
 }
+return
 
 /**
  * Get rois from the roi manager and find a hierarchy between rois (i.e. one roi contains inside another for example)

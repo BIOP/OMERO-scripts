@@ -7,29 +7,18 @@
 #@Float(label="Pixel size Y (um)", value=0.5) pxlSizeY
 
 
-/* = CODE DESCRIPTION =
- * This is a template to interact with OMERO. 
- * Enter new pixel size values
+/* Code description
+ *  
+ * Set new pixel size to the selected image or to all images within the selected dataset
  * 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- *  - X and Y pixel size
  * 
- * == OUTPUTS ==
- *  - replace the current pixel size in X and Y on OMERO by the new ones.
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.16.0 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by romain guiet & Rémy Dornier, EPFL - PTBIOP 
- * 2024.02.23
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2024.02.23
+ * Version: 1.0.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -80,13 +69,11 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "Disconnected from "+host+"\n"
+		println "Disconnected from "+host
 	}
-	
 }else{
-	println "Not able to connect to "+host+"\n"
+	println "Not able to connect to "+host
 }
-
 return
 
 

@@ -1,31 +1,29 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
+#@Boolean(label="Also delete attachments from colleagues", value = false) deleteDataYouDoNotOwn
+#@Boolean(label="Dry Run", value = false) dryRun
 
 
 /* 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
+ * Code description
  * 
- * == OUTPUTS ==
- *  - deletion of the attachment on OMERO
- * 
- * = DEPENDENCIES =
+ * Deletes all attachements from the select object.
+ *  
+ *  
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 01.09.2022
+ * Version: 1.0.1
  * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 01.09.2022
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -43,8 +41,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - 2023-06-16 : Limits the number of call to the OMERO server
  */
 
@@ -54,14 +53,12 @@
  */
  
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	println "Connected to "+host
 	
 	try{
 		switch (object_type){
@@ -88,13 +85,13 @@ if (user_client.isConnected()){
 		
 	} finally {
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
 	}
 	
 } else {
 	println "Not able to connect to "+host
 }
-
+return
 
 /**
  * Delete all the attachment from an object
@@ -106,29 +103,43 @@ if (user_client.isConnected()){
  * 
  * */
 def processAttachment(user_client, repository_wpr){
+	println "Working on "+repository_wpr.getClass().getSimpleName()+" "+repository_wpr.getName()+":"+repository_wpr.getId()
 	
-	def file_wpr_list = repository_wpr.getFileAnnotations(user_client)
-	List<FileAnnotationWrapper> attachments_to_delete = []
-	
-	def userId = user_client.getUser().getId()
-	def ownerRepoId = repository_wpr.getOwner().getId()
-	
-	if (ownerRepoId == userId){
-		file_wpr_list.each{file_wpr->
-			if  (file_wpr.getOwner().getId() == userId){
-					println file_wpr.getFileName() + " will be deleted"
-					attachments_to_delete.add(file_wpr)
-			} else {
-				println file_wpr.getFileName() + " will NOT be deleted"
-			}
-		}
-	} else {
-		println file_wpr.getName() + " will NOT be deleted"
+	// if not attachments
+	if(file_wpr_list.isEmpty()){
+		println "No files attached to "+repository_wpr.getClass().getSimpleName()+" : "+repository_wpr.getId()
+		return
 	}
 	
-	if(!attachments_to_delete.isEmpty())
+	// get admin user info
+	def userId = user_client.getUser().getId()
+	def exp = user_client.getGateway().getAdminService(user_client.getCtx()).getExperimenter(ownerRepoId);
+	
+	List<FileAnnotationWrapper> attachments_to_delete = []
+	
+	file_wpr_list.each{file_wpr->
+		//file can be deleted because the file is owned by the logged-in user
+		if (file_wpr.getOwner().getId() == userId){
+				println file_wpr.getFileName() + " will be deleted"
+				attachments_to_delete.add(file_wpr)
+		} else {
+			if(deleteDataYouDoNotOwn){
+				if(file_wpr.canDelete()){
+					println "File '"+file_wpr.getFileName() + "' is owned by '"+fileOwner.getOmeName().getValue()+"' and will be deleted"
+					attachments_to_delete.add(file_wpr)
+				}else{
+					println "File '"+file_wpr.getFileName() + "' will NOT be deleted because you don't have the right to delete it"
+				}
+			}
+		}
+	}
+	
+	// delete attachments
+	if(!dryRun && !attachments_to_delete.isEmpty()){
+		println "Delete files..."
 		user_client.delete((Collection<GenericObjectWrapper<?>>)attachments_to_delete)
-		
+	}
+	
 	println attachments_to_delete.size() + " attachments deleted"
 }
 
@@ -138,4 +149,4 @@ def processAttachment(user_client, repository_wpr){
  */
 import fr.igred.omero.*
 import fr.igred.omero.repository.*
-import fr.igred.omero.annotations.*
+import fr.igred.omero.annotations.*

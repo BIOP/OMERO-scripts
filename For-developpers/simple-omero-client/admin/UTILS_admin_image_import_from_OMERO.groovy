@@ -1,40 +1,29 @@
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
+#@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 #@Long(label="Group ID", value=-1) groupId
 #@Boolean(label="Show images") showImages
 
 
-/* = CODE DESCRIPTION =
- * This is a template to interact with OMERO. 
- * User can specify the ID of an "image","dataset","project","well","plate","screen"
- * The selected object is then imported in FIJI
+/* Code description
+ *  
+ * Imports an image from a group which is not the user default group
  * 
- * == INPUTS ==
- *  - host
- *  - port
- *  - credentials 
- *  - id
- *  - object type
- *  - display imported image or not
  * 
- * == OUTPUTS ==
- *  - open the image defined by id (or all images one after another from the dataset/project/... defined by id)
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.2 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2025
+ * Version: 1.0.0
  * 
- * = AUTHOR INFORMATION =
- * Code written by romain guiet & Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 04.07.2022
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -52,10 +41,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- * == HISTORY ==
- * - 2023.06.19 : Remove unnecessary imports
+ * -----------------------------------------------------------------------------
  */
+
 
 /**
  * Main. Connect to OMERO, process images and disconnect from OMERO
@@ -63,21 +51,18 @@
  */
 
 // Connection to server
-host = "omero-server.epfl.ch"
 port = 4064
-
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
-
 if (user_client.isConnected()){
-	println "\nConnected to "+host
-	
-	if(groupId > 0){
-		user_client.switchGroup(groupId)
-	}
-	
+	println "Connected to "+host
+
 	try{
+		
+		if(groupId > 0){
+			user_client.switchGroup(groupId)
+		}
 		
 		switch (object_type){
 			case "image":	
@@ -103,12 +88,12 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "Disonnected from "+host
+		println "Disconnected from "+host
 	}
-		
 }else{
 	println "Not able to connect to "+host
 }
+return
 
 
 /**
@@ -229,9 +214,8 @@ def processScreen(user_client, screen_wpr_list){
 }
 
 
-
 /*
  * imports  
  */
 import fr.igred.omero.*
-import ij.*
+import ij.*

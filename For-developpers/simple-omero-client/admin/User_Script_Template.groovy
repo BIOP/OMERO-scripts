@@ -3,7 +3,8 @@
 #@String(label="Password", style='password', persist=false) PASSWORD
 
 
-/* == CODE DESCRIPTION ==
+/* Code description
+ *  
  * This script is a template to create user scripts, with popup messages and csv reports, as well as IJ log messages for
  * traceback.
  * 
@@ -28,27 +29,36 @@
  * 		
  * 	You can have a look to existing user scripts to have a concrete example.
  * 	
- * == INPUTS ==
- *  - credentials  	
  * 
- * == OUTPUTS ==	
- *  - logs on IJ logger
- *  - Popup messages
- *  - CSV report in the Download folder
- * 
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.15.0 https://github.com/GReD-Clermont/simple-omero-client
- *  
- *  
- *  = AUTHOR INFORMATION =
- * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
- * date : 2023-11.07
- * version : v1.0
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = HISTORY =
- * - 2023.11.07 : First release --v1.0
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2023.11.07
+ * Version: 1.0.0
+ * 
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
+ * 
+ * Licensed under the BSD-3-Clause License:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
+ * that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
+ *    in the documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products 
+ *     derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, 
+ * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
  */
 

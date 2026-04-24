@@ -1,13 +1,17 @@
 #@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
-#@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
-#@Long(label="Object ID", value=119273) id
+#@Long(label="Image ID", value=119273) id
+#@String(label="key") key
+#@String(label="Value") value
+#@String(label="Namespace", required=false) namespace
+
+#@RoiManager rm
 
 
 /* Code description
  *  
- * Delete all OMERO tables from the selected container.
+ * It gets ROIs attached to an image on OMERO and attach the same key value pair to each of them
  * 
  *  
  * Dependencies
@@ -15,8 +19,8 @@
  *  - Fiji update site PTBIOP, with simple-omero-client
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
- * Date: 2022.09.01
- * Version: 1.0.1
+ * Date: 2026.03.31
+ * Version: 1.0.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -40,47 +44,29 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
- * - 2023.06.19 : Remove unnecessary imports + limits the number of server calls
- * - 2023-06-29 : Delete tables with one API call + move to simple-omero-client 5.14.0
  */
 
-/**
- * Main. Connect to OMERO, delete all tables from the specified object and disconnect from OMERO
- * 
- */
- 
+
+IJ.run("Close All", "");
+rm.reset()
+
 // Connection to server
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
+// select right namespace
+NAMESPACE = namespace
+if(namespace == null || namespace.isEmpty() || namespace.trim().isEmpty()){
+	NAMESPACE = "openmicroscopy.org/omero/client/mapAnnotation"
+}
+
 if (user_client.isConnected()){
 	println "Connected to "+host
-	
+
 	try{
-		switch (object_type){
-			case "image":	
-				processTable(user_client, user_client.getImage(id))
-				break	
-			case "dataset":
-				processTable(user_client, user_client.getDataset(id))
-				break
-			case "project":
-				processTable(user_client, user_client.getProject(id))
-				break
-			case "well":
-				processTable(user_client, user_client.getWells(id))
-				break
-			case "plate":
-				processTable(user_client, user_client.getPlates(id))
-				break
-			case "screen":
-				processTable(user_client, user_client.getScreens(id))
-				break
-		}
-		println "Deletion of OMERO.tables for "+object_type+ " "+id+" : DONE !"
-		
+		processImage(user_client, user_client.getImage(id))
+		println "Processing of image, id "+id+": DONE !"
 	} finally {
 		user_client.disconnect()
 		println "Disconnected from "+host
@@ -88,39 +74,64 @@ if (user_client.isConnected()){
 } else {
 	println "Not able to connect to "+host
 }
-return
+return
 
 
+def processImage(user_client, image_wpr){
+	// clear Fiji env
+	IJ.run("Close All", "");
+	rm.reset()
+	
+	// convert imageWrapper to imagePlus
+	println image_wpr.getName()
+	ImagePlus imp = image_wpr.toImagePlus(user_client);
+	imp.show()
+	
+	// load OMERO rois
+	println "Loading existing OMERO-ROIs"
+	def omeroRois = image_wpr.getROIs(user_client)
+	
+	// convert omero ROIs into ImageJ ROIs
+	ROIWrapper.toImageJ(omeroRois).each{rm.addRoi(it)}
+	
+	omeroRois.eachWithIndex{roiWrapper, idx ->
+		saveKvpsOnOmero(user_client, roiWrapper, key, value+"_"+idx, namespace)
+	}
+}
 
 /**
- * Delete all the tables attached to the object
+ * Add a list of tags to the specified image
  * 
- * inputs
- * 		user_client : OMERO client
- * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
- * 
- * */
-def processTable(user_client, repository_wpr){
+ */
+def saveKvpsOnOmero(user_client, roiWrapper, key, value, namespace){
+	// create a map of kvp
+	def kvpMap = new HashMap<>()
+	kvpMap.put(key, value)
 	
-	def table_wpr_list = repository_wpr.getTables(user_client)
-	def ownerID = repository_wpr.getOwner().getId()
-	def userID = user_client.getUser().getId()
+	// generate a MapAnnotationWrapper
+	def kvpList = []
+	def listofEntry = new ArrayList<>(kvpMap.entrySet())
+	MapAnnotationWrapper mapAnnWrapper = new MapAnnotationWrapper((Collection<? extends Entry<String, String>>)listofEntry)
+	mapAnnWrapper.setNameSpace(NAMESPACE)
+	kvpList.add(mapAnnWrapper)
 	
-	def tables_to_delete = []
-	table_wpr_list.each{table_wpr->
-		// check that user is owner
-		if  (userID == ownerID){
-			println table_wpr.getName() + " will be deleted"
-			tables_to_delete.add(table_wpr)
-		}
-		else
-			println table_wpr.getName() + " will NOT be deleted"
-	}
-	user_client.deleteTables(tables_to_delete)
+	// link kvp to the object
+	roiWrapper.link(user_client, (MapAnnotationWrapper[])kvpList.toArray())
 }
 
 
 /*
  * imports  
  */
-import fr.igred.omero.*
+import fr.igred.omero.*
+import fr.igred.omero.roi.*
+import fr.igred.omero.repository.*
+import ij.*
+import fr.igred.omero.*
+import fr.igred.omero.roi.*
+import fr.igred.omero.repository.*
+import fr.igred.omero.annotations.*
+import omero.gateway.model.TagAnnotationData;
+import java.util.stream.Collectors
+import java.util.Collection
+import java.util.Map.Entry

@@ -4,16 +4,18 @@
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 
-/* 
+/* Code description
+ *  
  * Deletes all KVPs attached to the select object.
  * 
- * = DEPENDENCIES =
- *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
- * = AUTHOR INFORMATION =
- * Rémy Dornier, EPFL - PTBIOP 
- * 05.10.2022
+ * Dependencies
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - Fiji update site PTBIOP, with simple-omero-client
+ * 
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.10.05
+ * Version: 1.0.2
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -37,7 +39,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * 	- 2023.06.16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports.
  * 	- 2026.04.01 : Update licence and fix typos
  */

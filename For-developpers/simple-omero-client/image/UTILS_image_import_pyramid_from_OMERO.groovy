@@ -8,30 +8,18 @@
 #@Boolean(label="Show images") showImages
 
 
-/* = CODE DESCRIPTION =
- * This is a template to interact with OMERO. 
- * User can specify the ID of an "image","dataset","project","well","plate","screen"
- * The selected object is then imported in FIJI, with the specified resolution level
+/* Code description
+ *  
+ * Imports all children images from the select object in Fiji, specifying a given resolution level
  * 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- *  - display imported image or not
  * 
- * == OUTPUTS ==
- *  - open the image defined by id (or all images one after another from the dataset/project/... defined by id)
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - PTBIOP 
- * 30.04.2025
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2025.04.30
+ * Version: 1.0.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -104,10 +92,10 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "Disconnected from "+host+"\n"
+		println "Disconnected from "+host
 	}
 }else{
-	println "Not able to connect to "+host+"\n"
+	println "Not able to connect to "+host
 }
 
 return

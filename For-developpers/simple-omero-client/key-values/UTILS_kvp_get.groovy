@@ -4,16 +4,18 @@
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 
-/* 
+/* Code description
+ *  
  * Gets all KVPs attached to the select object.
  * 
- * = DEPENDENCIES =
- *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
- * = AUTHOR INFORMATION =
- * Rémy Dornier, EPFL - PTBIOP 
- * 01.09.2022
+ * Dependencies
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - Fiji update site PTBIOP, with simple-omero-client
+ * 
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.09.01
+ * Version: 1.0.2
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -37,7 +39,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * 	- 2023.06.19 : Remove unnecessary imports 
  * 	- 2026.04.01 : Update licence and fix typos
  */
@@ -53,7 +55,7 @@ Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 
 if (user_client.isConnected()){
-	println "\nConnected to "+host
+	println "Connected to "+host
 	
 	try{
 		switch (object_type){

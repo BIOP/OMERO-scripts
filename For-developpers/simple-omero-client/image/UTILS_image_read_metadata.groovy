@@ -8,30 +8,18 @@
 #@Boolean(label="ROIs", value=true) printROIs
 #@Boolean(label="Hardware", value=true) printHardware
 
-/* = CODE DESCRIPTION =
- * This is a template to interact with OMERO. 
- * User can specify the ID of an "image","dataset","project","well","plate","screen"
- * The selected object is then imported in FIJI
+/* Code description
+ *  
+ * Prints several image metadata, from hardware to image and omero tree
  * 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- *  - display imported image or not
  * 
- * == OUTPUTS ==
- *  - open the image defined by id (or all images one after another from the dataset/project/... defined by id)
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.1 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by romain guiet & Rémy Dornier, EPFL - PTBIOP 
- * 04.07.2022
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.07.04
+ * Version: 1.0.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -76,11 +64,11 @@ if (user_client.isConnected()){
 		
 	} finally{
 		user_client.disconnect()
-		println "Disconnected from "+host+"\n"
+		println "Disconnected from "+host
 	}
 	
 }else{
-	println "Not able to connect to "+host+"\n"
+	println "Not able to connect to "+host
 }
 
 return

@@ -5,7 +5,7 @@
 
 /* Code description
  *  
- * Create a TextROI and attached it to the given image on OMERO
+ * Reads KVPs attached to the ROIs linked to the given image
  * 
  *  
  * Dependencies
@@ -13,7 +13,7 @@
  *  - Fiji update site PTBIOP, with simple-omero-client
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
- * Date: 2025.11.06
+ * Date: 2026.03.31
  * Version: 1.0.0
  * 
  * -----------------------------------------------------------------------------
@@ -38,8 +38,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  */
-
-
+ 
+ 
 // Connection to server
 port = 4064
 Client user_client = new Client()
@@ -61,42 +61,43 @@ if (user_client.isConnected()){
 return
 
 
-def processImage(user_client, image_wpr){
+def processImage(user_client, image_wpr){	
+	// convert imageWrapper to imagePlus
 	println image_wpr.getName()
-
-  	def txtroi1 = new TextRoi( 0 , 0 ,50.0 , 50.0,"myTextArial" ,  new FontUtil().getFont("Arial", 2 , 72 as float ) )
 	
-	def roiArray = [txtroi1]
-	def roisToUpload = ROIWrapper.fromImageJ(roiArray)
-	/*// define a new Text ROI (sinple-omero-client ROI)
-	def text = new TextWrapper(new TextData("myText", 0, 0))
-	// get the shape settings
-	def settings = text.asDataObject().getShapeSettings()
-	// set the font size
-	settings.setFontSize(new LengthI(72, UnitsLength.MILLIMETER))
-	// create a list of ROI to upload
-	def roisToUpload = []
-	roisToUpload.add(text)
-	
-	// convert to a list of ROIWrapper
-	def roisToUpload2 = []
-	roisToUpload2.add(new ROIWrapper(roisToUpload))
-*/
-
-	// upload to OMERO
-	image_wpr.saveROIs(user_client, roisToUpload)
+	// load OMERO rois
+	println "Loading existing OMERO-ROIs"
+	def omeroRois = image_wpr.getROIs(user_client)
+		
+	omeroRois.eachWithIndex{roiWrapper, idx ->
+		getKVPs(user_client, roiWrapper)
+	}
 }
 
+
+/**
+ * Print all kvp belogning to the current OMERO object 
+ * 
+ * */
+def getKVPs(user_client, annotatable_wpr){
+
+	// get the current key-value pairs
+	List<Map<String, List<String>>> keyValues = annotatable_wpr.getMapAnnotations(user_client).stream()
+																	   .map(MapAnnotationWrapper::getContentAsMap)
+																	   .toList()
+	for(int i = 0; i< keyValues.size();i++){
+		println "KeyValue group n° "+(i+1)
+		keyValues.get(i).each{key, value ->
+			println "Key : "+key+" ; Value : "+value
+		}
+		println ""
+	}
+}
 
 
 /*
  * imports  
  */
 import fr.igred.omero.*
-import fr.igred.omero.roi.*
-import fr.igred.omero.repository.*
-import omero.gateway.model.*
-import omero.model.*
-import omero.model.enums.*
-import ij.gui.TextRoi
-import ij.util.FontUtil
+import fr.igred.omero.annotations.*
+import omero.model.NamedValue

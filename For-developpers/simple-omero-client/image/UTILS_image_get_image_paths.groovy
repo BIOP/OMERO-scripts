@@ -3,29 +3,19 @@
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Image ID", value=119273, required=false) imageId
 
-/* == CODE DESCRIPTION ==
+/* Code description
+ *  
  * This script gets the original import path of an image
- * 		
- * == INPUTS ==
- *  - credentials 
- *  - image Id
- * 	
- * 
- * == OUTPUTS ==	
- *  - orginial import path
- * 
- * 
- * = DEPENDENCIES =
+ *  
+ *
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.19.0 https://github.com/GReD-Clermont/simple-omero-client
- *  
- *  
- *  = AUTHOR INFORMATION =
- * Code written by Rémy Dornier - EPFL - PTBIOP 
-
- * date : 2023.11.08
- * version : v2.0
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2023.11.08
+ * Version: 2.0.0
+ *
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
  * All rights reserved.
@@ -48,8 +38,8 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  *
- * = HISTORY = 
- * - 2024.09.26 : update method to get original path directly from simple-omero-client --v2.0
+ *  History
+ * - 2024.09.26 : update method to get original path directly from simple-omero-client --v2.0.0
  * 
  */
 
@@ -73,11 +63,11 @@ if (user_client.isConnected()){
 
 	} finally{
 		user_client.disconnect()
-		println "Disconnected from "+host+"\n"
+		println "Disconnected from "+host
 	}
 		
 }else{
-	println "Not able to connect to "+host+"\n"
+	println "Not able to connect to "+host
 }
 
 return

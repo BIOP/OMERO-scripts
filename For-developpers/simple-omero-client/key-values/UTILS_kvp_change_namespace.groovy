@@ -6,16 +6,18 @@
 #@String(label="Namespace to replace", value = "openmicroscopy.org/omero/client/mapAnnotation") oldNS
 #@String(label="New namespace", value = "my new namespace") newNS
 
-/* 
+/* Code description
+ *
  * Change the namespace for all KVPs attached to the select object.
  * 
- * = DEPENDENCIES =
- *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
  * 
- * = AUTHOR INFORMATION =
- * Rémy Dornier, EPFL - PTBIOP 
- * 2024.04.23
+ * Dependencies
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - Fiji update site PTBIOP, with simple-omero-client
+ * 
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2024.04.23
+ * Version: 1.0.1
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -39,8 +41,7 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
- * 	- 2024.04.23 : First release
+ * History
  * 	- 2026.04.01 : Update Licence and fix typos
  */
 
