@@ -4,7 +4,7 @@
 #@String(label="Password", style='password', persist=true) PASSWORD
 #@String (visibility=MESSAGE, value="Setup object to process", required=false) msg1
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
-#@Long(label="Object ID", value=119273) id
+#@String(label="Object ID or object(s) URL", value=119273) ids
 #@Boolean(label="Delete current ROIs", value=true) isDeleteExistingROIs
 #@String (visibility=MESSAGE, value="Output", required=false) msg4
 #@Boolean (label="Send new ROIs", value=true) isSendNewROIs
@@ -28,7 +28,7 @@
  * 
  * Author: Romain Guiet & Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.04.06
- * Version: 1.1.0
+ * Version: 1.2.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -55,6 +55,7 @@
  * History
  * - 2023-06-16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + update documentation
  * - 2026.04.23 : Update UI 
+ * - 2026.04.27 : Support parsing of URL instead of just an ID -v1.2.0
  */
 
 
@@ -71,27 +72,37 @@ if (user_client.isConnected()){
 	println "Connected to "+host
 
 	try{
-		switch (object_type){
-			case "image":	
-				processImage(user_client, user_client.getImage(id))
-				break	
-			case "dataset":
-				processDataset(user_client, user_client.getDataset(id))
-				break
-			case "project":
-				processProject(user_client, user_client.getProject(id))
-				break
-			case "well":
-				processWell(user_client, user_client.getWells(id))
-				break
-			case "plate":
-				processPlate(user_client, user_client.getPlates(id))
-				break
-			case "screen":
-				processScreen(user_client, user_client.getScreens(id))
-				break
+		def idList = []
+		try{
+			Long.parseLong(ids)
+			idList.add(id)
+		}catch (Exception e){
+			idList = parseURL(ids)
 		}
-		println "processing of "+object_type+", id "+id+": DONE !"
+		
+		idList.each{id ->
+			switch (object_type){
+				case "image":	
+					processImage(user_client, user_client.getImage(id))
+					break	
+				case "dataset":
+					processDataset(user_client, user_client.getDataset(id))
+					break
+				case "project":
+					processProject(user_client, user_client.getProject(id))
+					break
+				case "well":
+					processWell(user_client, user_client.getWells(id))
+					break
+				case "plate":
+					processPlate(user_client, user_client.getPlates(id))
+					break
+				case "screen":
+					processScreen(user_client, user_client.getScreens(id))
+					break
+			}
+			println "processing of "+object_type+", id "+id+": DONE !"
+		}
 
 	} finally{
 		user_client.disconnect()
@@ -101,6 +112,47 @@ if (user_client.isConnected()){
 	println "Not able to connect to "+host
 }
 return
+
+
+/**
+ * Parse OMERO URL to get the list of ids
+ */
+def parseURL(url){
+	def idList = []
+	
+	// Check that URL is correct
+	if (url.contains("?show=")) {
+	    def showPart = url.split("\\?show=")[1]
+	    
+	    // get everything after the |
+	    def items = showPart.split("\\|")
+	    
+	    def results = []
+	    
+	    // Parse each element
+	    items.each { item ->
+	        def matcher = (item =~ /^([a-zA-Z]+)-(\d+)$/)
+	        if (matcher.matches()) {
+	            results << [
+	                type: matcher.group(1),
+	                id: matcher.group(2).toInteger()
+	            ]
+	        }
+	    }
+	    
+		// get ids
+	    def type = results.collect { it.type }.unique()
+	    if(type.size() == 1 && type.get(0).equalsIgnoreCase(object_type)){
+	    	idList = results.collect { it.id }
+	    } else {
+	    	 println "The type of objects in the URL "+type+" does not match with the selected object type "+object_type
+	    }
+	
+	} else {
+	    println "The URL doesn't contain '?show='; it's not coming from OMERO."
+	}
+	return idList
+}
 
 
 /*

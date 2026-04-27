@@ -2,7 +2,7 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset"}) object_type
-#@Long(label="Image ID", value=119273) id
+#@String(label="Object ID or object(s) URL", value=119273) ids
 #@Float(label="Pixel size X (um)", value=0.5) pxlSizeX
 #@Float(label="Pixel size Y (um)", value=0.5) pxlSizeY
 
@@ -18,7 +18,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2024.02.23
- * Version: 1.0.0
+ * Version: 1.1.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -41,6 +41,9 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
+ * 
+ * History
+ * - 2026.04.27 : Support parsing of URL instead of just an ID -v1.1.0
  */
 
 /**
@@ -58,15 +61,24 @@ if (user_client.isConnected()){
 	println "Connected to "+host
 	
 	try{
-		switch (object_type){
-			case "image":	
-				processImage(user_client, user_client.getImage(id))
-				break	
-			case "dataset":
-				processDataset(user_client, user_client.getDataset(id))
-				break
-		}		
+		def idList = []
+		try{
+			Long.parseLong(ids)
+			idList.add(id)
+		}catch (Exception e){
+			idList = parseURL(ids)
+		}
 		
+		idList.each{id ->
+			switch (object_type){
+				case "image":	
+					processImage(user_client, user_client.getImage(id))
+					break	
+				case "dataset":
+					processDataset(user_client, user_client.getDataset(id))
+					break
+			}		
+		}
 	} finally{
 		user_client.disconnect()
 		println "Disconnected from "+host
@@ -76,6 +88,46 @@ if (user_client.isConnected()){
 }
 return
 
+
+/**
+ * Parse OMERO URL to get the list of ids
+ */
+def parseURL(url){
+	def idList = []
+	
+	// Check that URL is correct
+	if (url.contains("?show=")) {
+	    def showPart = url.split("\\?show=")[1]
+	    
+	    // get everything after the |
+	    def items = showPart.split("\\|")
+	    
+	    def results = []
+	    
+	    // Parse each element
+	    items.each { item ->
+	        def matcher = (item =~ /^([a-zA-Z]+)-(\d+)$/)
+	        if (matcher.matches()) {
+	            results << [
+	                type: matcher.group(1),
+	                id: matcher.group(2).toInteger()
+	            ]
+	        }
+	    }
+
+		// get ids
+	    def type = results.collect { it.type }.unique()
+	    if(type.size() == 1 && type.get(0).equalsIgnoreCase(object_type)){
+	    	idList = results.collect { it.id }
+	    } else {
+	    	 println "The type of objects in the URL "+type+" does not match with the selected object type "+object_type
+	    }
+	
+	} else {
+	    println "The URL doesn't contain '?show='; it's not coming from OMERO."
+	}
+	return idList
+}
 
 
 /**

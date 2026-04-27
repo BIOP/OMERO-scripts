@@ -152,7 +152,9 @@ def processImage(user_client, image_wpr){
 	if (showImages) imp.show()
 }
 
-
+/**
+ * Parse OMERO URL to get the list of ids
+ */
 def parseURL(url){
 	def idList = []
 	
@@ -176,8 +178,7 @@ def parseURL(url){
 	        }
 	    }
 
-	    // Exemple d'accès direct aux IDs si besoin
-	    
+		// get ids
 	    def type = results.collect { it.type }.unique()
 	    if(type.size() == 1 && type.get(0).equalsIgnoreCase(object_type)){
 	    	idList = results.collect { it.id }
