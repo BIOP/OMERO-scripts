@@ -45,7 +45,7 @@ def get_existing_map_annotations(obj, namespace):
     return ord_dict
 
 
-def annotate_object(conn, obj, key, val):
+def annotate_object(conn, obj, key):
     """
     Add a key value pair to the object
     Code taken and adapted from Christian Evenhuis,
@@ -57,6 +57,10 @@ def annotate_object(conn, obj, key, val):
     existing_kv = get_existing_map_annotations(obj, namespace)
     updated_kv = copy.deepcopy(existing_kv)
 
+    owner = ""
+    owner += obj.getDetails().getOwner().getFullName()
+    owner += f" ({obj.getDetails().getOwner().getOmeName()})"
+
     print("Existing kv:")
     for k, vset in existing_kv.items():
         for v in vset:
@@ -66,8 +70,8 @@ def annotate_object(conn, obj, key, val):
 
     if key not in updated_kv:
         updated_kv[key] = set()
-    print("   ", key, val)
-    updated_kv[key].add(val)
+    print("   ", key, owner)
+    updated_kv[key].add(owner)
 
     if existing_kv != updated_kv:
         try:
@@ -105,16 +109,16 @@ def annotate_object(conn, obj, key, val):
     return obj_updated
 
 
-def process_image(conn, image, key, owner):
+def process_image(conn, image, key):
     """
     Add the owner as key value pair to an image
     return 1 if owner has been added, 0 otherwise
     """
 
-    return 1 if annotate_object(conn, image, key, owner) is True else 0
+    return 1 if annotate_object(conn, image, key) is True else 0
 
 
-def process_dataset(conn, dataset, key, owner):
+def process_dataset(conn, dataset, key):
     """
     Add the owner as key value pair to a dataset and its children
     return the number of processed images
@@ -122,12 +126,12 @@ def process_dataset(conn, dataset, key, owner):
 
     n_image = 0
     for image in dataset.listChildren():
-        n_image += process_image(conn, image, key, owner)
+        n_image += process_image(conn, image, key)
 
     return n_image
 
 
-def process_project(conn, project, key, owner):
+def process_project(conn, project, key):
     """
     Add the owner as key value pair to a project and its children
     return the number of processed images & datasets
@@ -135,12 +139,12 @@ def process_project(conn, project, key, owner):
 
     n_image = 0
     for dataset in project.listChildren():
-        n_image += process_dataset(conn, dataset, key, owner)
+        n_image += process_dataset(conn, dataset, key)
 
     return n_image
 
 
-def process_well(conn, well, key, owner):
+def process_well(conn, well, key):
     """
     Add the owner as key value pair to a well and its children
     return the number of processed images
@@ -148,12 +152,12 @@ def process_well(conn, well, key, owner):
 
     n_image = 0
     for wellSample in well.listChildren():
-        n_image += process_image(conn, wellSample.getImage(), key, owner)
+        n_image += process_image(conn, wellSample.getImage(), key)
 
     return n_image
 
 
-def process_plate(conn, plate, key, owner):
+def process_plate(conn, plate, key):
     """
     Add the owner as key value pair to a plate and its children
     return the number of processed images & wells
@@ -161,12 +165,12 @@ def process_plate(conn, plate, key, owner):
 
     n_image = 0
     for well in plate.listChildren():
-        n_image += process_well(conn, well, key, owner)
+        n_image += process_well(conn, well, key)
 
     return n_image
 
 
-def process_screen(conn, screen, key, owner):
+def process_screen(conn, screen, key):
     """
     Add the owner as key value pair to a screen and its children
     return the number of processed images, wells & plates
@@ -174,7 +178,7 @@ def process_screen(conn, screen, key, owner):
 
     n_image = 0
     for plate in screen.listChildren():
-        n_image += process_plate(conn, plate, key, owner)
+        n_image += process_plate(conn, plate, key)
 
     return n_image
 
@@ -195,7 +199,6 @@ def add_owner_as_keyval(conn, script_params):
     key = "owner_" + today
 
     n_image = 0
-    owner = ""
 
     for object_id in object_id_list:
         """ add owner to all objects owned by the specified user"""
@@ -223,11 +226,6 @@ def add_owner_as_keyval(conn, script_params):
                     user_conn = conn
                     user_id = user.getId()
 
-                # get the owner
-                owner = ""
-                owner += user.getFirstName() + " "
-                owner += user.getLastName()
-
                 for g_id in group_list:
                     # set the group
                     user_conn.SERVICE_OPTS.setOmeroGroup(g_id)
@@ -235,27 +233,27 @@ def add_owner_as_keyval(conn, script_params):
                     # list all user's projects
                     projects = user_conn.getObjects("Project", opts={'owner': user_id})
                     for project in projects:
-                        n_image += process_project(user_conn, project, key, owner)
+                        n_image += process_project(user_conn, project, key)
 
                     # lists all user's screens
                     screens = user_conn.getObjects("screen", opts={'owner': user_id})
                     for screen in screens:
-                        n_image += process_screen(user_conn, screen, key, owner)
+                        n_image += process_screen(user_conn, screen, key)
 
                     # lists all user's orphaned dataset
                     orphaned_datasets = user_conn.getObjects("dataset", opts={'owner': user_id, 'orphaned': True})
                     for orphaned_dataset in orphaned_datasets:
-                        n_image += process_dataset(user_conn, orphaned_dataset, key, owner)
+                        n_image += process_dataset(user_conn, orphaned_dataset, key)
 
                     # lists all user's orphaned plates
                     orphaned_plates = user_conn.getObjects("plate", opts={'owner': user_id, 'orphaned': True})
                     for orphaned_plate in orphaned_plates:
-                        n_image += process_plate(user_conn, orphaned_plate, key, owner)
+                        n_image += process_plate(user_conn, orphaned_plate, key)
 
                     # lists all user's orphaned images
                     orphaned_images = user_conn.getObjects("image", opts={'owner': user_id, 'orphaned': True})
                     for orphaned_image in orphaned_images:
-                        n_image += process_image(user_conn, orphaned_image, key, owner)
+                        n_image += process_image(user_conn, orphaned_image, key)
 
                 # close the user connection
                 if conn.getUser().isAdmin():
@@ -289,24 +287,19 @@ def add_owner_as_keyval(conn, script_params):
                 # set the correct group Id
                 user_conn.SERVICE_OPTS.setOmeroGroup(omero_object.getDetails().getGroup().getId())
 
-                # get the owner
-                owner = ""
-                owner += omero_object.getOwner().getFirstName() + " "
-                owner += omero_object.getOwner().getLastName()
-
                 # select object type and add owner as key-value pair
                 if object_type == 'Image':
-                    n_image += process_image(user_conn, omero_object, key, owner)
+                    n_image += process_image(user_conn, omero_object, key)
                 if object_type == 'Dataset':
-                    n_image += process_dataset(user_conn, omero_object, key, owner)
+                    n_image += process_dataset(user_conn, omero_object, key)
                 if object_type == 'Project':
-                    n_image += process_project(user_conn, omero_object, key, owner)
+                    n_image += process_project(user_conn, omero_object, key)
                 if object_type == 'Well':
-                    n_image += process_well(user_conn, omero_object, key, owner)
+                    n_image += process_well(user_conn, omero_object, key)
                 if object_type == 'Plate':
-                    n_image += process_plate(user_conn, omero_object, key, owner)
+                    n_image += process_plate(user_conn, omero_object, key)
                 if object_type == 'Screen':
-                    n_image += process_screen(user_conn, omero_object, key, owner)
+                    n_image += process_screen(user_conn, omero_object, key)
 
                 # close the user connection
                 if conn.getUser().isAdmin():
@@ -316,10 +309,7 @@ def add_owner_as_keyval(conn, script_params):
                 print(object_type, object_id, "does not exist or you do not have access to it")
 
     # build summary message
-    if owner == "":
-        message = "Owner cannot be added"
-    else:
-        message = f"Added '{owner}' as owner to {n_image} image(s)"
+    message = f"Image owner was added to {n_image} image(s)"
     print(message)
 
     return message
