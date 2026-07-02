@@ -8,36 +8,23 @@
 #@String(choices={"Do nothing", "Replace only", "Replace and delete"}, value="Do nothing", style="radioButtonHorizontal", persist=false) mode
 
 /* 
- * == INPUTS ==
- *  - credentials 
- *  - OMERO group
- *  - name of the tag to replace
- *  - name of the new tag
- *  - Case insensitive ? true if you want to delete like "DAPI", "dapi", "dApi"... in one run. False otherwise
- *  - mode
- *  	- do Nothing : do not replace the old tag by the new neither delete the old tag (use it if you only want to generate a report)
- *  	- Replace only : replace the old tag by the new one for all images/containers/folders linked to the old tag BUT DOES NOT DELETE the old tag
- *  	- Replace nd delete : replace the old tag by the new one for all images/containers/folders linked to the old tag and delete the old tag
- * 
- * == OUTPUTS ==
- *  - replace an old tags by the new one
- *  - delete the old tags
- *  - generate a csv report of the tag replacement in your Downloads folder
- * 
- * = DEPENDENCIES =
+ *  This Fiji script finds all occurrences of a specified tag within an OMERO group and 
+ *  replaces it with a new tag across all linked objects (images, datasets, projects, wells, plates, screens, plate acquisitions, and folders). 
+ *  Three operating modes are available, from report-only to full replacement and deletion. 
+ *  The script supports case-insensitive matching to handle tag name variations in a single run. 
+ *  A CSV report and a Fiji log file are saved upon completion.
+ *  
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.14.0 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2023.07.20
+ * Version: 2.1.3
  * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
- * 20.07.2023
- * version v2.1.3
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2023
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -55,8 +42,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running
  * - 2023.11.07 : Improve popup message, improve CSV report and add IJ logs --v2.0
  * - 2024.05.07 : Trim tag to remove noisy spaces and fix bug when trying to replace a tag by the same one -- v2.1

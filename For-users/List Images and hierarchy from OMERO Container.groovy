@@ -6,10 +6,11 @@
 #@Boolean(label="Save as key-values") writeAsKVP
 
 
-/* = CODE DESCRIPTION =
- * - You can specify the ID of an "image","dataset","project","well","plate","screen"
- * - Then, the script generates a csv file with the list of all images (name + id) with their parent folder name (dataset/project or well/plate/screen)
- * - Optionnally, it also saves parent folder name as key-values on OMERO.
+/* 
+ * This Fiji script loops over all images within a specified OMERO container (image, dataset, project, well, plate, or screen) 
+ * and generates a CSV file listing each image with its full container hierarchy (dataset/project or well/plate/screen). 
+ * Optionally, the container hierarchy can also be saved as key-value pairs directly on each image in OMERO. 
+ * A Fiji log file is saved alongside the CSV report.
  * 
  *                                          **** BE CAREFUL *******
  * It can happen that image/dataset/project names contain comas. This is the case for all images coming from a plate and maybe for some of your images.
@@ -19,30 +20,17 @@
  * We strongly suggest you to remove all comas from your image names on OMERO (if possible) before running this script.
  * 
  * 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- *  - True if you want to save the hierarchy as KVP
- * 
- * == OUTPUTS ==
- *  - create a csv file with the list of images contained inside the specfied object_type in the Downloads folder
- *  - key values on OMERO
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.2 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.08.22
+ * Version: 2.0.2
  * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV -PTECH - BIOP 
- * 22.08.2022
- * version : v2.0.2
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -60,8 +48,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - 2023.06.19 : Remove unnecessary imports --v1.1
  * - 2023.10.16 : Add popup message at the end and in the case of error --v1.2
  * - 2023.11.08 : Add standardized popup, update csv file and add IJ logs --v2.0

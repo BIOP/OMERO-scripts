@@ -3,9 +3,11 @@
 #@String(label="Password", style='password', persist=false) PASSWORD
 
 
-/* == CODE DESCRIPTION ==
- * This script batch imports images on OMERO and automatically add tags to the images.
- * All images, included those in child folders, will be uploaded IN THE SAME DATASET ON OMERO
+/*  
+ * This Fiji script batch uploads images from a local folder (including all subfolders) into a single OMERO dataset. 
+ * After upload, it automatically parses image names, serie names, and/or folder hierarchy to create 
+ * and attach tags to the images on OMERO. A CSV report and a Fiji log file are saved upon completion.
+ * 
  * The name of the image, as well as the name of the serie for fileset images, must be separated with underscores "_" to be parsable.
  * All commom images are supported EXCEPT : 
  * 		- .xml
@@ -19,46 +21,44 @@
  * 
  * The name of the image is parsed with:  underscores 
  * The serie name is pasred with:  underscores / space / comma.
+ * 
  * Tokens are used as tags on OMERO.
  * If the name of the image is : 'tk1_tk2-tk3_tk4.tif [tk5_tk6, tk7_tk8]' then tags are : tk1 / tk2-tk3 / tk4 / tk5 / tk6 / tk7 / tk8
  * 
  * The folder hierarchy (with subfolders) is also added as tags on OMERO but THERE IS NO PARSING OF THE NAMES (no convention for folder name)
  * 
- * The script automatically generates a CSV report that summarizes which image has been uploaded, with which tags.
- * The CSV report is saved in your Downloads folder.
- * 		
- * == INPUTS ==
- *  - credentials 
- *  - folder to upload. 
- *  - You have the choice to create a new dataset on OMERO or to re-use an existing one
- * 		- If you choose to create a new dataset 
- * 			- enter the name of the new dataset OR use the name of the folder
- * 			- enter the ID of the project where to put the new dataset
- * 		- If you choose to upload projections in an existing
- * 			- enter the ID of the dataset
- * 	- You can configure the tags you want to add to your images on OMERO
- * 		- Image tags : onyl image name (without serie name) is parsed (with underscore parsing)
- * 		- Folder hierarchy : The folder and sub-folders name are used as tags (with underscore parsing)
- * 		- Serie name : the name of the serie is parsed (with underscore, coma and space parsing)
- * 	
  * 
- * == OUTPUTS ==	
- *  - image on OMERO
- *  - Tags on OMERO
- *  - CSV report in the Download folder
- * 
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.15.0 https://github.com/GReD-Clermont/simple-omero-client
- *  
- *  
- *  = AUTHOR INFORMATION =
- * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
- * date : 2023-08-10
- * version : v2.2.1
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = HISTORY =
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 202.08.10
+ * Version: 2.2.1
+ * 
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
+ * 
+ * Licensed under the BSD-3-Clause License:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
+ * that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
+ *    in the documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products 
+ *     derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, 
+ * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
+ * 
+ * History
  * - 2023.08.10 : First release --v1.0
  * - 2023.10.04 : Fix bug on GUI + remove numeric tags (i.e. only numbers) --v1.1
  * - 2023.11.07 : Add support for ndpi files --v2.0

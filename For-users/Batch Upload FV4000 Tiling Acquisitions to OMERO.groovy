@@ -3,43 +3,45 @@
 #@String(label="Password", style='password', persist=false) PASSWORD
 
 /*  
- * This script batch uploads tiling acqusition(s) from FV4000 microscope. 
- * Select one or more tiling folders and indicate in which project/dataset you want to upload them.
- * Tiles AND/OR stitch image AND/OR info files are then uploaded on OMERO.
- * Optionally, you can select whether you wan to tag images or not during the upload.
- * 
- * If you select to upload the stitch image or the attachment, it is them renamed on OMERO to match the naming convention of the tiles. 
- * (i.e. adding the name of the parent folder as prefix)
- * 		
- * == INPUTS ==
- *  - credentials 
- *  - folder(s) to import
- *  - Tile/stich/attachment choice
- *  - Project / dataset on OMERO (you can create new ones)
- *  - Tags
- *  
- *  The GUI has a button "Next". It is here to allow you to upload different tiling acqusitions in different project/dataset.
- *  When no more tiling acqusitions need to be uploaded, click on "Finish"
- * 	
- * 
- * == OUTPUTS ==	
- *  - Images on OMERO, tagged
- *  - CSV report in the Download folder
- *  - Logs in the Fiji Log window
+ * This Fiji script batch uploads tiling acquisitions from an Olympus FV4000 microscope to OMERO. 
+ * For each selected tiling folder, the script can upload individual tile images (`.oir`), the stitched image (`.oir`), 
+ * and/or acquisition info files (`.omp2info`) as attachments to the dataset. 
+ * Stitched images and info files are automatically renamed on OMERO to include the parent folder name as a prefix. 
+ * Optionally, tags can be linked to uploaded images. 
+ * A CSV report and a Fiji log file are saved upon completion.
  * 
  * 
- * = DEPENDENCIES =
- *  - omero-ij-5.8.3-all
- *  - simple-omero-client-5.18.0 https://github.com/GReD-Clermont/simple-omero-client
- *  
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
+ * Dependencies
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = PROJECT INFORMATION =
- * date : 2024.05.06
- * version : v1.0.2
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2024.05.06
+ * Version: 1.0.2
  * 
- * = HISTORY =
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
+ * 
+ * Licensed under the BSD-3-Clause License:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
+ * that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
+ *    in the documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products 
+ *     derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, 
+ * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
+ * 
+ * History
  * - 2024.05.06 : First release --v1.0
  * - 2024.05.10 : Update token separtor --v1.0.1
  * - 2025.09.10 : Save Fiji log window --v1.0.2

@@ -343,7 +343,7 @@ This Fiji script loops over all images within a specified OMERO container (image
 
 | Output | Description |
 |--------|-------------|
-| **CSV report** | One row per channel per image, containing image name, image ID, and channel name — saved in `~/Downloads/` |
+| **CSV report** | One row per channel per image, containing image name, image ID, and channels name — saved in `~/Downloads/` |
 | **Log file** | Fiji log window saved as a `.txt` file alongside the CSV report |
 
 
@@ -433,7 +433,7 @@ This Fiji script transfers annotations from **source images** to **target images
 | `Password`                       | OMERO password (not persisted)                                                                               |
 | `Source dataset ID`              | OMERO ID of the dataset containing the images to copy annotations **from**                                  |
 | `Target dataset ID`              | OMERO ID of the dataset containing the images to copy annotations **to**                                    |
-| `CSV table`                      | Local CSV file mapping source image names (column 1) to target image names (column 2)                       |
+| `CSV table`                      | Local CSV file mapping source image names (column 1) to target image names (column 2)                      |
 | `My file has a header`           | If checked, the first line of the CSV file is treated as a header and skipped                               |
 | `Include transfer on source dataset` | If checked, also transfers selected annotations from the source dataset object to the target dataset    |
 | `Tags`                           | If checked, transfers tags                                                                                   |

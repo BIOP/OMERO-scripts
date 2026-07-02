@@ -5,36 +5,27 @@
 #@Long(label="Object ID", value=119273) id
 
 
-/* = CODE DESCRIPTION =
- * The code loops over all images, extracts channel names and create a CSV file saved in the Downloads.
+/*
+ * This Fiji script loops over all images within a specified OMERO container (image, dataset, project, well, plate, or screen) 
+ * and extracts the channel names of each image. The results are compiled into a CSV file saved in the Downloads folder. 
+ * A Fiji log file is also saved upon completion.
+ * 
  * The CSV file contains
  * - Image name
  * - Image ID
  * - All the channel names for the current image.
  * 
- * == INPUTS ==
- *  - host
- *  - credentials 
- *  - object type
- *  - id
+ * Dependencies
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * == OUTPUTS ==
- *  - CSV file in the Downloads folder
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.09.01
+ * Version: 1.0.1
  * 
- * = DEPENDENCIES =
- *  - omero_ij-5.8.6-all.jar : https://www.openmicroscopy.org/omero/downloads/
- *  - simple-omero-client-5.19.0 or later : https://github.com/GReD-Clermont/simple-omero-client
- * 
- * = INSTALLATION = 
- *  Open Script and Run
- * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
- * version: 1.0.1
- * 
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -52,8 +43,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * = HISTORY = 
+ * History
  * - 2025.09.10: Save Fiji log window --v1.0.1
  */
 

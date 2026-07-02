@@ -19,49 +19,25 @@
 
 
 /*
- * == DESCRIPTION ==  
- * This script aims at transferring all annotations from source images to target images. The source images must be
- * contained in one single dataset and the target images must be contained in another single dataset. Not all images
- * of the source dataset have to be processed and the target dataset may also contain images that are not mirrored in the
- * source dataset. Therefore, you need to fill a csv table with
- * 		- (optional) a header
- * 		- the name of each source image to copy annotations from in the FIRST column
- * 		- the name of each corresponding target image to transfer annotations to in the SECOND column
- * Running this script will ask you which annotations you want to transfer. You can also transfer the annotations linked to 
- * the source dataset by choosing the option.
- * At the end of processing, a CSV report is generated. This report is automatically saved in your "Download" folder.
- * The report contains a summary of the status of each annotations (Transferred, Skipped, Failed, or None) in the first part
- * and the content / size of what has been transferred in the second part.
+ * This Fiji script transfers annotations from source images to target images across two OMERO datasets, 
+ * based on a user-provided CSV mapping file. For each source/target image pair defined in the CSV, 
+ * the script can transfer any combination of tags, key-value pairs, ROIs, attachments, comments, ratings, 
+ * image description, and channel names. Optionally, annotations from the source dataset itself can also be 
+ * transferred to the target dataset. A two-part CSV report (transfer status + content) and 
+ * a Fiji log file are saved upon completion.
  *  
- *  
- * == INPUTS ==
- *  - credentials 
- *  - Source dataset ID : Dataset where you want to copy the images annotations from
- *  - Source target ID : Dataset where you want to copy the images annotations to
- *  - CSV File : A csv-formatted file containing the list of source images (first column) and the list of target images
- *  			(second column). The file should be provided with a header (i.e. first line)
- *  - header : true if you have added a header to your csv file
- *  - Include parent dataset : True if you want to transfer annotation from the source dataset object to the target dataset
- *  - Transfer configuration : Chcek the box if you would like the annotation to be transferred. It automatically takes into
- *  							account if you checked or not "parent dataset transfer"
  * 
- * == OUTPUTS ==
- *  - Annotations transferring from source images to target images.
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.16.0 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2023.10.23
+ * Version: 1.0.2
  * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
- * 2023.10.23
- * version v1.0.2
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2022
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -79,8 +55,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - Found a script here https://gist.github.com/will-moore/d8a12aa9124889440ff243c29c201a3e in Python but doesn't include everything
  * - 2024.05.10 : Update logger, CSV file generation and token separtor --v1.0.1
  * - 2025.09.10 : Save Fiji log window --v1.0.2

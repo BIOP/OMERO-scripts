@@ -5,36 +5,26 @@
 #@Long(label="Object ID", value=119273) id
 #@File(label="CSV file of plate info", value="") csvFile
 
-/* = CODE DESCRIPTION =
- * - The user enter the plate ID and give the path to his/her csv file containing the plate layout information foamtted as described here:
- * https://wiki-biop.epfl.ch/en/Image_Storage/OMERO/Importation
- * - The code reads the csv file and extracts key-values.
- * - Each of the key-value is then imported on corresponding images on OMERO
+/* 
+ * This Fiji script reads a local CSV file containing plate layout information and adds the corresponding 
+ * key-value pairs to each well and its images within a specified OMERO plate or screen. 
+ * The CSV file must follow a specific format where the first two columns define the well position (row and column) 
+ * and the remaining columns define the key-value pairs to attach. 
+ * A CSV report and a Fiji log file are saved upon completion.
  * 
- * == INPUTS ==
- *  - credentials 
- *  - id
- *  - object type
- *  - CSV file to read
  * 
- * == OUTPUTS ==
- *  - key value on OMERO
- *  - CSV report in the Downloads folder
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.9.2 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2022.08.22
+ * Version: 2.0.2
  * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
- * 22.08.2022
- * version 2.0.2
  * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -52,8 +42,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == Bug Fix ==
+ * History
  * - 2022.10.05 : make explicit .equals and convert String to Integer
  * - 2022.11.02 : can now select a screen and process each plate inside
  * - 2023.06.19 : Remove unnecessary imports

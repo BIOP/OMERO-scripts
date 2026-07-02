@@ -10,33 +10,25 @@
 #@Boolean(label="Ratings", value=false, persist=false) ratingsToDelete
 
 
-/*  This script aims at deleting all orphaned annotations from your OMERO account / group.
- *  An orphaned annotation is an object that is NOT ACCESSIBLE anymore from the OMERO webclient
- *  If your are a group owner, you'll have the choice to delete all orphaned files from your group 
- *  
- * == INPUTS ==
- *  - credentials 
- *  - processing choice ; by default, the "report only" option is selected => it will only generate a csv file with all annotations that will be deleted 
- *  but doesn't delete anything. The "report and delete" option will effectively deleted all orphaned annotations.
- *  - annotations you want to delete
+/* 
+ * This Fiji script identifies and optionally deletes orphaned annotations from your OMERO account/group. 
+ * An orphaned annotation is an annotation (tag, file, key-value, comment, or rating) that is no longer linked to any object and 
+ * therefore no longer accessible from the OMERO webclient. 
+ * The script can run in report-only mode (safe preview) or report-and-delete mode. 
+ * Group owners can manage orphaned annotations across their entire group.
+ *   
  * 
- * == OUTPUTS ==
- *  - CSV report with the list of deleted files and remaining files
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.18.0 or later : https://github.com/GReD-Clermont/simple-omero-client
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = INSTALLATION = 
- *  Open Script and Run
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2024.06.14
+ * Version: 1.0.2
  * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier, EPFL - SV - PTECH - BIOP 
- * 2024.06.14
- * version v1.0.2
- * 
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
  * Licensed under the BSD-3-Clause License:
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
@@ -54,8 +46,9 @@
  * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * == HISTORY ==
+ * History
  * - 2024.06.14: first release --v1.0.0
  * - 2025.09.10: Save Fiji log window --v1.0.1
  * - 2025.09.01: Adding host in UI --v1.0.1

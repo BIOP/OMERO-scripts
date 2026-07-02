@@ -7,44 +7,51 @@
 
 
 
-/* = CODE DESCRIPTION =
- * This script downloads all images within the specified container.
- * In the output folder, the script will automatically download images in folder and sub-folders 
- * corresponding to the selected project/dataset/plate/screen, following the naming convention : "containerName_containerId"
+/* 
+ * This Fiji script downloads all images from a specified OMERO container (image, dataset, project, plate, or screen) to a local folder. 
+ * The local folder hierarchy mirrors the OMERO container structure, with each folder named after its corresponding 
+ * container following the convention `containerName_containerId`. 
+ * Fileset images (i.e. multi-file images sharing the same fileset) are automatically handled to avoid duplicate downloads. 
+ * A CSV report and a Fiji log file are saved upon completion.
  * 
- * Be careful : if the images on OMERO have the same name, they will be overwitten locally.
+ * If multiple images on OMERO share the same name, they will overwrite each other locally.
  * 
- * == INPUTS ==
- *  - credentials 
- *  - object type (cannot be well as all images are part of the same fileset)
- *  - id
- *  - output folder
+ * Dependencies
+ *  - Fiji update site OMERO 5.5-5.6
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * == OUTPUTS ==	
- *  - Downloaded images
- *  - CSV report in the Download folder
- *  - Logs in the Fiji Log window
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2024.05.06
+ * Version: 1.0.2
  * 
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
  * 
- * = DEPENDENCIES =
- *  - omero-ij-5.8.3-all.jar
- *  - simple-omero-client-5.18.0 https://github.com/GReD-Clermont/simple-omero-client
+ * Licensed under the BSD-3-Clause License:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
+ * that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
+ *    in the documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products 
+ *     derived from this software without specific prior written permission.
  * 
- * = AUTHOR INFORMATION =
- * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, 
+ * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
  * 
- * = PROJECT INFORMATION =
- * date : 2024.05.06
- * version : v1.0.2
- * 
- * = HISTORY =
+ * History
  * - 2024.05.06 : First release --v1.0 
  * - 2024.05.10 : fix bug when downloading a single image and update token separator --v1.0.1
  * - 2025.09.10 : Save Fiji log window --v1.0.2
  * - 2025.09.10 : Adding host in UI --v1.0.2
  *  
- * = COPYRIGHT =
- * © All rights reserved. ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP), 2024
  */
 
 /**

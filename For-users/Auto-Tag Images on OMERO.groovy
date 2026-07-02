@@ -6,45 +6,52 @@
 #@Boolean(label="Image name tags",value=true) imageTags
 #@Boolean(label="Serie name tags",value=true) serieTags
 
-/* == CODE DESCRIPTION ==
- * This script batch tag images on OMERO, taking into account the name of the image and the name of the serie.
- * However, it doesn't take into account the original import path, like the Autotag plugin of OMERO.web does.
+/* 
+ * This Fiji script automatically adds tags to images already stored in one or more OMERO datasets, 
+ * based on the parsing of image names and/or serie names. 
+ * Tokens extracted from the names are created as tags and linked to the corresponding images on OMERO. 
+ * Purely numeric tokens are ignored. 
+ * A CSV report and a Fiji log file are saved upon completion.
  * 
  * The name of the image is parsed with:  underscores / space / forward_slash / backward_slash
-.
+ * 
  * The serie name is pasred with:  underscores / space / forward_slash / backward_slash / comma.
  * Tokens are used as tags on OMERO.
  * If the name of the image is : 'tk1 tk2-tk3_tk4.tif [tk5_tk6, tk7_tk8]' then tags are : tk1 / tk2-tk3 / tk4 / tk5 / tk6
  / tk7 / tk8
  * 
- * The script automatically generates a CSV report that summarizes which image has been tagged, with which tags
- * The CSV report is saved in your Downloads folder.
- * 		
- * == INPUTS ==
- *  - credentials 
- *  - enter the ID of one or more dataset
-s. If multiple dataset, separate them with ONLY a semi-colon ;
- * 	- You can configure the tags you want to add to your images on OMERO
- * 		- Image tags : onyl image name (without serie name) is parsed
- * 		- Serie name : the name of the serie is parsed
- * 	
  * 
- * == OUTPUTS ==	
- *  - Tags on OMERO
- *  - CSV report in the Download folder
- * 
- * 
- * = DEPENDENCIES =
+ * Dependencies
  *  - Fiji update site OMERO 5.5-5.6
- *  - simple-omero-client-5.15.0 https://github.com/GReD-Clermont/simple-omero-client
- *  
- *  
- *  = AUTHOR INFORMATION =
- * Code written by Rémy Dornier - EPFL - SV - PTECH - BIOP
- * date : 2023.11.08
- * version : v2.0.2
+ *  - Fiji update site PTBIOP, with simple-omero-client
  * 
- * = HISTORY =
+ * Author: Rémy Dornier, EPFL - PTBIOP 
+ * Date: 2023.11.08
+ * Version: 2.0.2
+ * 
+ * -----------------------------------------------------------------------------
+ * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
+ * All rights reserved.
+ * 
+ * Licensed under the BSD-3-Clause License:
+ * Redistribution and use in source and binary forms, with or without modification, are permitted provided 
+ * that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer 
+ *    in the documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products 
+ *     derived from this software without specific prior written permission.
+ * 
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, 
+ * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. 
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, 
+ * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * -----------------------------------------------------------------------------
+ * 
+ * History
  * - 2023.11.08 : First release --v1.0
  * - 2024.02.29 : Add support for the fluorescence VSI images from new Slide Scanner (i.e. split serie name with comma) --v1.1
  * - 2024.03.11 : Add support for multiple datasets --v2.0
