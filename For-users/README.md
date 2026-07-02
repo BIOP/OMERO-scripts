@@ -32,7 +32,7 @@ A full description of what the script does is written below.
 ## Description
 This Fiji script reads a local CSV file containing plate layout information and adds the corresponding **key-value pairs** to each well and its images within a specified OMERO plate or screen. The CSV file must follow a specific format where the first two columns define the well position (row and column) and the remaining columns define the key-value pairs to attach. A CSV report and a Fiji log file are saved upon completion.
 
-> The expected CSV format is: `Row, Column, Key1, Key2, Key3, ...` where each row corresponds to one well. See the [BIOP wiki](https://wiki-biop.epfl.ch/en/Image_Storage/OMERO/Importation) for full formatting details.
+> The expected CSV format is: `Row, Column, Key1, Key2, Key3, ...` where each row corresponds to one well, with a header.
 
 ---
 
