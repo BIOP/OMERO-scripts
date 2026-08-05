@@ -35,6 +35,7 @@ from omero.gateway import BlitzGateway
 from omero.rtypes import rlong, rstring
 import os
 import omero
+import re
 
 # constants for the UI
 P_DATA_TYPE = "Data_Type"
@@ -50,6 +51,8 @@ root = "/mnt/svopen"
 # need to be in the destination folder because permission denied on the server itself
 tmp_path = f"{root}/tmpDownloads/"
 
+# regex to cut the common server path
+REGEX_FILESET_DATA =  r".*\/\d{4}-\d{2}\/\d{2}\/\d{2}-\d{2}-\d{2}\.\d{3}\/"
 
 def prepare_download(conn, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict):
     """
@@ -90,9 +93,9 @@ def prepare_download(conn, fs_path_dict, att_path_dict, fs_prefix_dict, att_pref
         # adding images
         for fs_id, fs_paths in fs_path_dict.items():
             fs_prefix = fs_prefix_dict[fs_id]
-            for fs_path in fs_paths:
+            for fs_path, fs_image_prefix in zip(fs_paths, fs_prefix):
                 fs_path_list.append(managed_repo_dir + "/" + fs_path)
-                fs_prefix_list.append(fs_prefix)
+                fs_prefix_list.append(fs_image_prefix)
 
         # adding attachments
         for fs_id, att_paths in att_path_dict.items():
@@ -197,12 +200,17 @@ def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_d
     else:
         print(f"Getting server path(s) for fileset {fs_id}...")
         fs_path_dict[fs_id] = []
+        fs_prefix_dict[fs_id] = []
         fileset_prefix = parent_prefix[:]
         fileset_prefix.append(f"Fileset_{fs_id}")
-        fs_prefix_dict[fs_id] = "/".join(fileset_prefix)
 
         # get paths for all images within the fileset
         for file_wrapper in fs.listFiles():
+            image_fileset_prefix = fileset_prefix[:]
+            image_fileset_prefix = image_fileset_prefix + [x for x in file_wrapper.getPath().replace(re.findall(REGEX_FILESET_DATA, file_wrapper.getPath())[0], "").split("/") if x]
+            print(image_fileset_prefix)
+            print("/".join(image_fileset_prefix))
+            fs_prefix_dict[fs_id].append("/".join(image_fileset_prefix))
             fs_path_dict[fs_id].append(file_wrapper.getPath() + file_wrapper.getName())
 
         if download_attachments:
