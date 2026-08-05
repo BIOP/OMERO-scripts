@@ -43,6 +43,7 @@ P_IDS = "IDs"
 P_ZIP_NAME = "Zip name"
 P_PASSWORD = "Password"
 P_ATT = "Download attachments for all objects"
+P_FS = "Download each image in a separate folder"
 
 # root SV-OPEN path
 root = "/mnt/svopen"
@@ -161,7 +162,7 @@ def process_attachment(container, att_path_dict, att_id):
                     print(f"ERROR: cannot copy attachment for {container.OMERO_CLASS} {container.getId()}: {e}")
 
 
-def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments):
+def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments, fileset_layer):
     """
     get the all image(s) server path coming from the same current fileset, including attachments
 
@@ -181,6 +182,8 @@ def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_d
         Dictionary of [att_id]:[inner_zip_hierarchy_path]
     download_attachments: bool
         True to download attachments
+    fileset_layer: bool
+        True to download images in separate folders
 
     Returns
     -------
@@ -202,7 +205,8 @@ def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_d
         fs_path_dict[fs_id] = []
         fs_prefix_dict[fs_id] = []
         fileset_prefix = parent_prefix[:]
-        fileset_prefix.append(f"Fileset_{fs_id}")
+        if fileset_layer:
+            fileset_prefix.append(f"Fileset_{fs_id}")
 
         # get paths for all images within the fileset
         for file_wrapper in fs.listFiles():
@@ -222,7 +226,7 @@ def process_image(image, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_d
                 process_attachment(linked_image, att_path_dict, fs_id)
 
 
-def process_dataset(dataset, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments):
+def process_dataset(dataset, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments, fileset_layer):
     """
     Loop over all images within the current dataset and get their server path, including attachments
 
@@ -242,6 +246,8 @@ def process_dataset(dataset, parent_prefix, fs_path_dict, att_path_dict, fs_pref
         Dictionary of [att_id]:[inner_zip_hierarchy_path]
     download_attachments: bool
         True to download attachments
+    fileset_layer: bool
+        True to download images in separate folders
 
     Returns
     -------
@@ -258,10 +264,10 @@ def process_dataset(dataset, parent_prefix, fs_path_dict, att_path_dict, fs_pref
         process_attachment(dataset, att_path_dict, att_id)
 
     for image in dataset.listChildren():
-       process_image(image, dataset_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments)
+       process_image(image, dataset_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments, fileset_layer)
 
 
-def process_project(project, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments):
+def process_project(project, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments, fileset_layer):
     """
     Loop over all datasets within the current project and get their server path, including attachments
 
@@ -281,6 +287,8 @@ def process_project(project, parent_prefix, fs_path_dict, att_path_dict, fs_pref
         Dictionary of [att_id]:[inner_zip_hierarchy_path]
     download_attachments: bool
         True to download attachments
+    fileset_layer: bool
+        True to download images in separate folders
 
     Returns
     -------
@@ -297,10 +305,10 @@ def process_project(project, parent_prefix, fs_path_dict, att_path_dict, fs_pref
         process_attachment(project, att_path_dict, att_id)
 
     for dataset in project.listChildren():
-        process_dataset(dataset, project_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments)
+        process_dataset(dataset, project_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments, fileset_layer)
 
 
-def process_screen(screen, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments):
+def process_screen(screen, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments, fileset_layer):
     """
     Loop over all screens within the current project and get their server path, including attachments
 
@@ -320,6 +328,8 @@ def process_screen(screen, parent_prefix, fs_path_dict, att_path_dict, fs_prefix
         Dictionary of [att_id]:[inner_zip_hierarchy_path]
     download_attachments: bool
         True to download attachments
+    fileset_layer: bool
+        True to download images in separate folders
 
     Returns
     -------
@@ -336,10 +346,10 @@ def process_screen(screen, parent_prefix, fs_path_dict, att_path_dict, fs_prefix
         process_attachment(screen, att_path_dict, att_id)
 
     for plate in screen.listChildren():
-        process_plate(plate, screen_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments)
+        process_plate(plate, screen_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments, fileset_layer)
 
 
-def process_plate(plate, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments):
+def process_plate(plate, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments, fileset_layer):
     """
     Loop over all plates within the current project and get their server path, including attachments
 
@@ -359,6 +369,8 @@ def process_plate(plate, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_d
         Dictionary of [att_id]:[inner_zip_hierarchy_path]
     download_attachments: bool
         True to download attachments
+    fileset_layer: bool
+        True to download images in separate folders
 
     Returns
     -------
@@ -377,7 +389,7 @@ def process_plate(plate, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_d
     for well in plate.listChildren():
         index = well.countWellSample()
         for idx in range(0, index):
-            process_image(well.getImage(idx), plate_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments)
+            process_image(well.getImage(idx), plate_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, download_attachments, fileset_layer)
 
 
 def download_and_zip_images(conn, script_params):
@@ -409,6 +421,8 @@ def download_and_zip_images(conn, script_params):
     password = script_params[P_PASSWORD]
     # download attachments for all images
     dwnld_atts = script_params[P_ATT]
+    # download attachments for all images
+    fileset_layer = script_params[P_FS]
 
     # check for valid password
     if password is None or password == "" or password.strip() == "":
@@ -462,15 +476,15 @@ def download_and_zip_images(conn, script_params):
 
                 parent_prefix = []
                 if object_type == 'Image':
-                    process_image(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
+                    process_image(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts, fileset_layer)
                 if object_type == 'Dataset':
-                    process_dataset(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
+                    process_dataset(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts, fileset_layer)
                 if object_type == 'Project':
-                    process_project(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
+                    process_project(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts, fileset_layer)
                 if object_type == 'Screen':
-                    process_screen(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
+                    process_screen(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts, fileset_layer)
                 if object_type == 'Plate':
-                    process_plate(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts)
+                    process_plate(omero_object, parent_prefix, fs_path_dict, att_path_dict, fs_prefix_dict, att_prefix_dict, dwnld_atts, fileset_layer)
             else:
                 print(object_type, object_id, "does not exist or you do not have access to it")
 
@@ -512,11 +526,15 @@ def run_script():
     to the selected objects. The zip is saved under the default location 'https://sv-open.epfl.ch/ptbiop-public/omero', 
     in a folder named with the OMERO group from which the objects are coming from.
     \t 
-    WARNING: the location on 'https://sv-open.epfl.ch/' is FULLY PUBLIC, which means that the zip file can be
+    WARNING: the location on 'https://sv-open.epfl.ch/' is FULLY PUBLIC, which means that the zip file can be 
     downloaded by anyone who has the link. It's therefore important that you provide a strong password to avoid
     any data leak issues. Downloaded data are kept during one week before being automatically deleted.
     \t
+    WARNING: Even if the zip is protected by a password, directories and image names are still accessible without any password 
+    \t
     If downloading attachments is selected, all attachments will be downloaded, whatever their extension.
+    \t
+    If you choose to NOT download images in separate folders, make sure that the image names are unique. Otherwise, it will overwrite images of same names in the zip (OMERO images are not impacted at all).
         """,
         scripts.String(
             P_DATA_TYPE, optional=False, grouping="1",
@@ -535,11 +553,15 @@ def run_script():
             P_ATT, optional=True, grouping="5",
             description="Download all attachments linked to selected objects",
             default=False),
+        scripts.Bool(
+            P_FS, optional=True, grouping="6",
+            description="If you choose to NOT download images in separate folder, make sure that the image names are unique.",
+            default=True),
 
         authors=["Rémy Dornier"],
         institutions=["EPFL - BIOP"],
         contact="omero@groupes.epfl.ch",
-        version="1.0.0"
+        version="1.1.0"
     )
 
     try:
