@@ -4,8 +4,7 @@
 #@String(choices={"Only my files", "All files within my group"}, style="radioButtonHorizontal", persist=false) choice
 
 
-/*  Code description
- *   
+/*  
  *  This script aims at deleting all orphaned attachments from your OMERO account / group.
  *  An orphaned attachment is an attachment that is NOT linked to ANY image/container i.e. not used anymore on OMERO
  *  If your are a group owner, you'll have the choice to delete all orphaned files from your group 

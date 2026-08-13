@@ -4,8 +4,7 @@
 #@Long(label="Project ID", value=1989) projectId
 #@String(label="Dataset name") datasetName
 
-/* Code description 
- *
+/* 
  * Creates a new dataset on OMERO, under the given project, with the given name.
  * 
  * 
@@ -15,7 +14,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2023.11.06
- * Version: 1.0.0
+ * Version: 1.0.1
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -38,6 +37,9 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
+ * 
+ * History
+ * - 2026.08.05 : Automatically switch group if the object is not coming from the default one -v1.0.1 
  */
 
 // Connection to server
@@ -49,6 +51,7 @@ if (user_client.isConnected()){
 	println "Connected to "+host
 	
 	try{
+		checkAndSwitchGroup(user_client, "ProjectData", projectId)
 		def projectWrapper = user_client.getProject(projectId)
 		def datasetWrapper = createOmeroDataset(user_client, projectWrapper, datasetName)
 		
@@ -62,6 +65,22 @@ if (user_client.isConnected()){
 	println "Not able to connect to "+host
 }
 return
+
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
+
 
 
 /**

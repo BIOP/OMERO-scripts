@@ -7,8 +7,7 @@
 #@String (choices={"Images", "ROIs"}, style="radioButtonHorizontal", label="Target object", value="Images") processRois
 
 
-/* Code description
- *
+/*
  * Deletes all KVPs attached to the target objects, under the select parent container.
  * 
  * 
@@ -18,7 +17,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.10.05
- * Version: 1.0.2
+ * Version: 1.0.3
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -45,6 +44,7 @@
  * Hitsory
  * 	- 2023.06.16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports.
  * 	- 2026.04.01 : Update licence, handle ROIs and fix typos
+ * 	- 2026.08.05 : Automatically switch group if the object is not coming from the default one -v1.0.3
  */
 
 
@@ -56,6 +56,7 @@
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+groupId = -1
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
@@ -65,18 +66,23 @@ if (user_client.isConnected()){
 
 		switch (object_type){
 			case "image":	
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
 				n = processImage(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "DatasetData", id)
 				n = processDataset(user_client, user_client.getDataset(id))
 				break
 			case "project":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ProjectData", id)
 				n = processProject(user_client, user_client.getProject(id))
 				break
 			case "well":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "WellData", id)
 				n = processWell(user_client, user_client.getWell(id))
 				break
 			case "plate":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "PlateData", id)
 				if(runId > 0){
 					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
 					if(!listRuns.isEmpty()){
@@ -89,6 +95,7 @@ if (user_client.isConnected()){
 				}
 				break
 			case "screen":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ScreenData", id)
 				n = processScreen(user_client, user_client.getScreen(id))
 				break
 		}
@@ -102,6 +109,22 @@ if (user_client.isConnected()){
 	println "Not able to connect to "+host
 }
 return 
+
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
+
 
 /**
  * Delete key-values

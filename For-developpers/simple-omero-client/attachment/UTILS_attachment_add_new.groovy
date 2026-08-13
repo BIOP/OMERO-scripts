@@ -5,17 +5,16 @@
 #@Long(label="Object ID", value=119273) id
 #@File(label="Attach a file to load", value="Choose a file") attachment
 
-/* Code description
- *  
+/* 
  * Adds new attachement to the select object
  *  
  * Dependencies
- *  - Fiji update site OMERO 5.5-5.6
+ *  - OMERO-Fiji plugin omero_ij-5.8.6-all.jar
  *  - Fiji update site PTBIOP, with simple-omero-client
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.09.01
- * Version: 1.0.1
+ * Version: 1.0.2
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -41,6 +40,7 @@
  * 
  * History
  * - 2023.06.19 : Remove unnecessary imports
+ * - 2026.07.21 : Automatically switch group if the object is not coming from the default one -v1.0.2
  */
 
 
@@ -53,6 +53,7 @@
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+groupId = -1
 
 if (user_client.isConnected()){
 	println "Connected to "+host
@@ -60,21 +61,27 @@ if (user_client.isConnected()){
 	try{
 		switch (object_type){
 		case "image":	
+			if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
 			processAttachment(user_client, user_client.getImage(id))
 			break	
 		case "dataset":
+			if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "DatasetData", id)
 			processAttachment(user_client, user_client.getDataset(id))
 			break
 		case "project":
+			if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ProjectData", id)
 			processAttachment(user_client, user_client.getProject(id))
 			break
 		case "well":
+			if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "WellData", id)
 			processAttachment(user_client, user_client.getWells(id))
 			break
 		case "plate":
+			if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "PlateData", id)
 			processAttachment(user_client, user_client.getPlates(id))
 			break
 		case "screen":
+			if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ScreenData", id)
 			processAttachment(user_client, user_client.getScreens(id))
 			break
 		}
@@ -103,6 +110,20 @@ def processAttachment(user_client, repository_wpr){
 		repository_wpr.addFile(user_client, attachment)
 }
 
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
 
 
 /*

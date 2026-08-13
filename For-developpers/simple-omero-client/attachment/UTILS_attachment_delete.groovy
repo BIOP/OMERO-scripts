@@ -2,24 +2,22 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
-#@Long(label="Object ID", value=119273) id
+#@String(label="Object ID or object(s) URL", value=119273) ids
 #@Boolean(label="Also delete attachments from colleagues", value = false) deleteDataYouDoNotOwn
 #@Boolean(label="Dry Run", value = false) dryRun
 
 
 /* 
- * Code description
- * 
  * Deletes all attachements from the select object.
  *  
  *  
  * Dependencies
- *  - Fiji update site OMERO 5.5-5.6
+ *  - OMERO-Fiji plugin omero_ij-5.8.6-all.jar
  *  - Fiji update site PTBIOP, with simple-omero-client
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 01.09.2022
- * Version: 1.0.1
+ * Version: 1.1.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -45,6 +43,8 @@
  * 
  * History
  * - 2023-06-16 : Limits the number of call to the OMERO server
+ * - 2026.07.21 : Support parsing of URL instead of just an ID -v1.1.0
+ * - 2026.07.21 : Automatically switch group if the object is not coming from the default one -v1.1.0
  */
 
 /**
@@ -56,33 +56,49 @@
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+groupId = -1
 
 if (user_client.isConnected()){
 	println "Connected to "+host
 	
 	try{
-		switch (object_type){
-			case "image":	
-				processAttachment(user_client, user_client.getImage(id))
-				break	
-			case "dataset":
-				processAttachment(user_client, user_client.getDataset(id))
-				break
-			case "project":
-				processAttachment(user_client, user_client.getProject(id))
-				break
-			case "well":
-				processAttachment(user_client, user_client.getWells(id))
-				break
-			case "plate":
-				processAttachment(user_client, user_client.getPlates(id))
-				break
-			case "screen":
-				processAttachment(user_client, user_client.getScreens(id))
-				break
+		def idList = []
+		try{
+			Long.parseLong(ids)
+			idList.add(id)
+		}catch (Exception e){
+			idList = parseURL(ids)
 		}
-		println "Processing of attachments for "+object_type+ " "+id+" : DONE !"
 		
+		idList.each{id ->
+			switch (object_type){
+				case "image":	
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
+					processAttachment(user_client, user_client.getImage(id))
+					break	
+				case "dataset":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "DatasetData", id)
+					processAttachment(user_client, user_client.getDataset(id))
+					break
+				case "project":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ProjectData", id)
+					processAttachment(user_client, user_client.getProject(id))
+					break
+				case "well":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "WellData", id)
+					processAttachment(user_client, user_client.getWells(id))
+					break
+				case "plate":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "PlateData", id)
+					processAttachment(user_client, user_client.getPlates(id))
+					break
+				case "screen":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ScreenData", id)
+					processAttachment(user_client, user_client.getScreens(id))
+					break
+			}
+			println "Processing of attachments for "+object_type+ " "+id+" : DONE !"
+		}
 	} finally {
 		user_client.disconnect()
 		println "Disconnected from "+host
@@ -92,6 +108,7 @@ if (user_client.isConnected()){
 	println "Not able to connect to "+host
 }
 return
+
 
 /**
  * Delete all the attachment from an object
@@ -141,6 +158,62 @@ def processAttachment(user_client, repository_wpr){
 	}
 	
 	println attachments_to_delete.size() + " attachments deleted"
+}
+
+
+/**
+ * Parse OMERO URL to get the list of ids
+ */
+def parseURL(url){
+	def idList = []
+	
+	// Check that URL is correct
+	if (url.contains("?show=")) {
+	    def showPart = url.split("\\?show=")[1]
+	    
+	    // get everything after the |
+	    def items = showPart.split("\\|")
+	    
+	    def results = []
+	    
+	    // Parse each element
+	    items.each { item ->
+	        def matcher = (item =~ /^([a-zA-Z]+)-(\d+)$/)
+	        if (matcher.matches()) {
+	            results << [
+	                type: matcher.group(1),
+	                id: matcher.group(2).toInteger()
+	            ]
+	        }
+	    }
+
+		// get ids
+	    def type = results.collect { it.type }.unique()
+	    if(type.size() == 1 && type.get(0).equalsIgnoreCase(object_type)){
+	    	idList = results.collect { it.id }
+	    } else {
+	    	 println "The type of objects in the URL "+type+" does not match with the selected object type "+object_type
+	    }
+	
+	} else {
+	    println "The URL doesn't contain '?show='; it's not coming from OMERO."
+	}
+	return idList
+}
+
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
 }
 
 

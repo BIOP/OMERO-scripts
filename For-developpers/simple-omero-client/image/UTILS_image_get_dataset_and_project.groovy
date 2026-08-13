@@ -4,18 +4,17 @@
 #@Long(label="Image ID", value=119273) id
 
 
-/* Code description
- *  
+/* 
  * This script gets the parent dataset / project from an given image
  *  
  *
  * Dependencies
- *  - Fiji update site OMERO 5.5-5.6
+ *  - OMERO-Fiji plugin omero_ij-5.8.6-all.jar
  *  - Fiji update site PTBIOP, with simple-omero-client
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.09.01
- * Version: 1.0.0
+ * Version: 1.0.1
  *
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -38,6 +37,9 @@
  * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF 
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * -----------------------------------------------------------------------------
+ * 
+ * History
+ * - 2026.07.21 : Automatically switch group if the object is not coming from the default one -v1.0.1
  */
 
 // Connection to server
@@ -49,6 +51,9 @@ if (user_client.isConnected()){
 	println "Connected "+ host
 	
 	try{
+		// switch group if necessary
+		checkAndSwitchGroup(user_client, "ImageData", id)
+		
 		// Create the image Wrapper object
 		ImageWrapper image_wpr = user_client.getImage(id)
 		
@@ -74,6 +79,21 @@ if (user_client.isConnected()){
 	println "Not able to connect to "+host
 }
 return
+
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
 
 
 /*

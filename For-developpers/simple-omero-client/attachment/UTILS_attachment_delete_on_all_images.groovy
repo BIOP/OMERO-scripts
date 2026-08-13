@@ -2,25 +2,23 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
-#@Long(label="Object ID", value=119273) id
+#@String(label="Object ID or object(s) URL", value=119273) ids
 #@Long(label="ONLY FOR PLATES, Run ID to process (-1 for all)", value = -1) runId
 #@Boolean(label="Also delete attachments from colleagues", value = false) deleteDataYouDoNotOwn
 #@Boolean(label="Dry Run", value = false) dryRun
 
 
-/* 
- * Code description
- * 
+/*
  * Deletes all attachements from all images, children of the select object.
  *  
  *  
  * Dependencies
- *  - Fiji update site OMERO 5.5-5.6
+ *  - OMERO-Fiji plugin omero_ij-5.8.6-all.jar
  *  - Fiji update site PTBIOP, with simple-omero-client
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 01.09.2023
- * Version: 1.1.0
+ * Version: 1.2.0
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -47,6 +45,8 @@
  * History
  * - 2023-09-01 : First version -- v1.0.0
  * - 2026-04-23 : Remove popup window -v1.1.0
+ * - 2026.07.21 : Support parsing of URL instead of just an ID -v1.2.0
+ * - 2026.07.21 : Automatically switch group if the object is not coming from the default one -v1.2.0
  */
 
 /**
@@ -58,43 +58,60 @@
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
-
+groupId = -1
 
 if (user_client.isConnected()){
 	println "Connected to "+host
-	
-	try{
-		switch (object_type){
-			case "image":	
-				n = processImage(user_client, user_client.getImage(id))
-				break	
-			case "dataset":
-				n = processDataset(user_client, user_client.getDataset(id))
-				break
-			case "project":
-				n = processProject(user_client, user_client.getProject(id))
-				break
-			case "well":
-				n = processWell(user_client, user_client.getWell(id))
-				break
-			case "plate":
-				if(runId > 0){
-					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
-					if(!listRuns.isEmpty()){
-						processRun(user_client, listRuns.get(0))
-					}else{
-						println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
-					}
-				}else{
-					processPlate(user_client, user_client.getPlate(id))
-				}
-				break
-			case "screen":
-				n = processScreen(user_client, user_client.getScreen(id))
-				break
-		}
-		println n + " attachments were deleted for "+object_type+ " "+id + " and its child"
 		
+	try{
+	
+		def idList = []
+		try{
+			Long.parseLong(ids)
+			idList.add(id)
+		}catch (Exception e){
+			idList = parseURL(ids)
+		}
+		
+		idList.each{id ->
+			def n = 0
+			switch (object_type){
+				case "image":	
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
+					n = processImage(user_client, user_client.getImage(id))
+					break	
+				case "dataset":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "DatasetData", id)
+					n = processDataset(user_client, user_client.getDataset(id))
+					break
+				case "project":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ProjectData", id)
+					n = processProject(user_client, user_client.getProject(id))
+					break
+				case "well":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "WellData", id)
+					n = processWell(user_client, user_client.getWell(id))
+					break
+				case "plate":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "PlateData", id)
+					if(runId > 0){
+						def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
+						if(!listRuns.isEmpty()){
+							processRun(user_client, listRuns.get(0))
+						}else{
+							println "[ERROR] There is no Run with Id "+runId+" under the plate "+id
+						}
+					}else{
+						processPlate(user_client, user_client.getPlate(id))
+					}
+					break
+				case "screen":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ScreenData", id)
+					n = processScreen(user_client, user_client.getScreen(id))
+					break
+			}
+			println n + " attachments were deleted for "+object_type+ " "+id + " and its child"
+		}
 	} finally {
 		user_client.disconnect()
 		println "Disconnected from "+host
@@ -104,6 +121,63 @@ if (user_client.isConnected()){
 	println "Not able to connect to "+host
 }
 return
+
+
+
+/**
+ * Parse OMERO URL to get the list of ids
+ */
+def parseURL(url){
+	def idList = []
+	
+	// Check that URL is correct
+	if (url.contains("?show=")) {
+	    def showPart = url.split("\\?show=")[1]
+	    
+	    // get everything after the |
+	    def items = showPart.split("\\|")
+	    
+	    def results = []
+	    
+	    // Parse each element
+	    items.each { item ->
+	        def matcher = (item =~ /^([a-zA-Z]+)-(\d+)$/)
+	        if (matcher.matches()) {
+	            results << [
+	                type: matcher.group(1),
+	                id: matcher.group(2).toInteger()
+	            ]
+	        }
+	    }
+
+		// get ids
+	    def type = results.collect { it.type }.unique()
+	    if(type.size() == 1 && type.get(0).equalsIgnoreCase(object_type)){
+	    	idList = results.collect { it.id }
+	    } else {
+	    	 println "The type of objects in the URL "+type+" does not match with the selected object type "+object_type
+	    }
+	
+	} else {
+	    println "The URL doesn't contain '?show='; it's not coming from OMERO."
+	}
+	return idList
+}
+
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
 
 
 /**

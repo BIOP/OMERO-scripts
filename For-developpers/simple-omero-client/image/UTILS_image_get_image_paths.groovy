@@ -3,18 +3,17 @@
 #@String(label="Password", style='password', persist=false) PASSWORD
 #@Long(label="Image ID", value=119273, required=false) imageId
 
-/* Code description
- *  
+/* 
  * This script gets the original import path of an image
  *  
  *
  * Dependencies
- *  - Fiji update site OMERO 5.5-5.6
+ *  - OMERO-Fiji plugin omero_ij-5.8.6-all.jar
  *  - Fiji update site PTBIOP, with simple-omero-client
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2023.11.08
- * Version: 2.0.0
+ * Version: 2.0.1
  *
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -40,7 +39,7 @@
  *
  *  History
  * - 2024.09.26 : update method to get original path directly from simple-omero-client --v2.0.0
- * 
+ * - 2026.07.21 : Automatically switch group if the object is not coming from the default one -v2.0.1
  */
 
 
@@ -53,6 +52,8 @@ user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 if (user_client.isConnected()){
 	println "Connected to "+host
 	try{		
+		checkAndSwitchGroup(user_client, "ImageData", id)
+		
 		def imgWrapper = user_client.getImage(imageId)
 		
 		println "Getting oringinal import paths for image "+imageId
@@ -71,6 +72,22 @@ if (user_client.isConnected()){
 }
 
 return
+
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
+
 
 /*
  * imports

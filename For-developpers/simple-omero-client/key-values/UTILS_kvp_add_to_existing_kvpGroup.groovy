@@ -6,8 +6,7 @@
 #@String(label="Key", value = "Key") key
 #@String(label="Value", value = "Value") value
 
-/* Code description
- *  
+/*  
  * Add new KVPs, in an existing KVP group, on the selected object.
  * 
  * 
@@ -17,7 +16,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.09.01
- * Version: 1.0.0
+ * Version: 1.0.1
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -44,6 +43,7 @@
  * History
  * - 2023.06.19 : Remove unnecessary imports
  * - 2026.04.01 : Update licence and fix typos
+ * - 2026.08.05 : Automatically switch group if the object is not coming from the default one -v1.0.1 
  */
 
 /**
@@ -55,6 +55,7 @@
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+groupId = -1
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
@@ -62,22 +63,28 @@ if (user_client.isConnected()){
 	try{
 		switch (object_type){
 			case "image":	
-				processKVP(user_client, user_client.getImage(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
+				processKVP( user_client, user_client.getImage(id) )
 				break	
 			case "dataset":
-				processKVP(user_client, user_client.getDataset(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "DatasetData", id)
+				processKVP( user_client, user_client.getDataset(id) )
 				break
 			case "project":
-				processKVP(user_client, user_client.getProject(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ProjectData", id)
+				processKVP( user_client, user_client.getProject(id) )
 				break
 			case "well":
-				processKVP(user_client, user_client.getWells(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "WellData", id)
+				processKVP( user_client, user_client.getWells(id) )
 				break
 			case "plate":
-				processKVP(user_client, user_client.getPlates(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "PlateData", id)
+				processKVP( user_client, user_client.getPlates(id) )
 				break
 			case "screen":
-				processKVP(user_client, user_client.getScreens(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ScreenData", id)
+				processKVP( user_client, user_client.getScreens(id) )
 				break
 		}
 		println "Adding a Key-value pairs for "+object_type+ " "+id+" : DONE !"
@@ -90,6 +97,21 @@ if (user_client.isConnected()){
 	println "Not able to connect to "+host
 }
 return
+
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
 
 
 def processKVP(user_client, repository_wpr){

@@ -4,8 +4,7 @@
 #@Long(label="Dataset ID", value=119273) id
 
 
-/* Code description
- *  
+/*  
  * User can specify the ID of a dataset
  * Macro, Overview and label .vsi images within the dataset will be renamed like "_Overview_imageName.vsi"
  * 
@@ -16,7 +15,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2023.03.20
- * Version: 1.1.0
+ * Version: 1.1.1
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -43,7 +42,7 @@
  * History
  * 	- 2023.03.27 : add "_" before the name
  * 	- 2026.04.23 : Update UI and properly link tags -v1.1.0
- * 
+ *  - 2026.08.05 : Automatically switch group if the object is not coming from the default one -v1.1.1
  */
 
 /**
@@ -62,6 +61,7 @@ if (user_client.isConnected()){
 	
 	try{	
 		// get the dataset
+		checkAndSwitchGroup(user_client, "DatasetData", id)
 		def datasetWrapper = user_client.getDataset(id);
 		
 		// list images within the dataset
@@ -79,6 +79,21 @@ if (user_client.isConnected()){
 	println "Not able to connect to "+host
 }
 return
+
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
 
 
 /**

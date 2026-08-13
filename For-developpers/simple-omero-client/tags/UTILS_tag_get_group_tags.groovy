@@ -2,8 +2,7 @@
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
 
-/* Code description 
- *
+/* 
  * Retrieve all tags from the default group of the connected user
  * 
  * 

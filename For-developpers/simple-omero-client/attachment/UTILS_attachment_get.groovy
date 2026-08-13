@@ -6,8 +6,7 @@
 
 
 
-/* Code description
- *  
+/*  
  * Get attachements from the select object
  *  
  *  
@@ -17,7 +16,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 01.09.2022
- * Version: 1.0.1
+ * Version: 1.0.2
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -43,6 +42,7 @@
  * 
  * History
  * - 2023.06.19 : Remove unnecessary imports 
+ * - 2026.08.05 : Automatically switch group if the object is not coming from the default one -v1.0.2
  */
 
 /**
@@ -54,6 +54,7 @@
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+groupId = -1
 
 if (user_client.isConnected()){
 	println "Connected to "+host
@@ -62,23 +63,29 @@ if (user_client.isConnected()){
 		
 		switch (object_type){
 			case "image":	
-				processAttachment(user_client, user_client.getImage(id))
-				break	
-			case "dataset":
-				processAttachment(user_client, user_client.getDataset(id))
-				break
-			case "project":
-				processAttachment(user_client, user_client.getProject(id))
-				break
-			case "well":
-				processAttachment(user_client, user_client.getWells(id))
-				break
-			case "plate":
-				processAttachment(user_client, user_client.getPlates(id))
-				break
-			case "screen":
-				processAttachment(user_client, user_client.getScreens(id))
-				break
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
+					processAttachment(user_client, user_client.getImage(id))
+					break	
+				case "dataset":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "DatasetData", id)
+					processAttachment(user_client, user_client.getDataset(id))
+					break
+				case "project":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ProjectData", id)
+					processAttachment(user_client, user_client.getProject(id))
+					break
+				case "well":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "WellData", id)
+					processAttachment(user_client, user_client.getWells(id))
+					break
+				case "plate":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "PlateData", id)
+					processAttachment(user_client, user_client.getPlates(id))
+					break
+				case "screen":
+					if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ScreenData", id)
+					processAttachment(user_client, user_client.getScreens(id))
+					break
 		}
 		println "Processing of attachments for "+object_type+ " "+id+" : DONE !"
 		
@@ -106,7 +113,19 @@ def processAttachment(user_client, repository_wpr){
 	file_List.each{file-> println "File name : " +file.getFileName()+" (id : "+file.getFileID()+")"}
 }
 
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
 
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
 
 /*
  * imports  

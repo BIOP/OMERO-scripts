@@ -8,8 +8,7 @@
 #@String (choices={"Images", "ROIs"}, style="radioButtonHorizontal", label="Target object", value="Images") processRois
 
 
-/* Code description 
- *
+/* 
  * Adds new tags to all images, children of the select object.
  * Tags have to be comma-separated
  * 
@@ -21,7 +20,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.05.18
- * Version: 1.0.3
+ * Version: 1.0.4
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -49,7 +48,7 @@
  * - 2023-10-17 : Add popup message at the end of the script and if an error occurs while running.
  * - 2023.11.06 : Remove popup messages from template
  * - 2026.04.23 : Update add tag method + run & Rois support -v1.0.3
- * 
+ * - 2026.08.13 : Automatically switch group if the object is not coming from the default one -v1.0.4
  */
 
 
@@ -62,6 +61,7 @@
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+groupId = -1
 
 if (user_client.isConnected()){
 	println "Connected to "+host
@@ -69,18 +69,23 @@ if (user_client.isConnected()){
 	try{
 		switch (object_type){
 			case "image":	
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
 				processImage(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "DatasetData", id)
 				processDataset(user_client, user_client.getDataset(id))
 				break
 			case "project":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ProjectData", id)
 				processProject(user_client, user_client.getProject(id))
 				break
 			case "well":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "WellData", id)
 				processWell(user_client, user_client.getWells(id))
 				break
 			case "plate":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "PlateData", id)
 				if(runId > 0){
 					def listRuns = user_client.getPlate(id).getPlateAcquisitions().stream().filter(e->e.getId() == runId).collect(Collectors.toList())
 					if(!listRuns.isEmpty()){
@@ -93,6 +98,7 @@ if (user_client.isConnected()){
 				}
 				break
 			case "screen":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ScreenData", id)
 				processScreen(user_client, user_client.getScreens(id))
 				break
 		}
@@ -108,6 +114,20 @@ if (user_client.isConnected()){
 }
 return
 
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
 
 
 /**

@@ -4,8 +4,7 @@
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 
-/* Code description
- *  
+/*  
  * Gets all KVPs attached to the select object.
  * 
  * 
@@ -15,7 +14,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.09.01
- * Version: 1.0.2
+ * Version: 1.0.3
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -42,6 +41,7 @@
  * History
  * 	- 2023.06.19 : Remove unnecessary imports 
  * 	- 2026.04.01 : Update licence and fix typos
+ * 	- 2026.08.05 : Automatically switch group if the object is not coming from the default one -v1.0.3
  */
 
 /**
@@ -53,6 +53,7 @@
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+groupId = -1
 
 if (user_client.isConnected()){
 	println "Connected to "+host
@@ -60,22 +61,28 @@ if (user_client.isConnected()){
 	try{
 		switch (object_type){
 			case "image":	
-				getKVPs(user_client, user_client.getImage(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
+				processKVP( user_client, user_client.getImage(id) )
 				break	
 			case "dataset":
-				getKVPs(user_client, user_client.getDataset(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "DatasetData", id)
+				processKVP( user_client, user_client.getDataset(id) )
 				break
 			case "project":
-				getKVPs(user_client, user_client.getProject(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ProjectData", id)
+				processKVP( user_client, user_client.getProject(id) )
 				break
 			case "well":
-				getKVPs(user_client, user_client.getWell(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "WellData", id)
+				processKVP( user_client, user_client.getWells(id) )
 				break
 			case "plate":
-				getKVPs(user_client, user_client.getPlate(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "PlateData", id)
+				processKVP( user_client, user_client.getPlates(id) )
 				break
 			case "screen":
-				getKVPs(user_client, user_client.getScreen(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ScreenData", id)
+				processKVP( user_client, user_client.getScreens(id) )
 				break
 		}
 		println "Processing of key-values for "+object_type+ " "+id+" : DONE !"
@@ -89,12 +96,26 @@ if (user_client.isConnected()){
 }
 return
 
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
+
 
 /**
  * Print all kvp belogning to the current OMERO object 
  * 
  * */
-def getKVPs(user_client, annotatable_wpr){
+def processKVP(user_client, annotatable_wpr){
 	// get the current key-value pairs
 	List<Map<String, List<String>>> keyValues = annotatable_wpr.getMapAnnotations(user_client).stream()
 																	   .map(MapAnnotationWrapper::getContentAsMap)

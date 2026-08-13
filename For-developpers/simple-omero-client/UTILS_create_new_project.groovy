@@ -4,8 +4,7 @@
 #@String(label="Project name") projectName
 
 
-/* Code description 
- *
+/* 
  * Creates a new project on OMERO, with the given name.
  * 
  * 

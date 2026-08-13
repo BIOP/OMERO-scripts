@@ -4,8 +4,7 @@
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 
-/* Code description
- *  
+/* 
  * Adds new OMERO table, created from an ImageJ ResultsTable, to the select object.
  *  
  *  
@@ -15,7 +14,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.09.01
- * Version: 1.0.0
+ * Version: 1.0.1
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -41,6 +40,7 @@
  * 
  * History
  * - 2023.06.19 : Remove unnecessary imports
+ * - 2026.08.13 : Automatically switch group if the object is not coming from the default one -v1.0.1
  */
 
  */
@@ -54,6 +54,7 @@
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+groupId = -1
 
 if (user_client.isConnected()){
 	println "Connected to "+host
@@ -61,21 +62,27 @@ if (user_client.isConnected()){
 	try{
 		switch (object_type){
 			case "image":	
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
 				processTable(user_client, user_client.getImage(id))
 				break	
 			case "dataset":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "DatasetData", id)
 				processTable(user_client, user_client.getDataset(id))
 				break
 			case "project":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ProjectData", id)
 				processTable(user_client, user_client.getProject(id))
 				break
 			case "well":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "WellData", id)
 				processTable(user_client, user_client.getWells(id))
 				break
 			case "plate":
-				processTable(user_client, user_client.getPlates(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "PlateData", id)
+				processTable(user_client, user_client.getPlate(id))
 				break
 			case "screen":
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ScreenData", id)
 				processTable(user_client, user_client.getScreens(id))
 				break
 		}
@@ -91,6 +98,19 @@ if (user_client.isConnected()){
 return
 
 
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
 
 /**
  *Add a new OMERO.table as an attachment

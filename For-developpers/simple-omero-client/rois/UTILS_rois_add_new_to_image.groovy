@@ -7,8 +7,7 @@
 #@RoiManager rm
 
 
-/* Code description
- *  
+/* 
  * Create 4 Rectangles in FIJI, convert them to OMERO shape, and send them to OMERO, linked to the 
  * given image
  * 
@@ -19,7 +18,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.04.06
- * Version: 1.1.0
+ * Version: 1.1.1
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -46,6 +45,7 @@
  * History
  * - 2023-06-16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3
  * - 2023.06.30 : Refactor the script and move to simple-omero-client 5.14.0
+ * - 2026.08.13 : Automatically switch group if the object is not coming from the default one -v1.1.1 
  */
 
 
@@ -61,6 +61,7 @@ if (user_client.isConnected()){
 	println "Connected to "+host
 
 	try{
+		checkAndSwitchGroup(user_client, "ImageData", id)
 		processImage(user_client, user_client.getImage(id))
 		println "Processing of image, id "+id+": DONE !"
 	} finally {
@@ -72,6 +73,20 @@ if (user_client.isConnected()){
 }
 return
 
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
 
 def processImage(user_client, image_wpr){
 	// clear Fiji env

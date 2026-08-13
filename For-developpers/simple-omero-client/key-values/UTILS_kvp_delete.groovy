@@ -4,8 +4,7 @@
 #@String(label="Object to process", choices={"image","dataset","project","well","plate","screen"}) object_type
 #@Long(label="Object ID", value=119273) id
 
-/* Code description
- *  
+/*
  * Deletes all KVPs attached to the select object.
  * 
  * 
@@ -15,7 +14,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.10.05
- * Version: 1.0.2
+ * Version: 1.0.3
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -42,6 +41,7 @@
  * History
  * 	- 2023.06.16 : Limits the number of call to the OMERO server + update the version of simple-omero-client to 5.12.3 + remove unnecessary imports.
  * 	- 2026.04.01 : Update licence and fix typos
+ * 	- 2026.08.05 : Automatically switch group if the object is not coming from the default one -v1.0.3
  */
 
 /**
@@ -53,6 +53,7 @@
 port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
+groupId = -1
 
 if (user_client.isConnected()){
 	println "\nConnected to "+host
@@ -61,22 +62,28 @@ if (user_client.isConnected()){
 		def n
 		switch (object_type){
 			case "image":	
-				n = deleteKVP(user_client, user_client.getImage(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
+				n = processKVP( user_client, user_client.getImage(id) )
 				break	
 			case "dataset":
-				n = deleteKVP(user_client, user_client.getDataset(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "DatasetData", id)
+				n = processKVP( user_client, user_client.getDataset(id) )
 				break
 			case "project":
-				n = deleteKVP(user_client, user_client.getProject(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ProjectData", id)
+				n = processKVP( user_client, user_client.getProject(id) )
 				break
 			case "well":
-				n = deleteKVP(user_client, user_client.getWell(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "WellData", id)
+				n = processKVP( user_client, user_client.getWells(id) )
 				break
 			case "plate":
-				n = deleteKVP(user_client, user_client.getPlate(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "PlateData", id)
+				n = processKVP( user_client, user_client.getPlates(id) )
 				break
 			case "screen":
-				n = deleteKVP(user_client, user_client.getScreen(id))
+				if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ScreenData", id)
+				n = processKVP( user_client, user_client.getScreens(id) )
 				break
 		}
 		println n + " key-value pairs deleted for "+object_type+ " "+id + " and its childs"
@@ -91,6 +98,21 @@ if (user_client.isConnected()){
 return
 
 
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
+
+
 /**
  * Delete key-values
  * 
@@ -99,7 +121,7 @@ return
  * 		repository_wpr : OMERO repository object (image, dataset, project, well, plate, screen)
  * 
  * */
-def deleteKVP(user_client, repository_wpr){
+def processKVP(user_client, repository_wpr){
 	// get the current key-value pairs
 	List<MapAnnotationWrapper> keyValues = repository_wpr.getMapAnnotations(user_client)
 	

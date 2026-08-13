@@ -7,8 +7,7 @@
 #@RoiManager rm
 
 
-/* Code description
- *  
+/*
  * Reads ROIs from OMERO, attached to the given image, and convert them to proper Fiji ROI according to the nested
  * convention, written in the 'UTILS_rois_add_custom_nested' script.
  * 
@@ -19,7 +18,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2022.09.23
- * Version: 1.0.1
+ * Version: 1.0.2
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -45,6 +44,7 @@
  * 
  * History
  * - 2023-06-16 : Limit the number of server calls + update simple-omero-client to 5.12.3
+ * - 2026.08.13 : Automatically switch group if the object is not coming from the default one -v1.0.2 
  */
 
  */
@@ -67,6 +67,7 @@ if (user_client.isConnected()){
 	println "Connected to "+host
 	
 	try{
+		checkAndSwitchGroup(user_client, "ImageData", id)
 		processRois(user_client, user_client.getImage(id))
 		println "ROIs importation in FIJI from the image, id "+id+": DONE !\n"
 	} finally{
@@ -77,6 +78,21 @@ if (user_client.isConnected()){
 	println "Not able to connect to "+host
 }
 return
+
+
+def checkAndSwitchGroup(user_client, dataType, dataId){
+    // get the group ID and switch context to that group
+    def img = user_client.getBrowseFacility().findObject(user_client.getCtx(), dataType, dataId, true);
+    def groupId = img.getGroupId();
+
+    if(groupId > 0) {
+        if (user_client.getCurrentGroupId() != groupId){
+        	println "Switching group from "+user_client.getGroup(user_client.getCurrentGroupId()).getName()+" to "+user_client.getGroup(groupId).getName()
+            user_client.switchGroup(groupId);
+        }
+    }
+    return groupId
+}
 
 
 /**
