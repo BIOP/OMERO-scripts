@@ -1,7 +1,7 @@
 #@String(label="Host", value="omero-server.epfl.ch") host
 #@String(label="Username") USERNAME
 #@String(label="Password", style='password', persist=false) PASSWORD
-#@String(label="Object ID or object(s) URL", value=119273) ids
+#@String(label="Image ID or Image(s) URL", value=119273) ids
 #@File(label="Choose the destination folder", style='directory') dir
 
 
@@ -16,7 +16,7 @@
  * 
  * Author: Rémy Dornier, EPFL - PTBIOP 
  * Date: 2023.07.07
- * Version: 1.1.1
+ * Version: 1.1.2
  * 
  * -----------------------------------------------------------------------------
  * Copyright (c) 2026 ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE, Switzerland, BioImaging And Optics Platform (BIOP)
@@ -43,6 +43,7 @@
  * History
  * - 2026.04.27 : Support parsing of URL instead of just an ID -v1.1.0
  * - 2026.07.21 : Automatically switch group if the object is not coming from the default one -v1.1.1
+ * - 2026.09.24 : Fixing object_type bug -v1.1.2
 */
 
 /**
@@ -55,6 +56,7 @@ port = 4064
 Client user_client = new Client()
 user_client.connect(host, port, USERNAME, PASSWORD.toCharArray())
 groupId = -1
+object_type = "image"
 
 if (user_client.isConnected()){
 	println "Connected to "+host
@@ -70,7 +72,7 @@ if (user_client.isConnected()){
 		
 		idList.each{id ->
 			if(groupId < 0) groupId = checkAndSwitchGroup(user_client, "ImageData", id)
-			processImage(user_client, user_client.getImage(id), dir)
+			processImage(user_client, user_client.getImage(id), dir, id)
 		}
 	} finally{
 		user_client.disconnect()
@@ -146,7 +148,7 @@ def checkAndSwitchGroup(user_client, dataType, dataId){
  * 		image_wpr : OMERO image
  * 
  * */
-def processImage(user_client, image_wpr, dir){
+def processImage(user_client, image_wpr, dir, id){
 	try{
 		if(dir.exists()){
 			print "Download image, id " + id + "..."
