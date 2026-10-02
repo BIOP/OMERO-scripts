@@ -98,10 +98,10 @@ if (user_client.isConnected()){
 			
 		// get default project and dataset names
 		def defaultProjectNames = projectWrapperList.collect{ it.getName() + KEY_SEPARATOR + it.getId() }.sort()
-		def defaultProject = projectWrapperList.get(0)
-		def defaultProjectName = defaultProject.getName() + KEY_SEPARATOR + defaultProject.getId()
-		def defaultDatasetNames = defaultProject.getDatasets().collect{ it.getName() + KEY_SEPARATOR + it.getId() }.sort()
-		projectDatasetMap.put(defaultProjectName, defaultDatasetNames)
+		def defaultProject = projectWrapperList.isEmpty() ? "" : projectWrapperList.get(0)
+		def defaultProjectName = projectWrapperList.isEmpty() ? "" : defaultProject.getName() + KEY_SEPARATOR + defaultProject.getId()
+		def defaultDatasetNames = projectWrapperList.isEmpty() ? new ArrayList<>() : defaultProject.getDatasets().collect{ it.getName() + KEY_SEPARATOR + it.getId() }.sort()
+		projectWrapperList.isEmpty() ?: projectDatasetMap.put(defaultProjectName, defaultDatasetNames)
 
 		// generate the dialog box
 		def dialog = new Dialog(user_client, groupUserProjectDatasetMap, defaultGroupName, loggedInUserFullName, defaultProjectName, defaultProjectNames, defaultDatasetNames)
@@ -344,7 +344,9 @@ public class Dialog extends JFrame {
 		// build project combo model
 		modelCmbProject = new DefaultComboBoxModel<>((String[])defaultProjectNames);
         cmbProject = new JComboBox<>(modelCmbProject);
-        cmbProject.setSelectedIndex(defaultProjectNames.indexOf(defaultproject));
+        if(!defaultProjectNames.isEmpty()){
+        	cmbProject.setSelectedIndex(defaultProjectNames.indexOf(defaultproject));
+        }
         
         // build group combo model 
         def groupList = new ArrayList<>(this.groupUserProjectDatasetMap.keySet()).sort()
@@ -368,7 +370,7 @@ public class Dialog extends JFrame {
     	checkboxPanel.add(selectAllBox)
 
         JPopupMenu popupMenu = new JPopupMenu();
-        def datasetNames = this.groupUserProjectDatasetMap.get(defaultGroup).get(loggedInUser).get(defaultproject).sort()
+        def datasetNames = defaultProjectNames.isEmpty() ? new ArrayList<>() : this.groupUserProjectDatasetMap.get(defaultGroup).get(loggedInUser).get(defaultproject).sort()
         JCheckBox[] checkBoxes = new JCheckBox[datasetNames.size()]
         datasetNames.eachWithIndex{name, idx ->
         	checkBoxes[idx] = new JCheckBox(name)
@@ -405,7 +407,7 @@ public class Dialog extends JFrame {
 	    }
        
 		def scrollPane = new JScrollPane(checkboxPanel)
-		scrollPane.setPreferredSize(new Dimension(200, (int)(checkBoxes[0].preferredSize.height * nOptionMax)))
+		scrollPane.setPreferredSize(new Dimension(200, 250))
 		popupMenu.add(scrollPane)
 		
 		dropDownButton.addActionListener(e -> {
@@ -609,6 +611,9 @@ public class Dialog extends JFrame {
 					if(!projectNames.isEmpty()){
 						projectNames.each { modelCmbProject.addElement(it) }
 	        			cmbProject.setSelectedIndex(0);
+					}else{
+						checkboxPanel.removeAll();
+						checkboxPanel.add(selectAllBox)
 					}
 			    }
 			}
